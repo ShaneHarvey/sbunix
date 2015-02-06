@@ -74,6 +74,10 @@ char **mkargv(char *line) {
     if(line == NULL) {
         return NULL;
     }
+    /* ignore leading whitespace */
+    while(isspace(*line)) {
+        line++;
+    }
     argc = argcount(line);
     argv = malloc((argc + 1) * sizeof(char *));
     if(argv == NULL) {
@@ -110,11 +114,13 @@ cmd_t *parse_line(char *line) {
         return NULL;
     }
     nextstart = NULL;
+    /* find the start of the next command in pipeline */
     for(cur = line, lastchar = '\0'; *cur != '\0'; lastchar = *cur, ++cur) {
         if((isspace(lastchar) && *cur == '|')) {
             /* null terminate the line */
             *cur = '\0';
             nextstart = cur + 1;
+            break;
         }
     }
     cmd = malloc(sizeof(cmd_t));
@@ -160,7 +166,7 @@ int proccescmd(char *line, char **envp) {
         if(curcmd->next != NULL) {
             rv = pipe(pfd);
             if(rv < 0) {
-                printf("pipe failed!");
+                printf("pipe failed!\n");
                 exit(1);
             }
             outfile = pfd[1];
@@ -170,11 +176,11 @@ int proccescmd(char *line, char **envp) {
         /**
         * This if/else should be another function
         */
-        if(strcmp(cmd->argv[0], "cd") == 0) {
+        if(strcmp(curcmd->argv[0], "cd") == 0) {
             /* TODO: what if argv[1] is null */
-            rv = chdir(cmd->argv[1]);
+            rv = chdir(curcmd->argv[1]);
             if(rv) {
-                printf("cd: %s: %s\n", cmd->argv[1], "No such file or directory");
+                printf("cd: %s: %s\n", curcmd->argv[1], "No such file or directory");
                 return 1;
             }
         } else {
@@ -191,13 +197,20 @@ int proccescmd(char *line, char **envp) {
                     close(outfile);
                 }
                 /* Setup command and argv */
-                rv = execve(cmd->argv[0], cmd->argv, envp);
+                rv = execve(curcmd->argv[0], curcmd->argv, envp);
                 /* execve failed */
+                printf("execve failed!\n");
                 exit(rv);
             } else if(pid > 0) {
                 int status;
-                waitpid(pid, &status, 1);
-                printf("sbush: cmd finished with status %d\n", status);
+                pid_t wpid;
+                /* wait for pid */
+                wpid = waitpid(pid, &status, 0);
+                if(wpid < 0) {
+                    printf("waitpid failed!\n");
+                    exit(1);
+                }
+                printf("sbush: %s finished with status %d\n", curcmd->argv[0], status);
             } else {
                 printf("sbush: fork failed!\n");
                 return 1;
