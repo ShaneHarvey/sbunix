@@ -2,10 +2,12 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <ctype.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/wait.h>
+#include <ctype.h>        /* isspace */
+#include <unistd.h>       /* write */
+#include <sys/types.h>    /* waitpid */
+#include <sys/wait.h>     /* waitpid */
+#include <linux/limits.h> /* PATH_MAX */
+#include <fcntl.h>        /* open */
 
 
 #define MAX_LINE 1024
@@ -16,13 +18,46 @@ typedef struct cmd {
 }cmd_t;
 
 /**
- * Print the shell prompt from the PS1 string provided
+ * Print the shell prompt from the PS1 string provided, special characters include:
+ * \u – Username
+ * \h – Hostname
+ * \w – Full path of the current working directory
  */
 int printp(char *ps1) {
-    int rv;
-
-    rv = write(1, ps1, strlen(ps1));
-    return rv;
+    char *tmp = ps1;
+    while(*tmp != '\0') {
+        if(*tmp == '\\') {
+            char buf[PATH_MAX];
+            char *user;
+            switch (*(tmp + 1)) {
+                case 'u':
+                    user = getenv("USER");
+                    if(user != NULL) {
+                        write(STDOUT_FILENO, user, strlen(user));
+                    } else {
+                        write(STDOUT_FILENO, "NONE", 4);
+                    }
+                    tmp++;
+                    break;
+                case 'h':
+                    gethostname(buf, PATH_MAX);
+                    write(STDOUT_FILENO, buf, strlen(buf));
+                    tmp++;
+                    break;
+                case 'w':
+                    getcwd(buf, PATH_MAX);
+                    write(STDOUT_FILENO, buf, strlen(buf));
+                    tmp++;
+                    break;
+                default:
+                    write(STDOUT_FILENO, "\\", 1);
+            }
+        } else {
+            write(STDOUT_FILENO, tmp, 1);
+        }
+        tmp++;
+    }
+    return 1;
 }
 
 /**
@@ -188,6 +223,8 @@ int proccescmd(char *line, char **envp) {
 
             pid = fork();
             if(pid == 0) {
+                int exists = 0;
+                char filename[PATH_MAX]; /* holds full path to program */
                 if(infile != STDIN_FILENO) {
                     dup2(infile, STDIN_FILENO);
                     close(infile);
@@ -196,11 +233,47 @@ int proccescmd(char *line, char **envp) {
                     dup2(outfile, STDOUT_FILENO);
                     close(outfile);
                 }
-                /* Setup command and argv */
-                rv = execve(curcmd->argv[0], curcmd->argv, envp);
-                /* execve failed */
-                printf("execve failed!\n");
-                exit(rv);
+                /* Locate the program to run */
+                if(curcmd->argv[0][0] == '/' || curcmd->argv[0][0] == '.' ) {
+                    strcpy(filename, curcmd->argv[0]);
+                } else {
+                    char *path = getenv("PATH");
+                    int len = 0;
+                    while(*path != '\0') {
+                        int fd;
+                        len = 0;
+                        while(path[len] != ':' && path[len] != '\0') {
+                            len++;
+                        }
+                        /* construct full path */
+                        strncpy(filename, path, len);
+                        filename[len] = '/';
+                        strcpy(filename + len + 1, curcmd->argv[0]);
+                        fd = open(filename, O_RDONLY);
+                        if(fd >= 0) {
+                            /* File exists */
+                            exists = 1;
+                            close(fd);
+                            break;
+                        }
+                        /* try the next directory in PATH */
+                        path += len;
+                        if(path[len] == ':') {
+                            path++;
+                        }
+                    }
+                }
+                if(exists) {
+                    /* Setup command and argv */
+                    rv = execve(filename, curcmd->argv, envp);
+                    /* execve failed */
+                    printf("execve: %s failed!\n", filename);
+                    exit(rv);
+                } else {
+                    printf("%s: command not found\n", curcmd->argv[0]);
+                    exit(127);
+                }
+
             } else if(pid > 0) {
                 int status;
                 pid_t wpid;
@@ -210,7 +283,7 @@ int proccescmd(char *line, char **envp) {
                     printf("waitpid failed!\n");
                     exit(1);
                 }
-                printf("sbush: %s finished with status %d\n", curcmd->argv[0], status);
+                //printf("sbush: %s finished with status %d\n", curcmd->argv[0], status);
             } else {
                 printf("sbush: fork failed!\n");
                 return 1;
@@ -225,14 +298,21 @@ int proccescmd(char *line, char **envp) {
         }
         infile = pfd[0]; /* next command should read prev output */
     }
+    /* free memory */
+    freecmd(cmd);
     return 1;
 }
 
 int main(int argc, char **argv, char **envp) {
     int finished = 0;
     ssize_t rv;
-    char *ps1 = "sbush$ ";
+    char *ps1;
     char cmd[MAX_LINE];
+    ps1 = getenv("PS1");
+    if(ps1 == NULL) {
+        /* default prompt */
+        ps1 = "[\\u@\\h \\w]$ ";
+    }
 
     while(!finished) {
         char *cursor;
