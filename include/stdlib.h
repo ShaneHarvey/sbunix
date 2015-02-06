@@ -26,6 +26,11 @@ unsigned int alarm(unsigned int seconds);
 char *getcwd(char *buf, size_t size);
 int chdir(const char *path);
 
+// environment
+char *getenv(const char *name);
+int setenv(const char *envname, const char *envval, int overwrite);
+int unsetenv(const char *name);
+
 // files
 typedef long ssize_t;
 enum { O_RDONLY = 0, O_WRONLY = 1, O_RDWR = 2, O_CREAT = 64 };
