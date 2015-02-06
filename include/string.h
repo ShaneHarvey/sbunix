@@ -1,6 +1,9 @@
 #ifndef _STRING_H
 #define _STRING_H
 
+#include <sys/defs.h>
+#include <sys/types.h>
+
 #define NULL ((void*)0)
 
 int      memcmp(const void *, const void *, size_t);
