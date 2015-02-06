@@ -3,10 +3,15 @@ project(sbush)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror")
 
-set(SBUSH_SRCS
-    bin/hello/hello.c
-    bin/sbush/sbush.c)
+set(STRING_SRCS
+    lib/string.c)
+
+FILE(GLOB SBUSH_SRCS bin/sbush/*.c)
 
 include_directories(include)
 
-add_executable(sbush ${SBUSH_SRCS})
+add_library(string_lib OBJECT ${STRING_SCRS})
+
+add_executable(sbush
+    ${SBUSH_SRCS}
+    $<TARGET_OBJECTS:string_lib>)
