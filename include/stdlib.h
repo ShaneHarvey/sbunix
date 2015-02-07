@@ -3,6 +3,7 @@
 
 #include <sys/defs.h>
 #include <sys/wait.h>
+#include <sys/types.h>
 
 extern __thread int errno;
 
@@ -16,7 +17,6 @@ void free(void *ptr);
 int brk(void *end_data_segment);
 
 /* processes */
-typedef uint32_t pid_t;
 pid_t fork(void);
 pid_t getpid(void);
 pid_t getppid(void);
@@ -41,7 +41,6 @@ int open(const char *pathname, int flags);
 ssize_t read(int fd, void *buf, size_t count);
 ssize_t write(int fd, const void *buf, size_t count);
 enum { SEEK_SET = 0, SEEK_CUR = 1, SEEK_END = 2 };
-typedef uint64_t off_t;
 off_t lseek(int fildes, off_t offset, int whence);
 int close(int fd);
 int pipe(int filedes[2]);
