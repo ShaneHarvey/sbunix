@@ -5,7 +5,7 @@
 #include <unistd.h>       /* write */
 #include <sys/types.h>    /* waitpid */
 #include <sys/wait.h>     /* waitpid */
-#include <linux/limits.h> /* PATH_MAX */
+#include <limits.h> /* PATH_MAX */
 #include <fcntl.h>        /* open */
 
 
