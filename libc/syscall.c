@@ -1,13 +1,19 @@
 #include <syscall.h>
 #include <stdlib.h>
 #include <sys/wait.h>
+#include <time.h>
 
 void exit(int status) {
     syscall_1(SYS_exit, status);
 }
 
 int brk(void *addr) {
-    return (int) syscall_1(SYS_brk, (uint64_t)addr);
+    /* following what glibc does: 0 on success, -1 on failure */
+    /* Linux brk returns new_break on success, unchanged_break on failure */
+    void *newaddr = (void*)syscall_1(SYS_brk, (uint64_t)addr);
+    if(newaddr == addr)
+        return 0;
+    return -1;
 }
 
 pid_t fork(void) {

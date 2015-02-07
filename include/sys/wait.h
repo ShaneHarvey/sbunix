@@ -1,7 +1,7 @@
 #ifndef _WAIT_H
 #define _WAIT_H
 
-#include <sys/types.h>
+#include <sys/resource.h>
 
 /* Maybe we should move protos of wait* to here */
 

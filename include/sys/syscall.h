@@ -1,5 +1,5 @@
-#ifndef __SYS_SYSCALL_H
-#define __SYS_SYSCALL_H
+#ifndef _SYS_SYSCALL_H
+#define _SYS_SYSCALL_H
 
 #define SYS_exit       60
 #define SYS_brk        12
