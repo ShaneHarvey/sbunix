@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <ctype.h>        /* isspace */
 #include <unistd.h>       /* write */
 #include <sys/types.h>    /* waitpid */
 #include <sys/wait.h>     /* waitpid */
@@ -26,6 +25,7 @@ void freecmd(cmd_t *cmd);
 int build_path(char *prog, char *fullpath);
 void exec_cmd(cmd_t *cmd, int infile, int outfile, char **envp);
 int proccescmd(char *line, char **envp);
+int isspace(int c);
 
 int main(int argc, char **argv, char **envp) {
     int finished = 0;
@@ -374,7 +374,11 @@ void strip(char *str) {
             *p = ' ';
     }
     if(p > str) {
-        for(; isspace(*(p-1)); p--);
+        for(; isspace(*(p - 1)); p--);
         *p = '\0';
     }
+}
+
+int isspace(int c) {
+    return c == ' ' || c == '\t' || c == '\n';
 }
