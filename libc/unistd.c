@@ -1,5 +1,8 @@
 #include <stdlib.h>
 
+/**
+* todo: hook and call uname(2) to implement gethostname
+*/
 int gethostname(char *name, size_t len) {
     int hostfd;
     int b;
