@@ -6,13 +6,12 @@ _start:
     movq %rsp, %rbp
 
     # Set argc
-    movq 8(%rsp), %rdi
+    movq 0(%rsp), %rdi
     # Set argv
     movq %rsp, %rsi
-    addq $16, %rsi
-    # Set envp
-    movq %rsp, %rdx
-    addq $32, %rdx
+    addq $8, %rsi
+    # Set envp = argv + 8 * argc + 8
+    leaq 8(%rsi,%rdi,8), %rdx
 
     # Run program
     call main
