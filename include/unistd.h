@@ -6,4 +6,6 @@
 #define STDOUT_FILENO 1
 #define STDERR_FILENO 2
 
+int gethostname(char *name, size_t len);
+
 #endif

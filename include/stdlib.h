@@ -2,19 +2,20 @@
 #define _STDLIB_H
 
 #include <sys/defs.h>
+#include <sys/wait.h>
 
 extern __thread int errno;
 
 int main(int argc, char* argv[], char* envp[]);
 void exit(int status);
 
-// memory
+/* memory */
 typedef uint64_t size_t;
 void *malloc(size_t size);
 void free(void *ptr);
 int brk(void *end_data_segment);
 
-// processes
+/* processes */
 typedef uint32_t pid_t;
 pid_t fork(void);
 pid_t getpid(void);
@@ -24,16 +25,16 @@ pid_t waitpid(pid_t pid, int *status, int options);
 unsigned int sleep(unsigned int seconds);
 unsigned int alarm(unsigned int seconds);
 
-// paths
+/* paths */
 char *getcwd(char *buf, size_t size);
 int chdir(const char *path);
 
-// environment
+/* environment */
 char *getenv(const char *name);
 int setenv(const char *envname, const char *envval, int overwrite);
 int unsetenv(const char *name);
 
-// files
+/* files */
 typedef int64_t ssize_t;
 enum { O_RDONLY = 0, O_WRONLY = 1, O_RDWR = 2, O_CREAT = 0x40, O_DIRECTORY = 0x10000 };
 int open(const char *pathname, int flags);
@@ -47,7 +48,7 @@ int pipe(int filedes[2]);
 int dup(int oldfd);
 int dup2(int oldfd, int newfd);
 
-// directories
+/* directories */
 #define NAME_MAX 255
 struct dirent
 {
