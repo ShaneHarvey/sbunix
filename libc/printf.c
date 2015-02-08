@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <unistd.h>
 
 char *strrev(char *str) {
     char *start = str, *end = str, temp;
@@ -21,7 +22,12 @@ char *strrev(char *str) {
 
 int convert(int i, int base, char *arr) {
     int count = 0;
-    int neg = (i < 0);
+    int neg = 0;
+
+    if(i < 0 && base == 10) {
+        neg = 1;
+        i *= -1;
+    }
 
     if(i == 0) {
         arr[0] = '0';
@@ -75,29 +81,29 @@ int printf(const char *format, ...) {
                 case 'd':
                     i = va_arg(ap, int);
                     len = convert(i, 10, arr);
-                    write(1, arr, len);
+                    write(STDOUT_FILENO, arr, len);
                     printed += len;
                     format += 2;
                     break;
                 case 's':
                     str = va_arg(ap, char *);
                     len = strlen(str);
-                    write(1, str, len);
+                    write(STDOUT_FILENO, str, len);
                     printed += len;
                     format += 2;
                     break;
                 case '%':
-                    write(1, format, 1);
+                    write(STDOUT_FILENO, format, 1);
                     ++printed;
                     format += 2;
                     break;
                 default:
-                    write(1, format, 1);
+                    write(STDOUT_FILENO, format, 1);
                     ++printed;
                     ++format;
             }
         } else {
-            write(1, format, 1);
+            write(STDOUT_FILENO, format, 1);
             ++printed;
             ++format;
         }
