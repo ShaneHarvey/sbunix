@@ -11,8 +11,8 @@
 #define isascii(c)  (!((c) & ~0x7f))
 // isblank() checks for a blank character; that is, a space or a tab
 #define isblank(c)  ((c) == ' ' || (c) == '\t')
-// iscntrl() checks for a control character.
-#define iscntrl(c)  ()
+// iscntrl() checks for a control character. ASCII codes 0x00 (NUL) and 0x1f (US), plus 0x7f (DEL).
+#define iscntrl(c)  (((c) >= 0x0 && (c) <= 0x1f) || (c) == 0x7f)
 // isdigit() checks for a digit (0 through 9).
 #define isdigit(c)  ((c) >= '0' && (c) <= '9')
 // isgraph() checks for any printable character except space.
