@@ -85,6 +85,14 @@ int printf(const char *format, ...) {
                     printed += len;
                     format += 2;
                     break;
+                case 'p':
+                    /* todo no worky fix convert */
+                    i = va_arg(ap, uint64_t);
+                    len = convert(i, 16, arr);
+                    write(1, arr, len);
+                    printed += len;
+                    format += 2;
+                    break;
                 case 's':
                     str = va_arg(ap, char *);
                     len = strlen(str);

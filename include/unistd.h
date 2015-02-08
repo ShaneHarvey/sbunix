@@ -1,6 +1,8 @@
 #ifndef _UNISTD_H
 #define _UNISTD_H
 
+#include <sys/types.h>
+
 /* standard file nums */
 #define STDIN_FILENO 0
 #define STDOUT_FILENO 1

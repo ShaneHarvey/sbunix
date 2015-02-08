@@ -8,8 +8,11 @@ void exit(int status) {
 }
 
 int brk(void *addr) {
-    /* following what glibc does: 0 on success, -1 on failure */
-    /* Linux brk returns new_break on success, unchanged_break on failure */
+    /**
+    * Calls the real Linux syscall, which returns:
+    *   new break on success
+    *   current break on failure
+    */
     void *newaddr = (void*)syscall_1(SYS_brk, (uint64_t)addr);
     if(newaddr == addr)
         return 0;
