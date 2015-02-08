@@ -85,7 +85,7 @@ int proccescmd(char *line, char **envp) {
         if(curcmd->next != NULL) {
             rv = pipe(pfd);
             if(rv < 0) {
-                fprintf(stderr, "pipe failed!\n");
+                printf("pipe failed!\n");
                 exit(1);
             }
             outfile = pfd[1];
@@ -99,7 +99,7 @@ int proccescmd(char *line, char **envp) {
             if(curcmd->argv[1] != NULL) {
                 rv = chdir(curcmd->argv[1]);
                 if(rv < 0) {
-                    fprintf(stderr, "cd: %s: %s\n", curcmd->argv[1], "No such file or directory");
+                    printf("cd: %s: %s\n", curcmd->argv[1], "No such file or directory");
                 }
             }
 
@@ -116,12 +116,12 @@ int proccescmd(char *line, char **envp) {
                 /* wait for pid */
                 wpid = waitpid(pid, &status, 0);
                 if(wpid < 0) {
-                    fprintf(stderr, "waitpid failed!\n");
+                    printf("waitpid failed!\n");
                     exit(1);
                 }
-                //fprintf(stderr, "sbush: %s finished with status %d\n", curcmd->argv[0], status);
+                //printf("sbush: %s finished with status %d\n", curcmd->argv[0], status);
             } else {
-                fprintf(stderr, "sbush: fork failed!\n");
+                printf("sbush: fork failed!\n");
                 return 1;
             }
         }
@@ -158,11 +158,11 @@ void exec_cmd(cmd_t *cmd, int infile, int outfile, char **envp) {
         /* Setup command and argv */
         execve(filename, cmd->argv, envp);
         /* execve failed */
-        fprintf(stderr, "execve: %s failed!\n", filename);
+        printf("execve: %s failed!\n", filename);
         freecmd(cmd);
         exit(-1);
     } else {
-        fprintf(stderr, "%s: command not found\n", cmd->argv[0]);
+        printf("%s: command not found\n", cmd->argv[0]);
         freecmd(cmd);
         exit(127);
     }
@@ -233,7 +233,7 @@ cmd_t *parse_line(char *line) {
     }
     cmd = malloc(sizeof(cmd_t));
     if(cmd == NULL) {
-        fprintf(stderr, "malloc failed!\n");
+        printf("malloc failed!\n");
         exit(1);
     }
     cmd->argv = mkargv(line);
@@ -276,7 +276,7 @@ char **mkargv(char *line) {
     argc = argcount(line);
     argv = malloc((argc + 1) * sizeof(char *));
     if(argv == NULL) {
-        fprintf(stderr, "malloc failed!\n");
+        printf("malloc failed!\n");
         exit(1);
     }
 
