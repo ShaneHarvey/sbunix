@@ -14,7 +14,15 @@ void exit(int status);
 typedef uint64_t size_t;
 void *malloc(size_t size);
 void free(void *ptr);
+
+/**
+* Follows glibc wrapper
+* Returns: 0 on success, -1 on failure
+*/
 int brk(void *end_data_segment);
+
+
+void *sys_brk(void *addr);
 
 /* processes */
 pid_t fork(void);

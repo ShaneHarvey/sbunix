@@ -1,6 +1,8 @@
 #ifndef _SYS_TYPES_H
 #define _SYS_TYPES_H
 
+#include <sys/defs.h>
+
 typedef unsigned long int size_t;
 
 typedef uint32_t pid_t;
