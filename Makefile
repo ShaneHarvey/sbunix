@@ -23,11 +23,14 @@ $(ROOTLIB)/libc.a: $(LIBC_SRCS:%.c=obj/%.o)
 $(ROOTLIB)/crt1.o: obj/crt/crt1.o
 	cp $^ $@
 
-$(BINS): $(ROOTLIB)/crt1.o $(ROOTLIB)/libc.a $(shell find bin/ -type f -name *.c) $(wildcard include/*.h include/*/*.h)
+$(ROOTLIB)/crtinit.o: obj/crt/crtinit.o
+	cp $^ $@
+
+$(BINS): $(ROOTLIB)/crt1.o $(ROOTLIB)/crtinit.o $(ROOTLIB)/libc.a $(shell find bin/ -type f -name *.c) $(wildcard include/*.h include/*/*.h)
 	@$(MAKE) --no-print-directory BIN=$@ binary
 
 binary: $(patsubst %.c,obj/%.o,$(wildcard $(BIN:rootfs/%=%)/*.c))
-	$(LD) $(LDLAGS) -o $(BIN) $(ROOTLIB)/crt1.o $^ $(ROOTLIB)/libc.a
+	$(LD) $(LDLAGS) -o $(BIN) $(ROOTLIB)/crt1.o $(ROOTLIB)/crtinit.o $^ $(ROOTLIB)/libc.a
 
 obj/%.o: %.c $(wildcard include/*.h include/*/*.h)
 	@mkdir -p $(dir $@)
