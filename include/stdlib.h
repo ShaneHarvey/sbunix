@@ -21,9 +21,6 @@ void free(void *ptr);
 */
 int brk(void *end_data_segment);
 
-
-void *sys_brk(void *addr);
-
 /* processes */
 pid_t fork(void);
 pid_t getpid(void);
