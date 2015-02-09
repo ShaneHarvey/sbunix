@@ -4,7 +4,7 @@ project(sbush C ASM)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O1 -std=c99 -D__thread= -Wall -Werror -nostdinc -Iinclude -msoft-float -mno-sse -mno-red-zone -fno-builtin -fPIC -march=amdfam10 -g3 -fno-stack-protector -nostdlib")
 
 # source for crt1.o
-set(crt1_SRCS crt/crt1.c)
+set(crt1_SRCS crt/crt1.S)
 # source for crtinit.o
 set(crtinit_SRCS crt/crtinit.c)
 
@@ -26,8 +26,6 @@ add_library(crtinit_O OBJECT ${crtinit_SRCS})
 # obj's for executables
 add_library(sbush_O     OBJECT ${sbush_SRCS})
 add_library(alloctest_O OBJECT ${alloctest_SRCS})
-add_library(crt1_O OBJECT ${crt1_SRCS})
-add_library(crtinit_O OBJECT ${crtinit_SRCS})
 
 add_executable(sbush
     $<TARGET_OBJECTS:crt1_O>
