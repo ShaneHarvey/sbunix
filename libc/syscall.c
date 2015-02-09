@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <sys/wait.h>
 #include <time.h>
+#include <sys/utsname.h>
 
 void exit(int status) {
     syscall_1(SYS_exit, status);
@@ -95,4 +96,8 @@ int dup2(int oldfd, int newfd) {
 int getdents(unsigned int fd, struct dirent *dirp, unsigned int count) {
     return (int) syscall_3(SYS_getdents, (uint64_t)fd, (uint64_t)dirp,
             (uint64_t)count);
+}
+
+int uname (struct utsname *buf) {
+    return (int) syscall_1(SYS_uname, (uint64_t)buf);
 }

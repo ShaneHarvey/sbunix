@@ -23,5 +23,6 @@
 #define SYS_getdents   78
 #define SYS_mmap        9
 #define SYS_munmap     11
+#define SYS_uname      63
 
 #endif
