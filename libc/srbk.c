@@ -14,8 +14,8 @@ void *sbrk(intptr_t increment) {
     *   current break on failure
     * Here it will fail.
     */
-    void *oldbreak = (void*)syscall_1(SYS_brk, (uint64_t)0);
-    if(0 == brk(oldbreak + increment))
-        return oldbreak;
+    intptr_t oldbreak = (intptr_t) syscall_1(SYS_brk, (uint64_t)0);
+    if(0 == brk((void*)(oldbreak + increment)))
+        return (void*)oldbreak;
     return (void*)-1;
 }
