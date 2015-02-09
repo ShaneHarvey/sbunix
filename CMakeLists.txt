@@ -3,25 +3,29 @@ project(sbush C ASM)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O1 -std=c99 -D__thread= -Wall -Werror -nostdinc -Iinclude -msoft-float -mno-sse -mno-red-zone -fno-builtin -fPIC -march=amdfam10 -g3 -fno-stack-protector -nostdlib")
 
-# Glob the libc sources
-FILE(GLOB libc_SRCS libc/*.c)
-
-# sbush, the shell sources
-FILE(GLOB sbush_SRCS bin/sbush/*.c)
-
 # source for crt1.o
 set(crt1_SRCS crt/crt1.S)
 # source for crtinit.o
 set(crtinit_SRCS crt/crtinit.c)
 
+# Glob the libc sources
+file(GLOB libc_SRCS         libc/*.c)
+
+# sbush, the shell sources
+file(GLOB sbush_SRCS        bin/sbush/*.c)
+
+file(GLOB alloctest_SRCS    bin/alloctest/*.c)
+
 include_directories(include)
 
-add_library(c STATIC ${libc_SRCS})
-
-add_library(crt1_O OBJECT ${crt1_SRCS})
+# obj's for libs/crt
+add_library(c           STATIC ${libc_SRCS})
+add_library(crt1_O      OBJECT ${crt1_SRCS})
 add_library(crtinit_O OBJECT ${crtinit_SRCS})
 
-add_library(sbush_O OBJECT ${sbush_SRCS})
+# obj's for executables
+add_library(sbush_O     OBJECT ${sbush_SRCS})
+add_library(alloctest_O OBJECT ${alloctest_SRCS})
 
 add_executable(sbush
     $<TARGET_OBJECTS:crt1_O>
@@ -31,3 +35,10 @@ add_executable(sbush
 target_link_libraries(sbush c)
 # This didn't work, why not?
 # target_link_libraries(sbush ${c})
+
+add_executable(alloctest
+    $<TARGET_OBJECTS:crt1_O>
+    $<TARGET_OBJECTS:crtinit_O>
+    $<TARGET_OBJECTS:alloctest_O>)
+
+target_link_libraries(alloctest c)
