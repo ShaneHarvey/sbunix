@@ -3,8 +3,14 @@
 
 #include <sys/defs.h>
 #include <sys/syscall.h>
-/* n = %rax */
-/* %rdi, %rsi, %rdx, %r10, %r8 and %r9. */
+
+/* function arguments  rdi, rsi, rdx, rcx, r8, r9
+ * function returns    rax, rdx
+
+ * syscall number      rax
+ * arguments           rdi, rsi, rdx, r10, r8, r9.
+ * syscall return      rax
+ */
 static __inline uint64_t syscall_0(uint64_t n) {
     uint64_t rv;
     __asm__ volatile (
