@@ -1,6 +1,6 @@
 CC=gcc
 AS=as
-CFLAGS=-O1 -std=c99 -D__thread= -Wall -Werror -nostdinc -Iinclude -msoft-float -mno-sse -mno-red-zone -fno-builtin -fPIC -march=amdfam10 -g3 -fno-stack-protector
+CFLAGS=-O3 -std=c99 -D__thread= -Wall -Werror -nostdinc -Iinclude -msoft-float -mno-sse -mno-red-zone -fno-builtin -fPIC -march=amdfam10 -g3 -fno-stack-protector
 LD=ld
 LDLAGS=-nostdlib
 AR=ar
@@ -10,14 +10,15 @@ ROOTBIN=$(ROOTFS)/bin
 ROOTLIB=$(ROOTFS)/lib
 
 BIN_SRCS:=$(wildcard bin/*/*.c)
-LIBC_SRCS:=$(wildcard libc/*.c libc/*/*.c)
+LIBC_SRCS:=$(shell find libc/ -type f -name *.[cS])
+LIBC_OBJS_1:=$(LIBC_SRCS:%.c=obj/%.o)
 BINS:=$(addprefix $(ROOTFS)/,$(wildcard bin/*))
 
 .PHONY: all binary
 
 all: $(BINS)
 
-$(ROOTLIB)/libc.a: $(LIBC_SRCS:%.c=obj/%.o)
+$(ROOTLIB)/libc.a: $(LIBC_OBJS_1:%.S=obj/%.o)
 	$(AR) rcs $@ $^
 
 $(ROOTLIB)/crt1.o: obj/crt/crt1.o

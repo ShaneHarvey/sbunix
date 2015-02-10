@@ -1,7 +1,7 @@
 #ifndef _UTSNAME_H
 #define _UTSNAME_H
 
-#define _UTSNAME_LENGTH 65
+#define _UTSNAME_LENGTH 257
 
 /* Structure describing the system and machine.  */
 struct utsname {

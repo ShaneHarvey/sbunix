@@ -5,7 +5,7 @@
 #include <sys/utsname.h>
 
 void exit(int status) {
-    syscall_1(SYS_exit, status);
+    syscall_1(SYS_exit,  (uint64_t)status);
 }
 
 int brk(void *addr) {
@@ -100,4 +100,14 @@ int getdents(unsigned int fd, struct dirent *dirp, unsigned int count) {
 
 int uname (struct utsname *buf) {
     return (int) syscall_1(SYS_uname, (uint64_t)buf);
+}
+
+void *mmap(void *addr, size_t length, int prot, int flags, int fd,
+        off_t offset) {
+    return (void *) syscall_6(SYS_mmap, (uint64_t)addr, (uint64_t)length,
+            (uint64_t)prot, (uint64_t)flags, (uint64_t)fd, (uint64_t)offset);
+}
+
+int munmap(void *addr, size_t length) {
+    return (int) syscall_2(SYS_munmap, (uint64_t)addr, (uint64_t)length);
 }
