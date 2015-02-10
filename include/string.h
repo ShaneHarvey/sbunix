@@ -10,6 +10,7 @@ int      memcmp(const void *, const void *, size_t);
 void    *memcpy(void *restrict, const void *restrict, size_t);
 int      memcmp(const void *, const void *, size_t);
 void    *memcpy(void *restrict, const void *restrict, size_t);
+void    *memset(void *s, int c, size_t count);
 char    *strcat(char *restrict, const char *restrict);
 char    *strchr(const char *, int);
 int      strcmp(const char *, const char *);

@@ -1,5 +1,8 @@
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
+
+#include <debug.h>
 
 #define MAX(a,b) (((a)>(b))?(a):(b))
 #define INC_PTR(ptr, inc) ((void*)(((char*)(ptr)) + (inc)))
@@ -8,7 +11,7 @@
 #define PAGE_SIZE 4096
 
 /* extern struct freeblock *freelist;*/
-static struct freeblock *freelist;
+static struct freeblock *freelist = NULL;
 
 struct freeblock {
     size_t blocklen;  /* Always >= sizeof(struct freeblock) */
@@ -32,18 +35,21 @@ struct allocblock {
 struct freeblock *find_freeblock(size_t reqsize) {
     struct freeblock *curr = freelist;
     struct freeblock *target = NULL;
-
+    debugy("Finding a freeblock of size: %d\n", reqsize);
     for(;curr != NULL; curr = curr->next) {
         if(curr->blocklen == reqsize) {
             /* An exact match is best */
+            info("Found exact match.\n");
             target = curr;
             break;
         } else if(curr->blocklen > reqsize) {
             /* If no exact match we want the next smallest */
             if(target == NULL || curr->blocklen < target->blocklen) {
+                info("Found better match.\n");
                 target = curr;
             }
         }
+        debug("Still looking...\n");
     }
 
     return target;
@@ -53,6 +59,7 @@ struct freeblock *find_freeblock(size_t reqsize) {
 * Removes this freeblock from the freelist doubly-linked list.
 */
 void rm_freeblock(struct freeblock *rmblock) {
+    debugy("rm'ing block of size: %d\n", rmblock->blocklen);
     if(rmblock == freelist) {
         /* Replace the head freeblock */
         freelist = rmblock->next;
@@ -72,7 +79,13 @@ void rm_freeblock(struct freeblock *rmblock) {
 /**
 * Replace oldblock with newblock in the doubly-linked freelist.
 */
-void swap_freeblock(struct freeblock *oldblock, struct freeblock *newblock) {
+void replace_freeblock(struct freeblock *oldblock, struct freeblock *newblock) {
+    debugy("Replacing oldblock (size: %d) for newblock (size: %d)\n",
+            oldblock->blocklen, newblock->blocklen);
+    if(oldblock == freelist) {
+        freelist = newblock;
+        newblock->prev = NULL;
+    }
     if(oldblock->prev != NULL) {
         newblock->prev = oldblock->prev;
         oldblock->prev->next = newblock;
@@ -90,15 +103,18 @@ void swap_freeblock(struct freeblock *oldblock, struct freeblock *newblock) {
 void split_freeblock(struct freeblock *oldblock, size_t reqsize) {
     struct freeblock *newblock;
     size_t newlen = oldblock->blocklen - reqsize;
+    debugy("Splitting oldblock (size: %d)\n", oldblock->blocklen);
     if(newlen >= sizeof(struct freeblock)) {
         /* we can split it */
+        debug("Split into %d(user) and %d(free)\n", reqsize, newlen);
         newblock = INC_PTR(oldblock, reqsize);
         oldblock->blocklen = reqsize;
         newblock->blocklen = newlen;
-        swap_freeblock(oldblock, newblock);
+        replace_freeblock(oldblock, newblock);
     }
     else {
         /* we can't split, so rm oldblock */
+        debug("Too small to split\n");
         rm_freeblock(oldblock);
     }
 
@@ -109,8 +125,8 @@ void split_freeblock(struct freeblock *oldblock, size_t reqsize) {
 */
 void append_freelist(struct freeblock *newblock) {
     struct freeblock *curr = freelist;
-
-    if(freelist == NULL) {
+    debugy("Appending to freelist, size: %d\n", newblock->blocklen);
+    if(curr == NULL) {
         freelist = newblock;
         return;
     }
@@ -138,6 +154,8 @@ void *malloc(size_t size) {
     size_t reqsize = MAX(sizeof(struct freeblock), size + 8);
     void *retptr;
 
+    success("new malloc: %d\n", size);
+
     if(size == 0) {
         return NULL;
     }
@@ -159,7 +177,7 @@ void *malloc(size_t size) {
         }
     } else {
         /* Gotta get more mem */
-
+        info("Gotta get more mem (sbrk).\n");
         /* todo: don't assume reqsize <= PAGE_SIZE */
         target = sbrk((intptr_t)PAGE_SIZE);
         if(target == (struct freeblock*)-1) {
@@ -182,5 +200,10 @@ void *malloc(size_t size) {
 * free
 */
 void free(void *ptr) {
-
+    struct freeblock *block = INC_PTR(ptr, -1 * sizeof(size_t));
+    debugy("Freeing ptr\n");
+    block->next = block->prev = NULL;
+    /* zero fill free'd space */
+    memset(INC_PTR(block, sizeof(size_t)), 0, block->blocklen - sizeof(size_t));
+    append_freelist(block);
 }
