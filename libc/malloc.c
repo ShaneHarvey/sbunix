@@ -1,16 +1,16 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-
+#include <errno.h>
 #include <debug.h>
 
-#define MAX(a,b) (((a)>(b))?(a):(b))
-#define INC_PTR(ptr, inc) ((void*)(((char*)(ptr)) + (inc)))
+#define MAX(a, b)           (((a)>(b))?(a):(b))
+#define INC_PTR(ptr, inc)   ((void*)(((char*)(ptr)) + (inc)))
 
 /* TODO non-hardcoded PAGE_SIZE */
 #define PAGE_SIZE 4096
 
-/* extern struct freeblock *freelist;*/
+/* todo: extern struct freeblock *freelist;*/
 static struct freeblock *freelist = NULL;
 
 struct freeblock {
@@ -130,20 +130,7 @@ void coalesce_freelist(struct freeblock *start) {
             }
             curr->next = curr->next->next;
             continue;
-        } /*else if(newblock == INC_PTR(curr, curr->blocklen)) {
-            *//* New can after-merge with curr *//*
-            if (curr->next && curr->next == INC_PTR(newblock, newblock->blocklen)) {
-                *//* Merging curr with new with next *//*
-                curr->blocklen += newblock->blocklen + curr->next->blocklen;
-                rm_freeblock(curr->next);
-                return;
-            } else {
-                *//* Merge curr with new *//*
-                curr->blocklen += newblock->blocklen;
-                return;
-            }
-        }*/
-
+        }
         curr = curr->next;
     }
 }
@@ -240,7 +227,7 @@ void *malloc(size_t size) {
         info("Gotta get more mem: sbrk(%d)\n", increment);
         target = sbrk(increment);
         if(target == (struct freeblock*)-1) {
-            /*errno = -57;  todo ENOMEM*/
+            errno = ENOMEM;
             return NULL;
         } else {
             target->blocklen = reqsize;
@@ -297,6 +284,7 @@ void *realloc(void *ptr, size_t size) {
         }
         return ptr;
     } else {
+        /* todo: could improve to only malloc() if needed */
         void *newptr = malloc(size);
         if(!newptr) {
             return NULL;

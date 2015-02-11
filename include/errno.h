@@ -1,6 +1,7 @@
 #ifndef _ERRNO_H
 #define _ERRNO_H
 
+#define __thread
 extern __thread int errno;
 
 #define	EPERM		 1	/* Operation not permitted */

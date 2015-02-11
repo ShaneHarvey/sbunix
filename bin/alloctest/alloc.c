@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #include <debug.h>
 
 int simpletest(void) {
@@ -41,8 +42,7 @@ int malloctest(int alloc_num, size_t alloc_size) {
     for(i = 0; i < alloc_num; i++) {
         ptrs[i] = malloc(alloc_size);
         if(!ptrs[i]) {
-            /*printf(strerror(errno));*/
-            error("malloc failed!");
+            printf(strerror(errno));
         }
     }
     for(i = 0; i < alloc_num; i++) {
