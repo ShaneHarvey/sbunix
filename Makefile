@@ -1,6 +1,6 @@
 CC=gcc
 AS=as
-CFLAGS=-O3 -std=c99 -D__thread= -Wall -Werror -nostdinc -Iinclude -msoft-float -mno-sse -mno-red-zone -fno-builtin -fPIC -march=amdfam10 -g3 -fno-stack-protector
+CFLAGS=-O3 -std=c99 -D__thread= -DCOLOR -Wall -Werror -nostdinc -Iinclude -msoft-float -mno-sse -mno-red-zone -fno-builtin -fPIC -march=amdfam10 -g3 -fno-stack-protector
 LD=ld
 LDLAGS=-nostdlib
 AR=ar

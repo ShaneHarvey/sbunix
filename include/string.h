@@ -7,7 +7,7 @@
 #define NULL ((void*)0)
 
 int      memcmp(const void *, const void *, size_t);
-void    *memcpy(void *restrict, const void *restrict, size_t);
+void    *memcpy(void *restrict dest, const void *restrict src, size_t n);
 int      memcmp(const void *, const void *, size_t);
 void    *memcpy(void *restrict, const void *restrict, size_t);
 void    *memset(void *s, int c, size_t count);

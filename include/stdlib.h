@@ -13,6 +13,7 @@ void exit(int status);
 /* memory */
 typedef uint64_t size_t;
 void *malloc(size_t size);
+void *realloc(void *ptr, size_t size);
 void free(void *ptr);
 
 /**
@@ -65,4 +66,5 @@ void *opendir(const char *name);
 struct dirent *readdir(void *dir);
 int closedir(void *dir);
 
+int atoi(const char *nptr);
 #endif
