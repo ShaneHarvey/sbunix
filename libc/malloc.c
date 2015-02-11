@@ -7,6 +7,8 @@
 #define MAX(a, b)           (((a)>(b))?(a):(b))
 #define INC_PTR(ptr, inc)   ((void*)(((char*)(ptr)) + (inc)))
 
+/*#define _DEBUG_MALLOC*/
+
 /* TODO non-hardcoded PAGE_SIZE */
 #define PAGE_SIZE 4096
 
@@ -29,21 +31,17 @@ struct freeblock {
 struct freeblock *find_freeblock(size_t reqsize) {
     struct freeblock *curr = freelist;
     struct freeblock *target = NULL;
-    debugy("Finding a freeblock of size: %d\n", reqsize);
     for(;curr != NULL; curr = curr->next) {
         if(curr->blocklen == reqsize) {
             /* An exact match is best */
-            success("Found exact match.\n");
             target = curr;
             break;
         } else if(curr->blocklen > reqsize) {
             /* If no exact match we want the next smallest */
             if(target == NULL || curr->blocklen < target->blocklen) {
-                debug("Found better match.\n");
                 target = curr;
             }
         }
-        debug("Still looking...\n");
     }
 
     return target;
@@ -53,7 +51,6 @@ struct freeblock *find_freeblock(size_t reqsize) {
 * Removes this freeblock from the freelist doubly-linked list.
 */
 void rm_freeblock(struct freeblock *rmblock) {
-    debugy("rm'ing block of size: %d\n", rmblock->blocklen);
     if(rmblock == freelist) {
         /* Replace the head freeblock */
         freelist = rmblock->next;
@@ -74,8 +71,6 @@ void rm_freeblock(struct freeblock *rmblock) {
 * Replace oldblock with newblock in the doubly-linked freelist.
 */
 void replace_freeblock(struct freeblock *oldblock, struct freeblock *newblock) {
-    debugy("Replacing oldblock (size: %d) for newblock (size: %d)\n",
-            oldblock->blocklen, newblock->blocklen);
     newblock->prev = NULL;
     newblock->next = NULL;
     if(oldblock == freelist) {
@@ -98,10 +93,8 @@ void replace_freeblock(struct freeblock *oldblock, struct freeblock *newblock) {
 void split_freeblock(struct freeblock *oldblock, size_t reqsize) {
     struct freeblock *newblock;
     size_t newlen = oldblock->blocklen - reqsize;
-    debugy("Splitting oldblock (size: %d)\n", oldblock->blocklen);
     if(newlen >= sizeof(struct freeblock)) {
         /* we can split it */
-        debug("Split into %d(user) and %d(free)\n", reqsize, newlen);
         newblock = INC_PTR(oldblock, reqsize);
         oldblock->blocklen = reqsize;
         newblock->blocklen = newlen;
@@ -109,7 +102,6 @@ void split_freeblock(struct freeblock *oldblock, size_t reqsize) {
     }
     else {
         /* we can't split, so rm oldblock */
-        debug("Too small to split\n");
         rm_freeblock(oldblock);
     }
 
@@ -142,7 +134,6 @@ void coalesce_freelist(struct freeblock *start) {
 void append_freelist(struct freeblock *newblock) {
     struct freeblock *curr = freelist;
     struct freeblock *prev = NULL;
-    debugy("Appending to freelist, size: %d\n", newblock->blocklen);
     if(curr == NULL) {
         /* Head is NULL */
         freelist = newblock;
@@ -176,6 +167,7 @@ void append_freelist(struct freeblock *newblock) {
 
 /* Print blocks */
 void printfreelist(void) {
+#ifdef _DEBUG_MALLOC
     struct freeblock *curr = freelist;
     printf(_RED"Printing freelist:\n"_RESET);
     for(; curr != NULL; curr = curr->next) {
@@ -185,6 +177,7 @@ void printfreelist(void) {
         printf("       | prev: %d\n", curr->prev);
         printf("       ---------------------\n");
     }
+#endif
 }
 
 /**
@@ -202,8 +195,6 @@ void *malloc(size_t size) {
     struct freeblock *target = NULL;
     size_t reqsize = MAX(sizeof(struct freeblock), size + sizeof(size_t));
     void *retptr = NULL;
-
-    success("new malloc: %d\n", size);
 
     if(size == 0) {
         return NULL;
@@ -224,7 +215,6 @@ void *malloc(size_t size) {
     } else {
         /* Gotta get more mem */
         intptr_t increment = ((reqsize/PAGE_SIZE) + 1) * PAGE_SIZE;
-        info("Gotta get more mem: sbrk(%d)\n", increment);
         target = sbrk(increment);
         if(target == (struct freeblock*)-1) {
             errno = ENOMEM;
@@ -239,7 +229,6 @@ void *malloc(size_t size) {
         }
     }
     printfreelist();
-    success("malloc returning: %d - 8 = %d\n", retptr, retptr - 8);
     return retptr;
 }
 
@@ -249,7 +238,6 @@ void *malloc(size_t size) {
 */
 void free(void *ptr) {
     struct freeblock *block = INC_PTR(ptr, (-1 * sizeof(size_t)));
-    success("Freeing ptr: %d\n", ptr);
     if(!ptr) {
         /* Allow free(NULL) */
         return;
