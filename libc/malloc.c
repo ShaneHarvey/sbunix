@@ -239,6 +239,7 @@ void *malloc(size_t size) {
         }
     }
     printfreelist();
+    success("malloc returning: %d - 8 = %d\n", retptr, retptr - 8);
     return retptr;
 }
 
@@ -277,16 +278,18 @@ void *realloc(void *ptr, size_t size) {
         return ptr;
     } else if(reqsize < oldsize) {
         if(oldsize - reqsize >= sizeof(struct freeblock)) {
-            struct freeblock *newblock = INC_PTR(ptr, reqsize);
+            struct freeblock *newblock = INC_PTR(ptr, reqsize - sizeof(size_t));
             newblock->blocklen = oldsize - reqsize;
             append_freelist(newblock);
             *(size_t*)INC_PTR(ptr, (-1 * sizeof(size_t))) = reqsize;
         }
+        printfreelist();
         return ptr;
     } else {
         /* todo: could improve to only malloc() if needed */
         void *newptr = malloc(size);
         if(!newptr) {
+            free(ptr);
             return NULL;
         }
         memcpy(newptr, ptr, size);

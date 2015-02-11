@@ -1,5 +1,8 @@
 sbush
 
+core
+vgcore.*
+
 ### C ###
 # Object files
 *.o
