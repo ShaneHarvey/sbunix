@@ -103,6 +103,7 @@ syscall_6:
 
 .global errno
 SYSCALL_ERROR_LABEL:
+    neg %eax
     movl %eax, (errno)
     or $-1, %rax
     ret

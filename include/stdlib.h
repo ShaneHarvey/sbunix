@@ -5,7 +5,6 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 
-extern __thread int errno;
 
 int main(int argc, char* argv[], char* envp[]);
 void exit(int status);
@@ -37,6 +36,7 @@ int chdir(const char *path);
 /* environment */
 char *getenv(const char *name);
 int setenv(const char *envname, const char *envval, int overwrite);
+int putenv(char *string);
 int unsetenv(const char *name);
 
 /* files */
