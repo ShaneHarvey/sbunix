@@ -15,15 +15,16 @@ int main(int argc, char *argv[], char *envp[]) {
             printf("malloc 1 Failed!\n");
             return 1;
         }
-
         strncpy(cp, str, 100 * sizeof(char));
         printf("%s\n", cp);
+        free(cp);
 
         ip = malloc(2040);
         if(!ip) {
             printf("malloc 2 Failed!\n");
             return 1;
         }
+        free(ip);
     }
     return 0;
 }

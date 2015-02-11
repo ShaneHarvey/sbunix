@@ -39,13 +39,13 @@ struct freeblock *find_freeblock(size_t reqsize) {
     for(;curr != NULL; curr = curr->next) {
         if(curr->blocklen == reqsize) {
             /* An exact match is best */
-            info("Found exact match.\n");
+            success("Found exact match.\n");
             target = curr;
             break;
         } else if(curr->blocklen > reqsize) {
             /* If no exact match we want the next smallest */
             if(target == NULL || curr->blocklen < target->blocklen) {
-                info("Found better match.\n");
+                debug("Found better match.\n");
                 target = curr;
             }
         }
@@ -82,9 +82,10 @@ void rm_freeblock(struct freeblock *rmblock) {
 void replace_freeblock(struct freeblock *oldblock, struct freeblock *newblock) {
     debugy("Replacing oldblock (size: %d) for newblock (size: %d)\n",
             oldblock->blocklen, newblock->blocklen);
+    newblock->prev = NULL;
+    newblock->next = NULL;
     if(oldblock == freelist) {
         freelist = newblock;
-        newblock->prev = NULL;
     }
     if(oldblock->prev != NULL) {
         newblock->prev = oldblock->prev;
@@ -121,20 +122,41 @@ void split_freeblock(struct freeblock *oldblock, size_t reqsize) {
 }
 
 /**
-* TODO: insert inorder, not only at end
+* Insert into the list in sorted order.
+* Also coalesces the blocks if possible.
 */
 void append_freelist(struct freeblock *newblock) {
     struct freeblock *curr = freelist;
+    struct freeblock *prev = NULL;
     debugy("Appending to freelist, size: %d\n", newblock->blocklen);
     if(curr == NULL) {
+        /* Head is NULL */
         freelist = newblock;
         return;
     }
-    for(;curr->next != NULL; curr = curr->next) {
-
+    for(;curr != NULL; prev = curr, curr = curr->next) {
+        if(INC_PTR(newblock, newblock->blocklen) == curr) {
+            /* New can before-merge with curr */
+            replace_freeblock(curr, newblock);
+            newblock->blocklen += curr->blocklen;
+            return;
+        } else if(newblock == INC_PTR(curr, curr->blocklen)) {
+            /* New can after-merge with curr */
+            if(curr->next && curr->next == INC_PTR(newblock, newblock->blocklen)) {
+                /* Merging curr with new with next */
+                curr->blocklen += newblock->blocklen + curr->next->blocklen;
+                rm_freeblock(curr->next);
+                return;
+            } else {
+                /* Merge curr with new */
+                curr->blocklen += newblock->blocklen;
+                return;
+            }
+        }
     }
-    curr->next = newblock;
-    newblock->prev = curr;
+    /* prev is at the end of the list */
+    prev->next = newblock;
+    newblock->prev = prev;
     return;
 }
 
@@ -200,9 +222,10 @@ void *malloc(size_t size) {
 * free
 */
 void free(void *ptr) {
-    struct freeblock *block = INC_PTR(ptr, -1 * sizeof(size_t));
-    debugy("Freeing ptr\n");
-    block->next = block->prev = NULL;
+    struct freeblock *block = INC_PTR(ptr, (-1 * sizeof(size_t)));
+    success("Freeing ptr\n");
+    block->next = NULL;
+    block->prev = NULL;
     /* zero fill free'd space */
     memset(INC_PTR(block, sizeof(size_t)), 0, block->blocklen - sizeof(size_t));
     append_freelist(block);
