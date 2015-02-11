@@ -40,9 +40,11 @@ void _insert_var(var_t *newvar) {
             newvar->next = cur;
             newvar->prev = cur->prev;
             if(cur == _head) {
+                _head->prev = newvar;
                 _head = newvar;
             } else {
                 cur->prev->next = newvar;
+                cur->prev= newvar;
             }
             return;
         }
@@ -110,13 +112,16 @@ int save_var(char *key, char *val) {
     if(var == NULL) {
         return -1;
     }
+    var->val = NULL;
+    var->prev = NULL;
+    var->next = NULL;
     var->key = malloc(strlen(key) + 1);
     if(var->key == NULL) {
         free(var);
         return -1;
     }
     strcpy(var->key, key);
-    var->val = NULL;
+
     if(_change_val(var, val) == -1) {
         free(var->key);
         free(var);

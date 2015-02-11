@@ -11,6 +11,8 @@
 #include "vars.h"         /* save_var/load_var */
 
 #define MAX_LINE 1024
+/* TODO non-hardcoded PAGE_SIZE */
+#define PAGE_SIZE 4096
 
 typedef struct cmd {
     int argc;
@@ -18,6 +20,8 @@ typedef struct cmd {
     struct cmd *next;
 }cmd_t;
 
+void setup_vars(char **envp);
+char *swap_vars(char *line, size_t size);
 int print_prompt(char *ps1);
 void strip(char *str);
 int arg_count(char *line);
@@ -34,15 +38,18 @@ int main(int argc, char **argv, char **envp) {
     ssize_t rv;
     char *ps1;
     char *line;
-    int len = 8;
+    int line_size = 8;
 
-    line = malloc(len);
+    line = malloc(line_size);
     if(line == NULL) {
         printf("malloc failed: %s\n", strerror(errno));
         return 1;
     }
 
-    ps1 = getenv("PS1");
+    /* Setup vars */
+    setup_vars(envp);
+
+    ps1 = load_var("PS1");
     if(ps1 == NULL) {
         /* default prompt */
         ps1 = "[\\u@\\h \\w]$ ";
@@ -60,9 +67,9 @@ int main(int argc, char **argv, char **envp) {
         i = 0;
         last_char = '\0';
         for(i = last_char = 0; last_char != '\n'; last_char = line[i++]) {
-            if(i == len - 1) {
-                len *= 2;
-                line = realloc(line, len);
+            if(i == line_size - 1) {
+                line_size *= 2;
+                line = realloc(line, line_size);
                 if(line == NULL) {
                     printf("malloc failed: %s\n", strerror(errno));
                     exit(1);
@@ -76,7 +83,7 @@ int main(int argc, char **argv, char **envp) {
             /* TODO: Handle special characters eg ctrl, arrow keys, tab */
         }
         line[i] = '\0';
-
+        line = swap_vars(line, line_size);
         cmd = parse_line(line);
         if(cmd == NULL) {
             continue;
@@ -92,6 +99,111 @@ int main(int argc, char **argv, char **envp) {
     return 0;
 }
 
+/**
+* Adds all the environment variables to the variable cache
+*/
+void setup_vars(char **envp) {
+    char *equals;
+    while(*envp != NULL) {
+        equals = strchr(*envp, '=');
+        *equals = '\0';
+        if(save_var(*envp, equals + 1) < 0) {
+            printf("malloc failed: %s\n", strerror(errno));
+            exit(1);
+        }
+        *equals = '=';
+        envp++;
+    }
+}
+
+/**
+* Swap out variables of the form "$varname" with their value
+*
+* param
+*/
+char *swap_vars(char *line, size_t size) {
+    char temp, *dest;
+    size_t readi = 0, writei = 0, dest_size = size;
+
+    /* New line with expanded variables */
+    dest = malloc(dest_size);
+    if(dest == NULL) {
+        printf("malloc failed: %s\n", strerror(errno));
+        exit(1);
+    }
+    memset(dest, 0, dest_size);
+    while(readi < size && line[readi] != '\0') {
+        if(line[readi] == '$') {
+            char next = line[readi + 1];
+            if(isalpha(next) || next == '_') {
+                char *var_name = &line[readi + 1];
+                char *var_value;
+                readi += 2;
+                /* Null terminate var_name */
+                while(isalnum(line[readi]) || line[readi] == '_') {
+                    readi++;
+                }
+                temp = line[readi];
+                line[readi] = '\0';
+                /* Lookup var_name */
+                var_value = load_var(var_name);
+                if(var_value != NULL) {
+                    size_t len = strlen(var_value);
+                    if(len + writei + 1 >= dest_size) {
+                        /* Realloc more space */
+                        while(len + writei + 1 >= dest_size) {
+                            dest_size += PAGE_SIZE;
+                        }
+                        dest = realloc(dest, dest_size);
+                        if(dest == NULL) {
+                            printf("realloc failed: %s\n", strerror(errno));
+                            exit(1);
+                        }
+                    }
+                    /* copy value to dest */
+                    strcpy(dest + writei, var_value);
+                    writei += len;
+                }
+                /*restore previous character at current readi */
+                line[readi] = temp;
+                continue;
+            } else if (isdigit(next)) {
+                /* TODO: add $0,$1,...,$9 for argv[0],argv[1]...,argv[9] */
+                continue;
+            } else if (next == '?'){
+                /* TODO: add last exit status */
+                continue;
+            } else if (next == '$'){
+                /* TODO: add pid */
+                continue;
+            } else {
+                /* Just drop to below write the '$' */
+
+            }
+        } else {
+            dest[writei++] = line[readi++];
+            if(writei + 1 >= dest_size) {
+                /* Realloc more space */
+                dest_size += PAGE_SIZE;
+                dest = realloc(dest, dest_size);
+                if(dest == NULL) {
+                    printf("realloc failed: %s\n", strerror(errno));
+                    exit(1);
+                }
+            }
+        }
+    }
+    free(line);
+    return dest;
+}
+
+/**
+* Copy string src to string *dest starting at *index. The destination string
+* is realloc'd if index + strlen(src) is larger than dest_size
+*/
+char *dynamic_strcat(char **dest, size_t *dest_size, size_t *index, const char *src) {
+    return *dest;
+}
 
 /**
 * Process the cmd inputted by the user
@@ -235,7 +347,7 @@ int build_path(char *prog, char *fullpath) {
         strcpy(fullpath, prog);
         return 1;
     } else {
-        char *path = getenv("PATH");
+        char *path = load_var("PATH");
         int len = 0;
         while(*path != '\0') {
             int fd;
@@ -390,7 +502,7 @@ int print_prompt(char *ps1) {
             char *user;
             switch (*(tmp + 1)) {
                 case 'u':
-                    user = getenv("USER");
+                    user = load_var("USER");
                     if(user != NULL) {
                         write(STDOUT_FILENO, user, strlen(user));
                     }
