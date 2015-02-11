@@ -33,7 +33,14 @@ int main(int argc, char **argv, char **envp) {
     int finished = 0;
     ssize_t rv;
     char *ps1;
-    char line[MAX_LINE];
+    char *line;
+    int len = 8;
+
+    line = malloc(len);
+    if(line == NULL) {
+        printf("malloc failed: %s\n", strerror(errno));
+        return 1;
+    }
 
     ps1 = getenv("PS1");
     if(ps1 == NULL) {
@@ -42,25 +49,33 @@ int main(int argc, char **argv, char **envp) {
     }
 
     while(!finished) {
-        char *cursor;
-        char last;
+        int i;
+        char last_char;
         cmd_t *cmd;
 
         rv = print_prompt(ps1);
         if(rv < 0) {
             break;
         }
-        for(cursor = line, last = '\0'; last != '\n' &&
-                cursor < line + MAX_LINE - 1 ; ++cursor) {
-            rv = read(0, cursor, 1);
+        i = 0;
+        last_char = '\0';
+        for(i = last_char = 0; last_char != '\n'; last_char = line[i++]) {
+            if(i == len - 1) {
+                len *= 2;
+                line = realloc(line, len);
+                if(line == NULL) {
+                    printf("malloc failed: %s\n", strerror(errno));
+                    exit(1);
+                }
+            }
+            rv = read(0, line + i, 1);
             if(rv <= 0) {
                 finished = 1;
                 break;
             }
-            last = *cursor;
-            /* Handle special characters eg ctrl, arrow keys */
+            /* TODO: Handle special characters eg ctrl, arrow keys, tab */
         }
-        *cursor = '\0';
+        line[i] = '\0';
 
         cmd = parse_line(line);
         if(cmd == NULL) {
@@ -72,6 +87,8 @@ int main(int argc, char **argv, char **envp) {
             break;
         }
     }
+    free(line);
+    cleanup_vars();
     return 0;
 }
 
@@ -115,9 +132,7 @@ int procces_cmd(cmd_t *cmd, char **envp) {
             return -1;
         } else if((rv = eval_assignment(curcmd))) {
             if(rv < 0) {
-                printf("variable assignment failed: %s\n", strerror(errno));
-            } else {
-                printf("variable assignment success\n");
+                printf("assignment failed: %s\n", strerror(errno));
             }
         } else {
             pid_t pid;
@@ -155,7 +170,6 @@ int procces_cmd(cmd_t *cmd, char **envp) {
 
 /**
 * Evaluate the cmd as a "xsa=123" assignment
-* "x=Y"
 * returns -1 on error
 *          0 if the cmd is not an assignment
 *          1 if the assignment was successful

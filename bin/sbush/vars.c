@@ -115,6 +115,7 @@ int save_var(char *key, char *val) {
         free(var);
         return -1;
     }
+    strcpy(var->key, key);
     var->val = NULL;
     if(_change_val(var, val) == -1) {
         free(var->key);
