@@ -12,25 +12,25 @@
 /* TODO non-hardcoded PAGE_SIZE */
 #define PAGE_SIZE 4096
 
-/* todo: extern struct freeblock *freelist;*/
-static struct freeblock *freelist = NULL;
+/* todo: extern struct __freeblk *_freehd;*/
+static struct _freeblk *_freehd = NULL;
 
-struct freeblock {
-    size_t blocklen;  /* Always >= sizeof(struct freeblock) */
-    struct freeblock *next;
-    struct freeblock *prev;
+struct _freeblk {
+    size_t blocklen;  /* Always >= sizeof(struct _freeblk) */
+    struct _freeblk *next;
+    struct _freeblk *prev;
 };
 
 
 /**
-* Finds a freeblock.
-* @reqsize  MAX of user's size and sizeof(struct freeblock)
-* Return: pointer to freeblock to use
+* Finds a _freeblk.
+* @reqsize  MAX of user's size and sizeof(struct _freeblk)
+* Return: pointer to _freeblk to use
 *       NULL if no suitable block found
 */
-struct freeblock *find_freeblock(size_t reqsize) {
-    struct freeblock *curr = freelist;
-    struct freeblock *target = NULL;
+struct _freeblk *_find_freeblk(size_t reqsize) {
+    struct _freeblk *curr = _freehd;
+    struct _freeblk *target = NULL;
     for(;curr != NULL; curr = curr->next) {
         if(curr->blocklen == reqsize) {
             /* An exact match is best */
@@ -48,14 +48,14 @@ struct freeblock *find_freeblock(size_t reqsize) {
 }
 
 /**
-* Removes this freeblock from the freelist doubly-linked list.
+* Removes this _freeblk from the freelist doubly-linked list.
 */
-void rm_freeblock(struct freeblock *rmblock) {
-    if(rmblock == freelist) {
-        /* Replace the head freeblock */
-        freelist = rmblock->next;
-        if(freelist != NULL) {
-            freelist->prev = NULL;
+void _rm_freeblk(struct _freeblk *rmblock) {
+    if(rmblock == _freehd) {
+        /* Replace the head _freeblk */
+        _freehd = rmblock->next;
+        if(_freehd != NULL) {
+            _freehd->prev = NULL;
         }
     } else {
         /* If not head, then it must had a prev */
@@ -70,11 +70,11 @@ void rm_freeblock(struct freeblock *rmblock) {
 /**
 * Replace oldblock with newblock in the doubly-linked freelist.
 */
-void replace_freeblock(struct freeblock *oldblock, struct freeblock *newblock) {
+void _replace_freeblk(struct _freeblk *oldblock, struct _freeblk *newblock) {
     newblock->prev = NULL;
     newblock->next = NULL;
-    if(oldblock == freelist) {
-        freelist = newblock;
+    if(oldblock == _freehd) {
+        _freehd = newblock;
     }
     if(oldblock->prev != NULL) {
         newblock->prev = oldblock->prev;
@@ -87,28 +87,28 @@ void replace_freeblock(struct freeblock *oldblock, struct freeblock *newblock) {
 }
 
 /**
-* Splits off the first section of a freeblock, if needed.
-* @reqsize  MAX of user's size and sizeof(struct freeblock)
+* Splits off the first section of a _freeblk, if needed.
+* @reqsize  MAX of user's size and sizeof(struct _freeblk)
 */
-void split_freeblock(struct freeblock *oldblock, size_t reqsize) {
-    struct freeblock *newblock;
+void _split_freeblk(struct _freeblk *oldblock, size_t reqsize) {
+    struct _freeblk *newblock;
     size_t newlen = oldblock->blocklen - reqsize;
-    if(newlen >= sizeof(struct freeblock)) {
+    if(newlen >= sizeof(struct _freeblk)) {
         /* we can split it */
         newblock = INC_PTR(oldblock, reqsize);
         oldblock->blocklen = reqsize;
         newblock->blocklen = newlen;
-        replace_freeblock(oldblock, newblock);
+        _replace_freeblk(oldblock, newblock);
     }
     else {
         /* we can't split, so rm oldblock */
-        rm_freeblock(oldblock);
+        _rm_freeblk(oldblock);
     }
 
 }
 
-void coalesce_freelist(struct freeblock *start) {
-    struct freeblock *curr = start;
+void _coalesce_freelist(struct _freeblk *start) {
+    struct _freeblk *curr = start;
     if(!curr) {
         return;
     }
@@ -131,12 +131,12 @@ void coalesce_freelist(struct freeblock *start) {
 * Insert into the list in sorted order.
 * Also coalesces the blocks if possible.
 */
-void append_freelist(struct freeblock *newblock) {
-    struct freeblock *curr = freelist;
-    struct freeblock *prev = NULL;
+void _append_freelist(struct _freeblk *newblock) {
+    struct _freeblk *curr = _freehd;
+    struct _freeblk *prev = NULL;
     if(curr == NULL) {
         /* Head is NULL */
-        freelist = newblock;
+        _freehd = newblock;
         return;
     }
     for(;curr != NULL; prev = curr, curr = curr->next) {
@@ -148,8 +148,8 @@ void append_freelist(struct freeblock *newblock) {
             if(prev) {
                 prev->next = newblock;
             }
-            if(curr == freelist) {
-                freelist = newblock; /* new head */
+            if(curr == _freehd) {
+                _freehd = newblock; /* new head */
             }
             break;
         }
@@ -161,14 +161,14 @@ void append_freelist(struct freeblock *newblock) {
         newblock->prev = prev;
         newblock->next = NULL;
     }
-    coalesce_freelist(freelist);
+    _coalesce_freelist(_freehd);
     return;
 }
 
 /* Print blocks */
-void printfreelist(void) {
+void _printfreelist(void) {
 #ifdef _DEBUG_MALLOC
-    struct freeblock *curr = freelist;
+    struct _freeblk *curr = _freehd;
     printf(_RED"Printing freelist:\n"_RESET);
     for(; curr != NULL; curr = curr->next) {
         printf("       ------ %d ------\n", curr);
@@ -184,7 +184,7 @@ void printfreelist(void) {
 * malloc, using brk/sbrk
 * Loop through free list to find larger enough block:
 *   * should stop when finding an exact match
-*   * o.w. split the smallest suitable freeblock into 2 blocks
+*   * o.w. split the smallest suitable _freeblk into 2 blocks
 *       * (24+24) <= block->blocklen >= size
 *
 * Else call brk/sbrk
@@ -192,31 +192,31 @@ void printfreelist(void) {
 * Returns: NULL if size is 0 or NULL on error
 */
 void *malloc(size_t size) {
-    struct freeblock *target = NULL;
-    size_t reqsize = MAX(sizeof(struct freeblock), size + sizeof(size_t));
+    struct _freeblk *target = NULL;
+    size_t reqsize = MAX(sizeof(struct _freeblk), size + sizeof(size_t));
     void *retptr = NULL;
 
     if(size == 0) {
         return NULL;
     }
 
-    target = find_freeblock(reqsize);
+    target = _find_freeblk(reqsize);
     if(target != NULL) {
         if(target->blocklen == reqsize) {
             /* User gets a whole block */
-            rm_freeblock(target);
+            _rm_freeblk(target);
             retptr = INC_PTR(target, sizeof(size_t));
         }
         else if(target->blocklen > reqsize) {
             /* Gotta split a block */
-            split_freeblock(target, reqsize);
+            _split_freeblk(target, reqsize);
             retptr = INC_PTR(target, sizeof(size_t));
         }
     } else {
         /* Gotta get more mem */
         intptr_t increment = ((reqsize/PAGE_SIZE) + 1) * PAGE_SIZE;
         target = sbrk(increment);
-        if(target == (struct freeblock*)-1) {
+        if(target == (struct _freeblk*)-1) {
             errno = ENOMEM;
             return NULL;
         } else {
@@ -225,10 +225,10 @@ void *malloc(size_t size) {
             target = INC_PTR(target, reqsize); /* ptr to remaining block*/
             target->blocklen = increment - reqsize;
             target->next = target->prev = NULL;
-            append_freelist(target);
+            _append_freelist(target);
         }
     }
-    printfreelist();
+    _printfreelist();
     return retptr;
 }
 
@@ -237,7 +237,7 @@ void *malloc(size_t size) {
 * free, opposite of malloc
 */
 void free(void *ptr) {
-    struct freeblock *block = INC_PTR(ptr, (-1 * sizeof(size_t)));
+    struct _freeblk *block = INC_PTR(ptr, (-1 * sizeof(size_t)));
     if(!ptr) {
         /* Allow free(NULL) */
         return;
@@ -246,8 +246,8 @@ void free(void *ptr) {
     block->prev = NULL;
     /* zero fill free'd space */
     memset(INC_PTR(block, sizeof(size_t)), 0, block->blocklen - sizeof(size_t));
-    append_freelist(block);
-    printfreelist();
+    _append_freelist(block);
+    _printfreelist();
 }
 
 /**
@@ -259,19 +259,19 @@ void *realloc(void *ptr, size_t size) {
     if(!ptr) {
         return malloc(size);
     }
-    reqsize = MAX(sizeof(struct freeblock), size + sizeof(size_t));
+    reqsize = MAX(sizeof(struct _freeblk), size + sizeof(size_t));
     oldsize = *(size_t*)INC_PTR(ptr, (-1 * sizeof(size_t)));
 
     if(reqsize == oldsize) {
         return ptr;
     } else if(reqsize < oldsize) {
-        if(oldsize - reqsize >= sizeof(struct freeblock)) {
-            struct freeblock *newblock = INC_PTR(ptr, reqsize - sizeof(size_t));
+        if(oldsize - reqsize >= sizeof(struct _freeblk)) {
+            struct _freeblk *newblock = INC_PTR(ptr, reqsize - sizeof(size_t));
             newblock->blocklen = oldsize - reqsize;
-            append_freelist(newblock);
+            _append_freelist(newblock);
             *(size_t*)INC_PTR(ptr, (-1 * sizeof(size_t))) = reqsize;
         }
-        printfreelist();
+        _printfreelist();
         return ptr;
     } else {
         /* todo: could improve to only malloc() if needed */

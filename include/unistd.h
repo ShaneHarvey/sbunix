@@ -10,6 +10,7 @@ extern char **__environ;
 #define STDOUT_FILENO 1
 #define STDERR_FILENO 2
 
+unsigned int sleep(unsigned int seconds);
 
 typedef long intptr_t;
 void *sbrk(intptr_t increment);
