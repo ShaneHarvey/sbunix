@@ -11,8 +11,6 @@
 #include "vars.h"         /* save_var/load_var */
 
 #define MAX_LINE 1024
-/* TODO non-hardcoded PAGE_SIZE */
-#define PAGE_SIZE 4096
 
 typedef struct cmd {
     int argc;
@@ -20,9 +18,8 @@ typedef struct cmd {
     struct cmd *next;
 }cmd_t;
 
-void setup_vars(char **envp);
-char *swap_vars(char *line, size_t size);
-int print_prompt(char *ps1);
+int ignore_line(char *line);
+void print_prompt(char *ps1);
 void strip(char *str);
 int arg_count(char *line);
 char **build_argv(char *line, int argc);
@@ -32,13 +29,23 @@ int build_path(char *prog, char *fullpath);
 void exec_cmd(cmd_t *cmd, int infile, int outfile, char **envp);
 int procces_cmd(cmd_t *cmd, char **envp);
 int eval_assignment(cmd_t *cmd);
+void save_cmd_info(cmd_t *cmd, int exit_status);
 
 int main(int argc, char **argv, char **envp) {
-    int finished = 0;
+    int finished = 0, interactive = 1;
     ssize_t rv;
     char *ps1;
     char *line;
-    int line_size = 8;
+    size_t line_size = 8;
+    int inputfd = STDIN_FILENO;
+
+    if(argc > 1) {
+        interactive = 0;
+        inputfd = open(argv[1], O_RDONLY);
+        if(inputfd < 0) {
+            printf("failed to open %s: %s\n", argv[1], strerror(errno));
+        }
+    }
 
     line = malloc(line_size);
     if(line == NULL) {
@@ -47,7 +54,7 @@ int main(int argc, char **argv, char **envp) {
     }
 
     /* Setup vars */
-    setup_vars(envp);
+    setup_vars(argv, envp);
 
     ps1 = load_var("PS1");
     if(ps1 == NULL) {
@@ -60,9 +67,8 @@ int main(int argc, char **argv, char **envp) {
         char last_char;
         cmd_t *cmd;
 
-        rv = print_prompt(ps1);
-        if(rv < 0) {
-            break;
+        if(interactive) {
+            print_prompt(ps1);
         }
         i = 0;
         last_char = '\0';
@@ -75,7 +81,7 @@ int main(int argc, char **argv, char **envp) {
                     exit(1);
                 }
             }
-            rv = read(0, line + i, 1);
+            rv = read(inputfd, line + i, 1);
             if(rv <= 0) {
                 finished = 1;
                 break;
@@ -83,6 +89,9 @@ int main(int argc, char **argv, char **envp) {
             /* TODO: Handle special characters eg ctrl, arrow keys, tab */
         }
         line[i] = '\0';
+        if(ignore_line(line)) {
+            continue;
+        }
         line = swap_vars(line, line_size);
         cmd = parse_line(line);
         if(cmd == NULL) {
@@ -96,113 +105,26 @@ int main(int argc, char **argv, char **envp) {
     }
     free(line);
     cleanup_vars();
+    if(inputfd != STDIN_FILENO) {
+        close(inputfd);
+    }
     return 0;
 }
 
 /**
-* Adds all the environment variables to the variable cache
+* Returns 1 if this line should be ignored
 */
-void setup_vars(char **envp) {
-    char *equals;
-    while(*envp != NULL) {
-        equals = strchr(*envp, '=');
-        *equals = '\0';
-        if(save_var(*envp, equals + 1) < 0) {
-            printf("malloc failed: %s\n", strerror(errno));
-            exit(1);
-        }
-        *equals = '=';
-        envp++;
+int ignore_line(char *line) {
+    if(line == NULL || *line == '\0') {
+        return 1;
     }
-}
-
-/**
-* Swap out variables of the form "$varname" with their value
-*
-* param
-*/
-char *swap_vars(char *line, size_t size) {
-    char temp, *dest;
-    size_t readi = 0, writei = 0, dest_size = size;
-
-    /* New line with expanded variables */
-    dest = malloc(dest_size);
-    if(dest == NULL) {
-        printf("malloc failed: %s\n", strerror(errno));
-        exit(1);
+    while(isspace(*line)) {
+        line++;
     }
-    memset(dest, 0, dest_size);
-    while(readi < size && line[readi] != '\0') {
-        if(line[readi] == '$') {
-            char next = line[readi + 1];
-            if(isalpha(next) || next == '_') {
-                char *var_name = &line[readi + 1];
-                char *var_value;
-                readi += 2;
-                /* Null terminate var_name */
-                while(isalnum(line[readi]) || line[readi] == '_') {
-                    readi++;
-                }
-                temp = line[readi];
-                line[readi] = '\0';
-                /* Lookup var_name */
-                var_value = load_var(var_name);
-                if(var_value != NULL) {
-                    size_t len = strlen(var_value);
-                    if(len + writei + 1 >= dest_size) {
-                        /* Realloc more space */
-                        while(len + writei + 1 >= dest_size) {
-                            dest_size += PAGE_SIZE;
-                        }
-                        dest = realloc(dest, dest_size);
-                        if(dest == NULL) {
-                            printf("realloc failed: %s\n", strerror(errno));
-                            exit(1);
-                        }
-                    }
-                    /* copy value to dest */
-                    strcpy(dest + writei, var_value);
-                    writei += len;
-                }
-                /*restore previous character at current readi */
-                line[readi] = temp;
-                continue;
-            } else if (isdigit(next)) {
-                /* TODO: add $0,$1,...,$9 for argv[0],argv[1]...,argv[9] */
-                continue;
-            } else if (next == '?'){
-                /* TODO: add last exit status */
-                continue;
-            } else if (next == '$'){
-                /* TODO: add pid */
-                continue;
-            } else {
-                /* Just drop to below write the '$' */
-
-            }
-        } else {
-            dest[writei++] = line[readi++];
-            if(writei + 1 >= dest_size) {
-                /* Realloc more space */
-                dest_size += PAGE_SIZE;
-                dest = realloc(dest, dest_size);
-                if(dest == NULL) {
-                    printf("realloc failed: %s\n", strerror(errno));
-                    exit(1);
-                }
-            }
-        }
+    if(*line == '#' || *line == '\n' || *line == '\0') {
+        return 1;
     }
-    free(line);
-    return dest;
-}
-
-/**
-* Copy string src to string *dest starting at *index. The destination string
-* is realloc'd if index + strlen(src) is larger than dest_size
-*/
-char *dynamic_strcat(char **dest, size_t *dest_size, size_t *index, const char *src) {
-    return *dest;
+    return 0;
 }
 
 /**
@@ -219,6 +141,7 @@ int procces_cmd(cmd_t *cmd, char **envp) {
     infile = STDIN_FILENO;
     outfile = STDOUT_FILENO;
     for(curcmd = cmd; curcmd != NULL; curcmd = curcmd->next) {
+        int status = 0;
         if(curcmd->next != NULL) {
             rv = pipe(pfd);
             if(rv < 0) {
@@ -232,19 +155,21 @@ int procces_cmd(cmd_t *cmd, char **envp) {
         /**
         * This if/else should be another function
         */
-
         if(strcmp(curcmd->argv[0], "cd") == 0) {
             if(curcmd->argv[1] != NULL) {
                 rv = chdir(curcmd->argv[1]);
                 if(rv < 0) {
                     printf("cd: %s: %s\n", curcmd->argv[1], "No such file or directory");
+                    status = 1;
                 }
             }
         } else if(strcmp(curcmd->argv[0], "exit") == 0) {
-            return -1;
+            /* TODO: exit with error code */
+            exit(0);
         } else if((rv = eval_assignment(curcmd))) {
             if(rv < 0) {
                 printf("assignment failed: %s\n", strerror(errno));
+                status = 1;
             }
         } else {
             pid_t pid;
@@ -254,7 +179,6 @@ int procces_cmd(cmd_t *cmd, char **envp) {
                 /* Does not return */
                 exec_cmd(curcmd, infile, outfile, envp);
             } else if(pid > 0) {
-                int status;
                 pid_t wpid;
                 /* wait for pid */
                 wpid = waitpid(pid, &status, 0);
@@ -276,6 +200,9 @@ int procces_cmd(cmd_t *cmd, char **envp) {
             close(outfile);
         }
         infile = pfd[0]; /* next command should read prev output */
+
+        /* Save info about previous command to the environment */
+        save_cmd_info(curcmd, status);
     }
     return 1;
 }
@@ -305,7 +232,8 @@ int eval_assignment(cmd_t *cmd) {
     }
     *equals = '\0';
 
-    return save_var(argv0, equals + 1)? -1 : 1;
+    save_var(argv0, equals + 1);
+    return 1;
 }
 
 /**
@@ -329,7 +257,7 @@ void exec_cmd(cmd_t *cmd, int infile, int outfile, char **envp) {
         /* execve failed */
         printf("execve: %s failed: %s\n", filename, strerror(errno));
         free_cmd(cmd);
-        exit(-1);
+        exit(126);
     } else {
         printf("%s: command not found\n", cmd->argv[0]);
         free_cmd(cmd);
@@ -373,6 +301,31 @@ int build_path(char *prog, char *fullpath) {
         }
     }
     return 0;
+}
+
+/**
+* Saves info about the previous command.
+*/
+void save_cmd_info(cmd_t *cmd, int exit_status) {
+    char str_status[4] = {0};
+    exit_status &= 0xFF;
+    if(exit_status == 0) {
+        save_var("?", "0");
+    } else {
+        int i = 0, j = 1;
+        while(exit_status != 0) {
+            str_status[i++] = '0' + (exit_status % 10);
+            exit_status /= 10;
+        }
+        if(exit_status > 99) {
+            j = 2;
+        }
+        i = str_status[0];
+        str_status[0] = str_status[j];
+        str_status[j] = (char)i;
+        save_var("?", str_status);
+    }
+    save_var("_", cmd->argv[0]);
 }
 
 /**
@@ -493,7 +446,7 @@ int arg_count(char *line) {
 * \h – Hostname
 * \w – Full path of the current working directory
 */
-int print_prompt(char *ps1) {
+void print_prompt(char *ps1) {
     char *tmp = ps1;
 
     while(*tmp != '\0') {
@@ -526,7 +479,6 @@ int print_prompt(char *ps1) {
         }
         tmp++;
     }
-    return 1;
 }
 
 /**
