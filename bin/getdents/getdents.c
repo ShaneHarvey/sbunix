@@ -46,7 +46,7 @@ main(int argc, char *argv[], char *envp[])
         printf("i-node#  file type  d_reclen  d_off   d_name\n");
         for (bpos = 0; bpos < nread;) {
             d = (struct linux_dirent *) (buf + bpos);
-            printf("%d  ", d->d_ino);
+            printf("%d  ", (int)d->d_ino);
             d_type = *(buf + bpos + d->d_reclen - 1);
             printf("%s ", (d_type == DT_REG) ?  "regular   " :
                           (d_type == DT_DIR) ?  "directory " :
@@ -56,7 +56,7 @@ main(int argc, char *argv[], char *envp[])
                           (d_type == DT_BLK) ?  "block dev " :
                           (d_type == DT_CHR) ?  "char dev  " : "???       ");
             printf("%d     %d  %s\n", d->d_reclen,
-                    (long long) d->d_off, d->d_name);
+                    (int) d->d_off, d->d_name);
             bpos += d->d_reclen;
         }
     }
