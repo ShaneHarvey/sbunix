@@ -75,41 +75,53 @@ int printf(const char *format, ...) {
 	while(*format) {
         if(*format == '%') {
             int i;
-            char arr[21] = {0}, *str;
+            uint64_t i64;
+            char arr[21] = {0}, *str, *towrite;
             int len;
             switch(format[1]) {
                 case 'd':
                     i = va_arg(ap, int);
                     len = convert(i, 10, arr);
-                    write(STDOUT_FILENO, arr, len);
-                    printed += len;
+                    towrite = arr;
                     format += 2;
                     break;
+                case 'l':
+                    /* todo no worky fix convert */
+                    i64 = va_arg(ap, uint64_t);
+                    len = convert(i64, 16, arr);
+                    towrite = arr;
+                    format += 2;
+                    break;
+
                 case 'p':
                     /* todo no worky fix convert */
-                    i = va_arg(ap, uint64_t);
-                    len = convert(i, 16, arr);
-                    write(1, arr, len);
-                    printed += len;
+                    i64 = va_arg(ap, uint64_t);
+                    len = convert(i64, 16, arr);
+                    towrite = arr;
                     format += 2;
                     break;
                 case 's':
                     str = va_arg(ap, char *);
                     len = strlen(str);
-                    write(STDOUT_FILENO, str, len);
-                    printed += len;
+                    towrite = str;
                     format += 2;
                     break;
                 case '%':
-                    write(STDOUT_FILENO, format, 1);
-                    ++printed;
+                    len = 1;
+                    towrite = (char*)format;
                     format += 2;
                     break;
                 default:
-                    write(STDOUT_FILENO, format, 1);
+                    len = 1;
+                    towrite = (char*)format;
                     ++printed;
                     ++format;
             }
+            i = (int)write(STDOUT_FILENO, towrite, len);
+            if(i < 0) {
+                return -1;
+            }
+            printed += len;
         } else {
             write(STDOUT_FILENO, format, 1);
             ++printed;

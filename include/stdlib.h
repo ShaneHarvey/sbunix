@@ -5,6 +5,8 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 
+#define EXIT_SUCCESS 0
+#define EXIT_FAILURE 1
 
 int main(int argc, char* argv[], char* envp[]);
 void exit(int status);
@@ -65,6 +67,7 @@ struct dirent
 void *opendir(const char *name);
 struct dirent *readdir(void *dir);
 int closedir(void *dir);
+int getdents(unsigned int fd, struct dirent *dirp, unsigned int count);
 
 int atoi(const char *nptr);
 #endif
