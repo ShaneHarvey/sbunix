@@ -126,14 +126,12 @@ int printf(const char *format, ...) {
                     len = 1;
                     towrite = arr;
                     ++printed;
-                    format += 2;
                     break;
                 case 'd':
                     i = va_arg(ap, int);
                     itoa((long long) i, 10, arr, sizeof(arr));
                     len = strlen(arr);
                     towrite = arr;
-                    format += 2;
                     break;
                 case 'l':
                     if(format[2] == 'l') {
@@ -143,7 +141,6 @@ int printf(const char *format, ...) {
                     itoa(i64, 10, arr, sizeof(arr));
                     len = strlen(arr);
                     towrite = arr;
-                    format += 2;
                     break;
                 case 'p':
                     ui64 = va_arg(ap, uint64_t);
@@ -156,7 +153,6 @@ int printf(const char *format, ...) {
                     }
                     len = strlen(arr);
                     towrite = arr;
-                    format += 2;
                     break;
                 case 'o':
                     if(format[2] == 'l') {
@@ -169,7 +165,6 @@ int printf(const char *format, ...) {
                     }
                     len = strlen(arr);
                     towrite = arr;
-                    format += 2;
                     break;
                 case 'x':
                     if(format[2] == 'l') {
@@ -182,25 +177,21 @@ int printf(const char *format, ...) {
                     }
                     len = strlen(arr);
                     towrite = arr;
-                    format += 2;
                     break;
                 case 's':
                     str = va_arg(ap, char *);
                     len = strlen(str);
                     towrite = str;
-                    format += 2;
                     break;
                 case '%':
                     len = 1;
                     towrite = (char*)format;
-                    format += 2;
                     break;
                 default:
-                    len = 1;
+                    len = 2;
                     towrite = (char*)format;
-                    ++printed;
-                    ++format;
             }
+            format += 2;
             i = (int)write(STDOUT_FILENO, towrite, len);
             if(i < 0) {
                 return -1;
