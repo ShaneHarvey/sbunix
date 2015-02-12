@@ -251,8 +251,18 @@ void free(void *ptr) {
 }
 
 /**
+* calloc, standard calloc
+*/
+void *calloc(size_t nmemb, size_t size) {
+    void *rv = malloc(nmemb * size);
+    if(rv) {
+        memset(rv, 0, nmemb * size);
+    }
+    return rv;
+}
+
+/**
 * realloc, standard realloc.
-* See if we can extend
 */
 void *realloc(void *ptr, size_t size) {
     size_t oldsize, reqsize;
@@ -265,6 +275,7 @@ void *realloc(void *ptr, size_t size) {
     if(reqsize == oldsize) {
         return ptr;
     } else if(reqsize < oldsize) {
+        /* Getting smaller */
         if(oldsize - reqsize >= sizeof(struct _freeblk)) {
             struct _freeblk *newblock = INC_PTR(ptr, reqsize - sizeof(size_t));
             newblock->blocklen = oldsize - reqsize;
@@ -274,7 +285,7 @@ void *realloc(void *ptr, size_t size) {
         _printfreelist();
         return ptr;
     } else {
-        /* todo: could improve to only malloc() if needed */
+        /* todo: we could improve to only malloc() if needed */
         void *newptr = malloc(size);
         if(!newptr) {
             free(ptr);
