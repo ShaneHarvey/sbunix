@@ -15,4 +15,6 @@ struct itimerspec {
     struct timespec  it_value;     /* Timer expiration */
 };
 
+int nanosleep(const struct timespec *req, struct timespec *rem);
+
 #endif

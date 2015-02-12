@@ -5,6 +5,8 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 
+#define EXIT_SUCCESS 0
+#define EXIT_FAILURE 1
 
 int main(int argc, char* argv[], char* envp[]);
 void exit(int status);
@@ -27,7 +29,7 @@ pid_t getpid(void);
 pid_t getppid(void);
 int execve(const char *filename, char *const argv[], char *const envp[]);
 pid_t waitpid(pid_t pid, int *status, int options);
-unsigned int sleep(unsigned int seconds);
+
 unsigned int alarm(unsigned int seconds);
 
 /* paths */
@@ -65,6 +67,7 @@ struct dirent
 void *opendir(const char *name);
 struct dirent *readdir(void *dir);
 int closedir(void *dir);
+int getdents(unsigned int fd, struct dirent *dirp, unsigned int count);
 
 int atoi(const char *nptr);
 #endif

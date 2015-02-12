@@ -1,6 +1,5 @@
 #include <syscall.h>
 #include <stdlib.h>
-#include <sys/wait.h>
 #include <time.h>
 #include <sys/utsname.h>
 
