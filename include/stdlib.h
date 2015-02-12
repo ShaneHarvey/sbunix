@@ -14,8 +14,9 @@ void exit(int status);
 /* memory */
 typedef uint64_t size_t;
 void *malloc(size_t size);
-void *realloc(void *ptr, size_t size);
 void free(void *ptr);
+void *calloc(size_t nmemb, size_t size);
+void *realloc(void *ptr, size_t size);
 
 /**
 * Follows glibc wrapper
