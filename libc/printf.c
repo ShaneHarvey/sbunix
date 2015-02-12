@@ -137,22 +137,23 @@ int printf(const char *format, ...) {
                     break;
                 case 'l':
                     if(format[2] == 'l') {
-                        i64 = va_arg(ap, int64_t);
-                        itoa(i64, 10, arr, sizeof(arr));
                         format++;
-                    } else {
-                        i = va_arg(ap, int);
-                        itoa((long long) i, 10, arr, sizeof(arr));
                     }
+                    i64 = va_arg(ap, int64_t);
+                    itoa(i64, 10, arr, sizeof(arr));
                     len = strlen(arr);
                     towrite = arr;
                     format += 2;
                     break;
                 case 'p':
                     ui64 = va_arg(ap, uint64_t);
-                    arr[0] = '0';
-                    arr[1] = 'x';
-                    uitoa(ui64, 16, arr + 2, sizeof(arr));
+                    if(ui64 == 0) {
+                        strcpy(arr, "(nil)");
+                    } else {
+                        arr[0] = '0';
+                        arr[1] = 'x';
+                        uitoa(ui64, 16, arr + 2, sizeof(arr));
+                    }
                     len = strlen(arr);
                     towrite = arr;
                     format += 2;
@@ -160,11 +161,24 @@ int printf(const char *format, ...) {
                 case 'o':
                     if(format[2] == 'l') {
                         ui64 = va_arg(ap, unsigned long int);
-                        uitoa(-1 & (uint64_t)ui64, 8, arr, sizeof(arr));
+                        uitoa(ui64, 8, arr, sizeof(arr));
                         format++;
                     } else {
                         ui = va_arg(ap, unsigned int);
                         uitoa((uint64_t)ui, 8, arr, sizeof(arr));
+                    }
+                    len = strlen(arr);
+                    towrite = arr;
+                    format += 2;
+                    break;
+                case 'x':
+                    if(format[2] == 'l') {
+                        ui64 = va_arg(ap, unsigned long int);
+                        uitoa(ui64, 16, arr, sizeof(arr));
+                        format++;
+                    } else {
+                        ui = va_arg(ap, unsigned int);
+                        uitoa((uint64_t)ui, 16, arr, sizeof(arr));
                     }
                     len = strlen(arr);
                     towrite = arr;

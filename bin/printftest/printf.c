@@ -49,6 +49,24 @@ int main(int argc, char* argv[], char* envp[]) {
     printf("333                : %o\n", 0333);
     printf("1                  : %o\n", 01);
     printf("0                  : %o\n", 00);
+    printf("\n");
+
+    printf("Testing %%x functionality\n");
+    printf("ffffeeee           : %x\n", 0xffffeeee);
+    printf("ffffffff           : %x\n", 0xffffffff);
+    printf("deadbcf            : %x\n", 0xdeadbcf);
+    printf("1                  : %x\n", 0x1);
+    printf("0                  : %x\n", 0x0);
+    printf("\n");
+
+    printf("Testing %%xl functionality\n");
+    printf("1234567890abcdef   : %xl\n", 0x1234567890abcdef);
+    printf("ffffeeee           : %xl\n", 0xffffeeee);
+    printf("ffffffff           : %xl\n", 0xffffffff);
+    printf("deadbcf            : %xl\n", 0xdeadbcf);
+    printf("1                  : %xl\n", 0x1);
+    printf("0                  : %xl\n", 0x0);
+    printf("\n");
     return 0;
 
 
