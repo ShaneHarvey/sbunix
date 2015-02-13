@@ -4,11 +4,13 @@
 #include <sys/defs.h>
 #include <sys/wait.h>
 #include <sys/types.h>
+#include <dirent.h>
 
 #define EXIT_SUCCESS 0
 #define EXIT_FAILURE 1
 
-int main(int argc, char* argv[], char* envp[]);
+#define BUFSIZ 4096
+
 void exit(int status);
 
 /* memory */
@@ -55,20 +57,6 @@ int close(int fd);
 int pipe(int filedes[2]);
 int dup(int oldfd);
 int dup2(int oldfd, int newfd);
-
-/* directories */
-#define NAME_MAX 255
-struct dirent
-{
-	long d_ino;
-	off_t d_off;
-	unsigned short d_reclen;
-	char d_name [NAME_MAX+1];
-};
-void *opendir(const char *name);
-struct dirent *readdir(void *dir);
-int closedir(void *dir);
-int getdents(unsigned int fd, struct dirent *dirp, unsigned int count);
 
 int atoi(const char *nptr);
 #endif
