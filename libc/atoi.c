@@ -3,9 +3,9 @@
 
 int atoi(const char *nptr) {
     int rv = 0;
-    char c;
-    while(isdigit((c = *nptr++))) {
-        rv = 10 * rv + c - '0';
+    while(isdigit(*nptr)) {
+        rv = 10 * rv + *nptr - '0';
+        nptr++;
     }
     return rv;
 }
