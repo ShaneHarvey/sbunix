@@ -3,6 +3,7 @@
 #include <dirent.h>
 #include <errno.h>
 
+#define LDIR_NAMELEN(dp) ((dp)->d_reclen - 2 - (size_t)(((struct linux_dirent*)0)->d_name) )
 
 struct linux_dirent {
     unsigned long  d_ino;     /* Inode number */
@@ -39,6 +40,7 @@ DIR *opendir(const char *name) {
     if(!dirp) {
         return NULL;
     }
+    dirp->fd = fd;
     dirp->buf = malloc(BUFSIZ); /* buf for dirents */
     if(!dirp->buf) {
         free(dirp);
@@ -80,10 +82,10 @@ struct dirent *readdir(DIR *dirp) {
     dp = (struct dirent *)ldp;
 
     /* convert linux_dirent to dirent */
-    d_type = *((unsigned char*)ldp + ldp->d_reclen);
-    memmove(dp->d_name, ldp->d_name, (ldp->d_reclen - 2 - 2*sizeof(long) - sizeof(short)));
-    dp->d_type = d_type;
-
+    d_type = *((unsigned char*)ldp + ldp->d_reclen - 1); /* save */
+    memmove(dp->d_name, ldp->d_name, LDIR_NAMELEN(ldp) + 1); /* shift down 1 */
+    dp->d_type = d_type; /* put infront of d_name*/
+    /*  *((unsigned char*)ldp + ldp->d_reclen) = '\0'; */
     return dp;
 }
 

@@ -42,7 +42,7 @@ int malloctest(int alloc_num, size_t alloc_size) {
     for(i = 0; i < alloc_num; i++) {
         ptrs[i] = malloc(alloc_size);
         if(!ptrs[i]) {
-            printf(strerror(errno));
+            printf("%s\n", strerror(errno));
             return 1;
         }
     }
@@ -59,13 +59,13 @@ int malloctest(int alloc_num, size_t alloc_size) {
 int realloctest(size_t alloc_size) {
     char *ptr = malloc(alloc_size);
     if(!ptr) {
-        printf(strerror(errno));
+        printf("%s\n", strerror(errno));
         return 1;
     }
     while(alloc_size > 500) {
         ptr = realloc(ptr, alloc_size);
         if(!ptr) {
-            printf(strerror(errno));
+            printf("%s\n", strerror(errno));
             return 1;
         }
         alloc_size -= 500;

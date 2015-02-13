@@ -11,7 +11,6 @@
 
 #define BUFSIZ 4096
 
-int main(int argc, char* argv[], char* envp[]);
 void exit(int status);
 
 /* memory */
