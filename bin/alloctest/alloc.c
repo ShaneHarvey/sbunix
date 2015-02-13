@@ -14,7 +14,7 @@ int simpletest(void) {
     for(i = 0; i < 2; i++){
         cp = malloc(2040 * sizeof(char));
         if(!cp) {
-            printf("malloc 1 Failed!\n");
+            printf("malloc: %s\n", strerror(errno));
             return 1;
         }
         strncpy(cp, str, 100 * sizeof(char));
@@ -23,7 +23,7 @@ int simpletest(void) {
 
         ip = malloc(2040);
         if(!ip) {
-            printf("malloc 2 Failed!\n");
+            printf("malloc: %s\n", strerror(errno));
             return 1;
         }
         free(ip);
@@ -35,20 +35,25 @@ int simpletest(void) {
 * @alloc_num: Number of times to malloc
 * @alloc_size: Size of each malloc
 */
-int malloctest(int alloc_num, size_t alloc_size) {
-    char *ptrs[alloc_num];
+int malloctest(int malloc_num, size_t malloc_size) {
+    void **ptrs;
     int i;
-
-    for(i = 0; i < alloc_num; i++) {
-        ptrs[i] = malloc(alloc_size);
+    ptrs = malloc((size_t)malloc_num * sizeof(void *));
+    if(!ptrs){
+        printf("malloc failed: %s\n", strerror(errno));
+        return 1;
+    }
+    for(i = 0; i < malloc_num; i++) {
+        ptrs[i] = malloc(malloc_size);
         if(!ptrs[i]) {
-            printf("%s\n", strerror(errno));
+            printf("malloc failed: %s\n", strerror(errno));
             return 1;
         }
     }
-    for(i = 0; i < alloc_num; i++) {
+    for(i = 0; i < malloc_num; i++) {
         free(ptrs[i]);
     }
+    free(ptrs);
     return 0;
 }
 
@@ -56,32 +61,49 @@ int malloctest(int alloc_num, size_t alloc_size) {
 * @alloc_num: Number of times to realloc
 * @alloc_size: Starting size of the original malloc
 */
-int realloctest(size_t alloc_size) {
-    char *ptr = malloc(alloc_size);
+int realloctest(size_t realloc_size) {
+    char *ptr = malloc(realloc_size);
     if(!ptr) {
         printf("%s\n", strerror(errno));
         return 1;
     }
-    while(alloc_size > 500) {
-        ptr = realloc(ptr, alloc_size);
+    while(realloc_size > 500) {
+        ptr = realloc(ptr, realloc_size);
         if(!ptr) {
-            printf("%s\n", strerror(errno));
+            printf("realloc failed %s\n", strerror(errno));
             return 1;
         }
-        alloc_size -= 500;
+        realloc_size -= 500;
     }
     free(ptr);
     return 0;
 }
 
+void usage(char *prgname) {
+    printf("Usage #1: %s num_mallocs malloc_size\n", prgname);
+    printf("Usage #2: %s realloc_size\n", prgname);
+    exit(1);
+}
 
 int main(int argc, char *argv[], char *envp[]) {
-    if(argc == 2)
-        return realloctest((size_t)atoi(argv[1]));
-    else if(argc == 3)
-        return malloctest(atoi(argv[1]), (size_t)atoi(argv[2]));
-
-    printf("Usage: %s num_allocs alloc_size\n", argv[0]);
-    printf("Usage: %s realloc_size\n", argv[0]);
+    int num_mallocs;
+    int alloc_size;
+    if(argc == 2) {
+        alloc_size = atoi(argv[1]);
+        if(alloc_size < 0) {
+            usage(argv[0]);
+        }
+        printf("realloctest(%d)\n", alloc_size);
+        return realloctest((size_t)alloc_size);
+    } else if(argc == 3) {
+        num_mallocs = atoi(argv[1]);
+        alloc_size = atoi(argv[2]);
+        if(alloc_size < 0 || num_mallocs < 0) {
+            usage(argv[0]);
+        }
+        printf("malloctest(%d, %d)\n", num_mallocs, alloc_size);
+        return malloctest(num_mallocs, (size_t)alloc_size);
+    }
+    usage(argv[0]);
     return 1;
 }
