@@ -6,32 +6,32 @@
 #include <debug.h>
 #include "vars.h"
 
-typedef struct var {
+struct var {
     char *key;
     char *val;
     struct var *prev;
     struct var *next;
-} var_t;
+};
 
-static var_t *_head = NULL;
+static struct var *head_var = NULL;
 
 /*
  *
  */
-void _insert_var(var_t *newvar) {
-    var_t *cur, *last;
+static void _insert_var(struct var *newvar) {
+    struct var *cur, *last;
     if(newvar == NULL) {
         return;
     }
     /* Insert as head */
-    if(_head == NULL) {
+    if(head_var == NULL) {
         newvar->next = NULL;
         newvar->prev = NULL;
-        _head = newvar;
+        head_var = newvar;
         return;
     }
     /* Insert in lexicographically increasing order */
-    for(cur = _head; cur != NULL; cur = cur->next) {
+    for(cur = head_var; cur != NULL; cur = cur->next) {
         int rv = strcmp(newvar->key, cur->key);
         if(rv == 0) {
             /* already exists! */
@@ -40,9 +40,9 @@ void _insert_var(var_t *newvar) {
             /* Insert before this  */
             newvar->next = cur;
             newvar->prev = cur->prev;
-            if(cur == _head) {
-                _head->prev = newvar;
-                _head = newvar;
+            if(cur == head_var) {
+                head_var->prev = newvar;
+                head_var = newvar;
             } else {
                 cur->prev->next = newvar;
                 cur->prev= newvar;
@@ -60,7 +60,7 @@ void _insert_var(var_t *newvar) {
 /*
  * Change the value of var to newval
  */
-void _change_val(var_t *var, char *newval) {
+static void _change_val(struct var *var, char *newval) {
     if(newval == NULL) {
         if(var->val != NULL) {
             free(var->val);
@@ -76,13 +76,13 @@ void _change_val(var_t *var, char *newval) {
     }
 }
 
-var_t *_load_var(char *key) {
-    var_t *var = _head;
+static struct var *_load_var(char *key) {
+    struct var *var = head_var;
     if(key == NULL) {
         return NULL;
     }
 
-    for(var = _head; var != NULL && var->key != NULL; var = var->next) {
+    for(var = head_var; var != NULL && var->key != NULL; var = var->next) {
         int rv = strcmp(key, var->key);
         if(rv == 0) {
             /* found it! */
@@ -99,7 +99,7 @@ var_t *_load_var(char *key) {
 * Save key to value
 */
 void save_var(char *key, char *val) {
-    var_t *var;
+    struct var *var;
 
     if(key == NULL) {
         return;
@@ -109,7 +109,7 @@ void save_var(char *key, char *val) {
         _change_val(var, val);
         return;
     }
-    var = malloc(sizeof(var_t));
+    var = malloc(sizeof(struct var));
     if(var == NULL)  {
         printf("malloc failed: %s\n", strerror(errno));
         exit(1);
@@ -132,7 +132,7 @@ void save_var(char *key, char *val) {
 * returns the value associated with the key
 */
 char *load_var(char *key) {
-    var_t *var = _load_var(key);
+    struct var *var = _load_var(key);
     if(var == NULL) {
         return NULL;
     }
@@ -141,24 +141,24 @@ char *load_var(char *key) {
 
 
 /**
-* Free all the memory held by _head
+* Free all the memory held by head_var
 */
 void cleanup_vars(void) {
-    var_t *tmp;
-    while(_head != NULL) {
-        tmp = _head->next;
-        if(_head->key != NULL)
-            free(_head->key);
-        if(_head->val != NULL)
-            free(_head->val);
-        free(_head);
-        _head = tmp;
+    struct var *tmp;
+    while(head_var != NULL) {
+        tmp = head_var->next;
+        if(head_var->key != NULL)
+            free(head_var->key);
+        if(head_var->val != NULL)
+            free(head_var->val);
+        free(head_var);
+        head_var = tmp;
     }
 }
 
 void print_all(void) {
-    var_t *cur;
-    for(cur = _head; cur != NULL; cur = cur->next) {
+    struct var *cur;
+    for(cur = head_var; cur != NULL; cur = cur->next) {
         printf("%s=%s\n", cur->key, cur->val);
     }
 }

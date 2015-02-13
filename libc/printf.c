@@ -20,35 +20,74 @@ char *strrev(char *str) {
     return str;
 }
 
-int convert(int i, int base, char *arr) {
-    int count = 0;
+/**
+* integer to ascii
+*/
+char *itoa(long long val, int base, char *str, size_t len) {
     int neg = 0;
-
-    if(i < 0 && base == 10) {
-        neg = 1;
-        i *= -1;
+    size_t i;
+    if(str == NULL) {
+        return NULL;
     }
-
-    if(i == 0) {
-        arr[0] = '0';
-        arr[1] = '\0';
-        return 1;
+    if(base < 2 || base > 36 || len < 1) {
+        return str;
     }
-
-    while(i) {
-        arr[count++] = (i % base) + '0';
-        i /= base;
+    if(val == 0) {
+        str[0] = '0';
+        str[1] = '\0';
+        return str;
     }
     /* add negative sign if base-10 */
-    if(neg && base == 10) {
-        arr[count++] = '-';
+    if(val < 0 && base == 10) {
+        neg = 1;
+        val *= -1;
     }
-    /* null terminate */
-    arr[count] = '\0';
-    /* reverse string */
-    strrev(arr);
+    for(i = 0; i < len && val != 0; i++) {
+        char c = (char)(val % base);
+        if(c < 10) {
+            c += '0';
+        } else {
+            c += 'a' - 10;
+        }
+        str[i] = c;
+        val /= base;
+    }
+    if(neg) {
+        str[i++] = '-';
+    }
+    str[(i < len)? i : len] = '\0';
 
-    return count;
+    return strrev(str);
+}
+
+/**
+* unsigned integer to ascii
+*/
+char *uitoa(unsigned long long val, int base, char *str, size_t len) {
+    size_t i;
+    if(str == NULL) {
+        return NULL;
+    }
+    if(base < 2 || base > 36 || len < 1) {
+        return str;
+    }
+    if(val == 0) {
+        str[0] = '0';
+        str[1] = '\0';
+        return str;
+    }
+    for(i = 0; i < len && val != 0; i++) {
+        char c = (char)(val % base);
+        if(c < 10) {
+            c += '0';
+        } else {
+            c += 'a' - 10;
+        }
+        str[i] = c;
+        val /= base;
+    }
+    str[i] = '\0';
+    return strrev(str);
 }
 
 int parseint(char *str, int base) {
@@ -75,48 +114,62 @@ int printf(const char *format, ...) {
 	while(*format) {
         if(*format == '%') {
             int i;
-            uint64_t i64;
-            char arr[21] = {0}, *str, *towrite;
+            unsigned int ui;
+            uint64_t ui64;
+            char arr[129] = {0}, *str, *towrite;
             int len;
             switch(format[1]) {
+                case 'c':
+                    i = va_arg(ap, int);
+                    arr[0] = (char) i;
+                    len = 1;
+                    towrite = arr;
+                    ++printed;
+                    break;
                 case 'd':
                     i = va_arg(ap, int);
-                    len = convert(i, 10, arr);
+                    itoa((long long) i, 10, arr, sizeof(arr));
+                    len = strlen(arr);
                     towrite = arr;
-                    format += 2;
                     break;
-                case 'l':
-                    /* todo no worky fix convert */
-                    i64 = va_arg(ap, uint64_t);
-                    len = convert(i64, 16, arr);
-                    towrite = arr;
-                    format += 2;
-                    break;
-
                 case 'p':
-                    /* todo no worky fix convert */
-                    i64 = va_arg(ap, uint64_t);
-                    len = convert(i64, 16, arr);
+                    ui64 = va_arg(ap, uint64_t);
+                    if(ui64 == 0) {
+                        strcpy(arr, "(nil)");
+                    } else {
+                        arr[0] = '0';
+                        arr[1] = 'x';
+                        uitoa(ui64, 16, arr + 2, sizeof(arr));
+                    }
+                    len = strlen(arr);
                     towrite = arr;
-                    format += 2;
+                    break;
+                case 'o':
+                    ui = va_arg(ap, unsigned int);
+                    uitoa((uint64_t)ui, 8, arr, sizeof(arr));
+                    len = strlen(arr);
+                    towrite = arr;
+                    break;
+                case 'x':
+                    ui = va_arg(ap, unsigned int);
+                    uitoa((uint64_t)ui, 16, arr, sizeof(arr));
+                    len = strlen(arr);
+                    towrite = arr;
                     break;
                 case 's':
                     str = va_arg(ap, char *);
                     len = strlen(str);
                     towrite = str;
-                    format += 2;
                     break;
                 case '%':
                     len = 1;
                     towrite = (char*)format;
-                    format += 2;
                     break;
                 default:
-                    len = 1;
+                    len = 2;
                     towrite = (char*)format;
-                    ++printed;
-                    ++format;
             }
+            format += 2;
             i = (int)write(STDOUT_FILENO, towrite, len);
             if(i < 0) {
                 return -1;
