@@ -42,5 +42,28 @@ int main() {
     printf("0                  : %x\n", 0x0);
     printf("\n");
 
+    printf("Testing %%ld functionality\n");
+    printf("9999999999999999   : %ld\n", 9999999999999999L);
+    printf("1                  : %ld\n", 1L);
+    printf("0                  : %ld\n", 0L);
+    printf("-1                 : %ld\n", -1L);
+    printf("-9999999999999999  : %ld\n", -9999999999999999L);
+    printf("\n");
+
+    printf("Testing %%lo functionality\n");
+    printf("123456777777777777 : %lo\n", 0123456777777777777UL);
+    printf("333                : %lo\n", 0333UL);
+    printf("1                  : %lo\n", 0UL);
+    printf("0                  : %lo\n", 00UL);
+    printf("\n");
+
+    printf("Testing %%lx functionality\n");
+    printf("ffffffffdeadbecf   : %lx\n", 0xffffffffdeadbecfUL);
+    printf("ffffeeee           : %lx\n", 0xffffeeeeUL);
+    printf("deadbcf            : %lx\n", 0xdeadbcfUL);
+    printf("1                  : %lx\n", 0x1UL);
+    printf("0                  : %lx\n", 0x0UL);
+    printf("\n");
+
     return 0;
 }
