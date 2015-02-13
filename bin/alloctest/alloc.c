@@ -79,22 +79,31 @@ int realloctest(size_t realloc_size) {
     return 0;
 }
 
+void usage(char *prgname) {
+    printf("Usage #1: %s num_mallocs malloc_size\n", prgname);
+    printf("Usage #2: %s realloc_size\n", prgname);
+    exit(1);
+}
 
 int main(int argc, char *argv[], char *envp[]) {
     int num_mallocs;
-    size_t alloc_size;
+    int alloc_size;
     if(argc == 2) {
-        alloc_size = (size_t) atoi(argv[1]);
-        printf("realloctest(%d)\n", (int)alloc_size);
-        return realloctest(alloc_size);
+        alloc_size = atoi(argv[1]);
+        if(alloc_size < 0) {
+            usage(argv[0]);
+        }
+        printf("realloctest(%d)\n", alloc_size);
+        return realloctest((size_t)alloc_size);
     } else if(argc == 3) {
         num_mallocs = atoi(argv[1]);
-        alloc_size = (size_t) atoi(argv[2]);
-        printf("malloctest(%d, %d)\n", num_mallocs, (int)alloc_size);
-        return malloctest(num_mallocs, alloc_size);
+        alloc_size = atoi(argv[2]);
+        if(alloc_size < 0 || num_mallocs < 0) {
+            usage(argv[0]);
+        }
+        printf("malloctest(%d, %d)\n", num_mallocs, alloc_size);
+        return malloctest(num_mallocs, (size_t)alloc_size);
     }
-
-    printf("Usage: %s num_mallocs malloc_size\n", argv[0]);
-    printf("Usage: %s realloc_size\n", argv[0]);
+    usage(argv[0]);
     return 1;
 }
