@@ -4,7 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 
-char *strrev(char *str) {
+static char *strrev(char *str) {
     char *start = str, *end = str, temp;
 
     if(str == NULL)
@@ -23,7 +23,7 @@ char *strrev(char *str) {
 /**
 * integer to ascii
 */
-char *itoa(long long val, int base, char *str, size_t len) {
+static char *itoa(long long val, int base, char *str, size_t len) {
     int neg = 0;
     size_t i;
     if(str == NULL) {
@@ -63,7 +63,7 @@ char *itoa(long long val, int base, char *str, size_t len) {
 /**
 * unsigned integer to ascii
 */
-char *uitoa(unsigned long long val, int base, char *str, size_t len) {
+static char *uitoa(unsigned long long val, int base, char *str, size_t len) {
     size_t i;
     if(str == NULL) {
         return NULL;
@@ -88,18 +88,6 @@ char *uitoa(unsigned long long val, int base, char *str, size_t len) {
     }
     str[i] = '\0';
     return strrev(str);
-}
-
-int parseint(char *str, int base) {
-    int i = 0;
-
-    if(str == NULL)
-        return 0;
-    while(*str) {
-        i *= base;
-        i += *str++ - '0';
-    }
-    return i;
 }
 
 int printf(const char *format, ...) {

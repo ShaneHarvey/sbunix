@@ -1,6 +1,8 @@
 #include <stdio.h>
 
-int main(int argc, char* argv[], char* envp[]) {
+int main() {
+    printf("* * * * * Printf Test * * * * *\n\n");
+
     printf("Testing %%c functionality\n");
     printf("0                  : %c\n", '0');
     printf("A                  : %c\n", 'A');
@@ -39,9 +41,6 @@ int main(int argc, char* argv[], char* envp[]) {
     printf("1                  : %x\n", 0x1);
     printf("0                  : %x\n", 0x0);
     printf("\n");
+
     return 0;
-
-
-
-
 }
