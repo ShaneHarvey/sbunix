@@ -286,12 +286,12 @@ void *realloc(void *ptr, size_t size) {
         return ptr;
     } else {
         /* todo: we could improve to only malloc() if needed */
-        void *newptr = malloc(size);
+        void *newptr = malloc(size); /* Should be size not reqsize */
         if(!newptr) {
             free(ptr);
             return NULL;
         }
-        memcpy(newptr, ptr, size);
+        memcpy(newptr, ptr, oldsize);
         free(ptr);
         return newptr;
     }
