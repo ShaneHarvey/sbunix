@@ -60,6 +60,7 @@ int main(int argc, char **argv, char **envp) {
     if(ps1 == NULL) {
         /* default prompt */
         ps1 = "[\\u@\\h \\w]$ ";
+        save_var("PS1", ps1);
     }
 
     while(!finished) {
@@ -102,6 +103,7 @@ int main(int argc, char **argv, char **envp) {
         if(rv < 0) {
             break;
         }
+        ps1 = load_var("PS1");
     }
     free(line);
     cleanup_vars();
@@ -485,16 +487,24 @@ void print_prompt(char *ps1) {
 * Strips leading and trailing whitespace from a string.
 */
 void strip(char *str) {
-    char *p, *t;
+    int start, len;
 
-    for(p = str; isspace(*p); p++);
-    for(t = str; *p; t++, p++) {
-        *t = *p;
-        if(t < p)
-            *p = ' ';
+    if(str == NULL) {
+        return;
     }
-    if(p > str) {
-        for(; isspace(*(p - 1)); p--);
-        *p = '\0';
+    len = strlen(str);
+    /* Strip trailing whitespace */
+    while(len > 0 && isspace(str[len-1])) {
+        len--;
+    }
+    str[len] = '\0';
+    /* Strip leading whitespace */
+    for(start = 0; start < len && isspace(str[start]); start++);
+    if(start != 0) {
+        int i = 0;
+        while(start < len) {
+            str[i++] = str[start++];
+        }
+        str[i] = '\0';
     }
 }

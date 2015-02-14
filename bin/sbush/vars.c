@@ -177,7 +177,7 @@ void setup_vars(char **argv, char **envp) {
         *equals = '=';
         envp++;
     }
-    while(*argv != NULL) {
+    while(*argv != NULL && i < 10) {
         char var_name[2] = {0};
         var_name[0] = '0' + i;
         save_var(var_name, *argv);
@@ -201,11 +201,10 @@ char *swap_vars(char *line, size_t size) {
         printf("malloc failed: %s\n", strerror(errno));
         exit(1);
     }
-    memset(dest, 0, dest_size);
     while(readi < size && line[readi] != '\0') {
         if(line[readi] == '$') {
             char c = line[readi + 1];
-            char *var_name = &line[readi + 1];
+            char *var_name = line + readi + 1;
             if(isalnum(c) || c == '?' || c == '$' || c == '_') {
                 readi += 2;
                 if(isalpha(c) || c == '_') {
@@ -235,6 +234,7 @@ char *swap_vars(char *line, size_t size) {
             }
         }
     }
+    dest[writei] = '\0';
     free(line);
     return dest;
 }
