@@ -6,6 +6,7 @@
 #include <ctype.h>
 #include <errno.h>
 
+#define xdigitval(c) (isdigit(c)? ((c) - '0') : isupper(c)? ((c) - 'A' + 10) : ((c) - 'a' + 10))
 /**
 * "%s"
 * "%d"
@@ -16,7 +17,7 @@ int scanf(const char *format, ...) {
     va_list ap;
     int stored = 0;
     int stored_string = 0;
-    char last_char = 0;
+    unsigned char last_char = 0;
     ssize_t rv = 0;
 
     va_start(ap, format);
@@ -28,39 +29,102 @@ int scanf(const char *format, ...) {
 
     while(*format) {
         if(*format == '%') {
+            int neg;
             char *cptr;
- //           int *iptr;
-//            unsigned int *uiptr;
+            int *iptr;
+            unsigned int *uiptr;
             switch(format[1]) {
                 case 'c':
                     cptr = va_arg(ap, char*);
-                    rv = read(STDIN_FILENO, cptr, 1);
-                    if(rv < 0) {
-                        return -1;
-                    } else if (rv == 0) {
-                        return stored;
+                    if(last_char != 0) {
+                        *cptr = last_char;
+                        last_char = 0;
+                    } else {
+                        rv = read(STDIN_FILENO, cptr, 1);
+                        if(rv < 0) {
+                            return -1;
+                        } else if (rv == 0) {
+                            return stored;
+                        }
                     }
                     format += 2;
                     stored++;
                     break;
-//                case 'd':
-//                    iptr = va_arg(ap, int*);
-//
-//                    format += 2;
-//                    stored++;
-//                    break;
-//                case 'x':
-//                    uiptr = va_arg(ap, unsigned int*);
-//
-//                    format += 2;
-//                    stored++;
-//                    break;
+                case 'd':
+                    iptr = va_arg(ap, int*);
+                    neg = 0;
+                    while(last_char == 0 || isspace(last_char)) {
+                        rv = read(STDIN_FILENO, &last_char, 1);
+                        if(rv < 0) {
+                            return -1;
+                        } else if (rv == 0) {
+                            return stored;
+                        }
+                    }
+                    /* Test first char for - or digit or something else*/
+                    if(last_char == '-') {
+                        neg = 1;
+                        *iptr = 0;
+                    } else if(isdigit(last_char)) {
+                        *iptr = last_char - '0';
+                    } else {
+                        return stored;
+                    }
+                    do {
+                        rv = read(STDIN_FILENO, &last_char, 1);
+                        if(rv < 0) {
+                            return -1;
+                        } else if (rv == 0) {
+                            return stored + 1;
+                        }
+                        if(isdigit(last_char)) {
+                            *iptr = *iptr * 10 + last_char - '0';
+                        }
+                    } while (isdigit(last_char));
+                    if(neg) {
+                        *iptr *= -1;
+                    }
+                    format += 2;
+                    stored++;
+                    break;
+                case 'x':
+                    uiptr = va_arg(ap, unsigned int*);
+
+                    while(last_char == 0 || isspace(last_char)) {
+                        rv = read(STDIN_FILENO, &last_char, 1);
+                        if(rv < 0) {
+                            return -1;
+                        } else if (rv == 0) {
+                            return stored;
+                        }
+                    }
+                    /* Test first char for hexdigit or something else*/
+                    if(isxdigit(last_char)) {
+                        *uiptr = xdigitval(last_char);
+                    } else {
+                        return stored;
+                    }
+                    do {
+                        rv = read(STDIN_FILENO, &last_char, 1);
+                        if(rv < 0) {
+                            return -1;
+                        } else if (rv == 0) {
+                            return stored + 1;
+                        }
+                        if(isxdigit(last_char)) {
+                            *uiptr = *uiptr * 16 + xdigitval(last_char);
+                        }
+                    } while (isxdigit(last_char));
+
+                    format += 2;
+                    stored++;
+                    break;
                 case 's':
                     cptr = va_arg(ap, char *);
-//                    if(last_char != 0) {
-//                        c = last_char;
-//                        last_char = 0;
-//                    }
+                    if(last_char != 0) {
+                        *cptr++ = last_char;
+                        last_char = 0;
+                    }
                     stored_string = 0;
                     while(1) {
                         rv = read(STDIN_FILENO, &last_char, 1);

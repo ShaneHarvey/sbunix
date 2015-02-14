@@ -103,6 +103,8 @@ int printf(const char *format, ...) {
         if(*format == '%') {
             int i;
             unsigned int ui;
+            long int li;
+            unsigned long int uli;
             uint64_t ui64;
             char arr[129] = {0}, *str, *towrite;
             int len;
@@ -112,13 +114,47 @@ int printf(const char *format, ...) {
                     arr[0] = (char) i;
                     len = 1;
                     towrite = arr;
-                    ++printed;
                     break;
                 case 'd':
                     i = va_arg(ap, int);
                     itoa((long long) i, 10, arr, sizeof(arr));
                     len = strlen(arr);
                     towrite = arr;
+                    break;
+                case 'l':
+                    switch(format[2]) {
+                        case 'd':
+                            li = va_arg(ap, long int);
+                            itoa(li, 10, arr, sizeof(arr));
+                            len = strlen(arr);
+                            towrite = arr;
+                            format++;
+                            break;
+                        case 'o':
+                            uli = va_arg(ap, unsigned long int);
+                            uitoa(uli, 8, arr, sizeof(arr));
+                            len = strlen(arr);
+                            towrite = arr;
+                            format++;
+                            break;
+                        case 'u':
+                            uli = va_arg(ap, unsigned long int);
+                            uitoa(uli, 10, arr, sizeof(arr));
+                            len = strlen(arr);
+                            towrite = arr;
+                            format++;
+                            break;
+                        case 'x':
+                            uli = va_arg(ap, unsigned long int);
+                            uitoa(uli, 16, arr, sizeof(arr));
+                            len = strlen(arr);
+                            towrite = arr;
+                            format++;
+                            break;
+                        default:
+                            len = 2;
+                            towrite = (char*)format;
+                    }
                     break;
                 case 'p':
                     ui64 = va_arg(ap, uint64_t);
@@ -138,16 +174,22 @@ int printf(const char *format, ...) {
                     len = strlen(arr);
                     towrite = arr;
                     break;
+                case 's':
+                    str = va_arg(ap, char *);
+                    len = strlen(str);
+                    towrite = str;
+                    break;
+                case 'u':
+                    ui = va_arg(ap, unsigned int);
+                    uitoa((uint64_t) ui, 10, arr, sizeof(arr));
+                    len = strlen(arr);
+                    towrite = arr;
+                    break;
                 case 'x':
                     ui = va_arg(ap, unsigned int);
                     uitoa((uint64_t)ui, 16, arr, sizeof(arr));
                     len = strlen(arr);
                     towrite = arr;
-                    break;
-                case 's':
-                    str = va_arg(ap, char *);
-                    len = strlen(str);
-                    towrite = str;
                     break;
                 case '%':
                     len = 1;
