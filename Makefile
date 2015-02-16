@@ -10,7 +10,7 @@ ROOTBIN=$(ROOTFS)/bin
 ROOTLIB=$(ROOTFS)/lib
 
 BIN_SRCS:=$(wildcard bin/*/*.c)
-LIBC_SRCS:=$(shell find libc/ -type f -name *.[cS])
+LIBC_SRCS:=$(shell find libc/ -type f -name *.[cs])
 LIBC_OBJS_1:=$(LIBC_SRCS:%.c=obj/%.o)
 BINS:=$(addprefix $(ROOTFS)/,$(wildcard bin/*))
 
@@ -18,7 +18,7 @@ BINS:=$(addprefix $(ROOTFS)/,$(wildcard bin/*))
 
 all: $(BINS)
 
-$(ROOTLIB)/libc.a: $(LIBC_OBJS_1:%.S=obj/%.o)
+$(ROOTLIB)/libc.a: $(LIBC_OBJS_1:%.s=obj/%.o)
 	$(AR) rcs $@ $^
 
 $(ROOTLIB)/crt1.o: obj/crt/crt1.o
@@ -37,9 +37,9 @@ obj/%.o: %.c $(wildcard include/*.h include/*/*.h)
 	@mkdir -p $(dir $@)
 	$(CC) -c $(CFLAGS) -o $@ $<
 
-obj/%.o: %.S $(wildcard include/*.h include/*/*.h)
+obj/%.o: %.s
 	@mkdir -p $(dir $@)
-	$(CC) -c $(CFLAGS) -o $@ $<
+	$(AS) -c -o $@ $<
 
 .PHONY: submit clean
 

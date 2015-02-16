@@ -4,7 +4,7 @@ project(sbush C ASM)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -D__thread= -DDEBUG -Wall -Werror -nostdinc -Iinclude -msoft-float -mno-sse -mno-red-zone -fno-builtin -fPIC -march=amdfam10 -g3 -fno-stack-protector -nostdlib")
 
 # source for crt1.o
-set(crt1_SRCS crt/crt1.S)
+set(crt1_SRCS crt/crt1.s)
 # source for crtinit.o
 set(crtinit_SRCS crt/crtinit.c)
 
