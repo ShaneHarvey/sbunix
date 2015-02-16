@@ -5,6 +5,7 @@
 #include <errno.h>
 
 #include <debug.h>
+#include "../../include/dirent.h"
 
 /**
 * Usage:
@@ -35,5 +36,7 @@ int main(int argc, char *argv[]) {
         printf("%s\t", dent->d_name);
     }
     printf("\n");
+
+    closedir(dir);
     return retval;
 }
