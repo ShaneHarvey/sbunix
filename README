@@ -1,0 +1,31 @@
+Warm Up Assignment 1
+======================
+Shane Harvey 108272239
+Scott Harvey 108272691
+======================
+
+
+		sbush
+======================
+* A '|' must be preceded and followed by at least one ' ', for example:
+	$ ls | cat
+
+* There is no hardcoded limit on the length of a single line, nor on the number
+  of pipes a line can contain.
+
+* To create or redefine an exisiting environmental variable the syntax is:
+	$ # This creates a new variable
+	$ MYVAR=ThisIsAValue
+	$ # This modifies PATH by prepending the value of $HOME
+	$ PATH=$HOME/:$PATH
+
+
+
+
+		sblibc
+=====================
+* malloc/realloc/calloc are implemented with sbrk.
+	NOTE: Currently uses a global state variable defined in libc/malloc.c and therefore the library is only functional as a static library.
+
+* printf
+	

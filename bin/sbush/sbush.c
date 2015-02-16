@@ -167,7 +167,8 @@ int procces_cmd(cmd_t *cmd, char **envp) {
             }
         } else if(strcmp(curcmd->argv[0], "exit") == 0) {
             /* TODO: exit with error code */
-            exit(0);
+            int exit_stat = atoi(curcmd->argv[1]);
+            exit(exit_stat);
         } else if((rv = eval_assignment(curcmd))) {
             if(rv < 0) {
                 printf("assignment failed: %s\n", strerror(errno));
