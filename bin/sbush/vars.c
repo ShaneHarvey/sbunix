@@ -100,10 +100,18 @@ static struct var *_load_var(char *key) {
 */
 void save_var(char *key, char *val) {
     struct var *var;
+    char *envval;
 
     if(key == NULL) {
         return;
     }
+    /* if present in environment use putenv */
+    envval = getenv(key);
+    if(envval != NULL) {
+        setenv(key, val, 1);
+        return;
+    }
+
     var = _load_var(key);
     if(var != NULL) {
         _change_val(var, val);
@@ -132,11 +140,16 @@ void save_var(char *key, char *val) {
 * returns the value associated with the key
 */
 char *load_var(char *key) {
-    struct var *var = _load_var(key);
-    if(var == NULL) {
-        return NULL;
+    struct var *var;
+    char *val;
+    /* use getenv first */
+    val = getenv(key);
+    if(val == NULL) {
+        var = _load_var(key);
+        val = var? var->val : NULL;
     }
-    return var->val;
+
+    return val;
 }
 
 

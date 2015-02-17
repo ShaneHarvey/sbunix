@@ -15,6 +15,8 @@
 typedef struct cmd {
     int argc;
     char **argv;
+    pid_t pid;
+    int status;
     struct cmd *next;
 }cmd_t;
 
@@ -29,7 +31,7 @@ int build_path(char *prog, char *fullpath);
 void exec_cmd(cmd_t *cmd, int infile, int outfile, char **envp);
 int procces_cmd(cmd_t *cmd, char **envp);
 int eval_assignment(cmd_t *cmd);
-void save_cmd_info(cmd_t *cmd, int exit_status);
+void save_cmd_info(cmd_t *cmd);
 
 int main(int argc, char **argv, char **envp) {
     int finished = 0, interactive = 1;
@@ -143,7 +145,8 @@ int procces_cmd(cmd_t *cmd, char **envp) {
     infile = STDIN_FILENO;
     outfile = STDOUT_FILENO;
     for(curcmd = cmd; curcmd != NULL; curcmd = curcmd->next) {
-        int status = 0;
+        curcmd->pid = 0;
+        curcmd->status = 0;
         if(curcmd->next != NULL) {
             rv = pipe(pfd);
             if(rv < 0) {
@@ -162,7 +165,7 @@ int procces_cmd(cmd_t *cmd, char **envp) {
                 rv = chdir(curcmd->argv[1]);
                 if(rv < 0) {
                     printf("cd: %s: %s\n", curcmd->argv[1], strerror(errno));
-                    status = 1;
+                    curcmd->status = 1;
                 }
             }
         } else if(strcmp(curcmd->argv[0], "exit") == 0) {
@@ -176,15 +179,15 @@ int procces_cmd(cmd_t *cmd, char **envp) {
                 rv = setenv(curcmd->argv[1], value, 1);
                 if (rv < 0) {
                     printf("export %s: %s\n", curcmd->argv[1], strerror(errno));
-                    status = 1;
+                    curcmd->status = 1;
                 }
             } else {
-                status = 1;
+                curcmd->status = 1;
             }
         } else if((rv = eval_assignment(curcmd))) {
             if(rv < 0) {
                 printf("assignment failed: %s\n", strerror(errno));
-                status = 1;
+                curcmd->status = 1;
             }
         } else {
             pid_t pid;
@@ -194,14 +197,7 @@ int procces_cmd(cmd_t *cmd, char **envp) {
                 /* Does not return */
                 exec_cmd(curcmd, infile, outfile, envp);
             } else if(pid > 0) {
-                pid_t wpid;
-                /* wait for pid */
-                wpid = waitpid(pid, &status, 0);
-                if(wpid < 0) {
-                    printf("waitpid failed: %s\n", strerror(errno));
-                    exit(1);
-                }
-                //printf("sbush: %s finished with status %d\n", curcmd->argv[0], status);
+                curcmd->pid = pid;
             } else {
                 printf("sbush: fork failed: %s\n", strerror(errno));
                 return 1;
@@ -216,8 +212,23 @@ int procces_cmd(cmd_t *cmd, char **envp) {
         }
         infile = pfd[0]; /* next command should read prev output */
 
+
+    }
+    pid_t wpid;
+    /* wait for pid */
+    for(curcmd = cmd; curcmd != NULL; curcmd = curcmd->next) {
+        int status;
+
+        if(curcmd->pid != 0) {
+            wpid = waitpid(curcmd->pid, &status, 0);
+            if (wpid < 0) {
+                printf("waitpid failed: %s\n", strerror(errno));
+                exit(1);
+            }
+        }
+
         /* Save info about previous command to the environment */
-        save_cmd_info(curcmd, status);
+        save_cmd_info(curcmd);
     }
     return 1;
 }
@@ -328,18 +339,18 @@ int build_path(char *prog, char *fullpath) {
 /**
 * Saves info about the previous command.
 */
-void save_cmd_info(cmd_t *cmd, int exit_status) {
+void save_cmd_info(cmd_t *cmd) {
     char str_status[4] = {0};
-    exit_status &= 0xFF;
-    if(exit_status == 0) {
+    cmd->status &= 0xFF;
+    if(cmd->status == 0) {
         save_var("?", "0");
     } else {
         int i = 0, j = 1;
-        while(exit_status != 0) {
-            str_status[i++] = '0' + (exit_status % 10);
-            exit_status /= 10;
+        while(cmd->status != 0) {
+            str_status[i++] = '0' + (cmd->status % 10);
+            cmd->status /= 10;
         }
-        if(exit_status > 99) {
+        if(cmd->status > 99) {
             j = 2;
         }
         i = str_status[0];
@@ -415,9 +426,7 @@ char **build_argv(char *line, int argc) {
         return NULL;
     }
     /* ignore leading whitespace */
-    while(isspace(*line)) {
-        line++;
-    }
+    strip(line);
     argc = arg_count(line);
     argv = malloc((argc + 1) * sizeof(char *));
     if(argv == NULL) {

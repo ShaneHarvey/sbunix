@@ -17,15 +17,25 @@ Scott Harvey 108272691
 	$ # This creates a new variable
 	$ MYVAR=ThisIsAValue
 	$ # This modifies PATH by prepending the value of $HOME
-	$ PATH=$HOME/:$PATH
+	$ PATH=$HOME:$PATH
 
+** To export an existing shell variable to its environment (so that child
+   processes receive them) the syntax is:
+    $ export varname
 
 
 
 		sblibc
 =====================
 * malloc/realloc/calloc are implemented with sbrk.
-	NOTE: Currently uses a global state variable defined in libc/malloc.c and therefore the library is only functional as a static library.
+	NOTE: Currently uses a global state variable defined in libc/malloc.c and
+	therefore the library is only functional as a static library.
 
 * printf
-	
+	supports the formats: %c, %d, %ld, %lo, %lu, %lx, %p, %o, %u, %x, and %%
+
+* scanf
+    supports the formats: %c, %d, %s, and %x
+    supports having multiple in format, for example:
+        scanf("%s %d", string, &integer);
+    NOTE: %x does not support having a leading "0x" in front of the hex value.
