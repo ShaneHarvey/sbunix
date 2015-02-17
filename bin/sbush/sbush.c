@@ -161,13 +161,25 @@ int procces_cmd(cmd_t *cmd, char **envp) {
             if(curcmd->argv[1] != NULL) {
                 rv = chdir(curcmd->argv[1]);
                 if(rv < 0) {
-                    printf("cd: %s: %s\n", curcmd->argv[1], "No such file or directory");
+                    printf("cd: %s: %s\n", curcmd->argv[1], strerror(errno));
                     status = 1;
                 }
             }
         } else if(strcmp(curcmd->argv[0], "exit") == 0) {
             /* TODO: exit with error code */
             exit(0);
+        } else if(strcmp(curcmd->argv[0], "export") == 0) {
+            /* Expose the variable to the child */
+            char *value = load_var(curcmd->argv[1]);
+            if(value != NULL) {
+                rv = setenv(curcmd->argv[1], value, 1);
+                if (rv < 0) {
+                    printf("export %s: %s\n", curcmd->argv[1], strerror(errno));
+                    status = 1;
+                }
+            } else {
+                status = 1;
+            }
         } else if((rv = eval_assignment(curcmd))) {
             if(rv < 0) {
                 printf("assignment failed: %s\n", strerror(errno));
@@ -255,7 +267,7 @@ void exec_cmd(cmd_t *cmd, int infile, int outfile, char **envp) {
 
     if(build_path(cmd->argv[0], filename) == 1) {
         /* Setup command and argv */
-        execve(filename, cmd->argv, envp);
+        execve(filename, cmd->argv, __environ);
         /* execve failed */
         printf("execve: %s failed: %s\n", filename, strerror(errno));
         free_cmd(cmd);
@@ -272,11 +284,10 @@ void exec_cmd(cmd_t *cmd, int infile, int outfile, char **envp) {
 * Searches PATH for the program to run and builds the full path for execve
 */
 int build_path(char *prog, char *fullpath) {
+    char *slash = strchr(prog, '/');
+
     /* Locate the program to run */
-    if(prog[0] == '/' || prog[0] == '.' ) {
-        strcpy(fullpath, prog);
-        return 1;
-    } else {
+    if(slash == NULL) {
         char *path = load_var("PATH");
         int len = 0;
         while(*path != '\0') {
@@ -301,7 +312,15 @@ int build_path(char *prog, char *fullpath) {
                 path++;
             }
         }
+    } else if(prog[0] == '/' || (prog[0] == '.' && prog[1] == '/')) {
+        strcpy(fullpath, prog);
+        return 1;
+    } else {
+        strcpy(fullpath, "./");
+        strcpy(fullpath+2, prog);
+        return 1;
     }
+
     return 0;
 }
 
