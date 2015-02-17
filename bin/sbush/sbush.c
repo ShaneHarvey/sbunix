@@ -166,8 +166,9 @@ int procces_cmd(cmd_t *cmd, char **envp) {
                 }
             }
         } else if(strcmp(curcmd->argv[0], "exit") == 0) {
-            /* TODO: exit with error code */
-            exit(0);
+            int exit_stat = atoi(curcmd->argv[1]);
+            /* exit with code */
+            exit(exit_stat);
         } else if(strcmp(curcmd->argv[0], "export") == 0) {
             /* Expose the variable to the child */
             char *value = load_var(curcmd->argv[1]);
