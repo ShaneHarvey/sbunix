@@ -20,12 +20,12 @@ uint64_t syscall_2(uint64_t n, uint64_t a1, uint64_t a2);
 uint64_t syscall_3(uint64_t n, uint64_t a1, uint64_t a2, uint64_t a3);
 
 uint64_t syscall_4(uint64_t n, uint64_t a1, uint64_t a2, uint64_t a3,
-        uint64_t a4);
+		uint64_t a4);
 
 uint64_t syscall_5(uint64_t n, uint64_t a1, uint64_t a2, uint64_t a3,
-        uint64_t a4, uint64_t a5);
+		uint64_t a4, uint64_t a5);
 
 uint64_t syscall_6(uint64_t n, uint64_t a1, uint64_t a2, uint64_t a3,
-        uint64_t a4, uint64_t a5, uint64_t a6);
+		uint64_t a4, uint64_t a5, uint64_t a6);
 
 #endif
