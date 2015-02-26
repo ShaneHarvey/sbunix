@@ -85,6 +85,19 @@ void usage(char *prgname) {
     exit(1);
 }
 
+int test_huge_alloc(void) {
+    size_t terabyte = (size_t)(1L<<42);
+    /* Test 1 terabyte malloc */
+    void *x = malloc(terabyte);
+    if(x == NULL) {
+        printf("Error: %s\n", strerror(errno));
+        return 1;
+    }
+    printf("Malloc(1 Terabyte) = %p\n", x);
+    /* Test 1 terabyte mmap */
+    return 0;
+}
+
 int main(int argc, char *argv[], char *envp[]) {
     int num_mallocs;
     int alloc_size;

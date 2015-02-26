@@ -44,7 +44,7 @@ syscall_1:
 .global syscall_2
 syscall_2:
 	movq %rdi, %rax		/* Syscall number -> rax.  */
-	movq %rsi, %rdi		/* shift arg1 - arg5.  */
+	movq %rsi, %rdi		/* shift arg1  */
 	movq %rdx, %rsi
 	syscall			/* Do the system call.  */
 	cmpq $-4095, %rax	/* Check %rax for error.  */
@@ -54,7 +54,7 @@ syscall_2:
 .global syscall_3
 syscall_3:
 	movq %rdi, %rax		/* Syscall number -> rax.  */
-	movq %rsi, %rdi		/* shift arg1 - arg5.  */
+	movq %rsi, %rdi		/* shift arg1 and arg2.  */
 	movq %rdx, %rsi
 	movq %rcx, %rdx
 	syscall			/* Do the system call.  */
@@ -65,7 +65,7 @@ syscall_3:
 .global syscall_4
 syscall_4:
 	movq %rdi, %rax		/* Syscall number -> rax.  */
-	movq %rsi, %rdi		/* shift arg1 - arg5.  */
+	movq %rsi, %rdi		/* shift arg1 - arg3.  */
 	movq %rdx, %rsi
 	movq %rcx, %rdx
 	movq %r8, %r10
@@ -77,7 +77,7 @@ syscall_4:
 .global syscall_5
 syscall_5:
 	movq %rdi, %rax		/* Syscall number -> rax.  */
-	movq %rsi, %rdi		/* shift arg1 - arg5.  */
+	movq %rsi, %rdi		/* shift arg1 - arg4.  */
 	movq %rdx, %rsi
 	movq %rcx, %rdx
 	movq %r8, %r10
@@ -90,7 +90,7 @@ syscall_5:
 .global syscall_6
 syscall_6:
 	movq %rdi, %rax		/* Syscall number -> rax.  */
-	movq %rsi, %rdi		/* shift arg1 - arg5.  */
+	movq %rsi, %rdi		/* shift arg1 - arg6.  */
 	movq %rdx, %rsi
 	movq %rcx, %rdx
 	movq %r8, %r10
