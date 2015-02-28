@@ -21,7 +21,7 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 #define INITIAL_STACK_SIZE 4096
 char stack[INITIAL_STACK_SIZE];
 uint32_t* loader_stack;
-extern char kernmem, physbase;
+extern char kernmem, physbase; /* defined by linker.script */
 struct tss_t tss;
 
 void boot(void)
@@ -41,5 +41,6 @@ void boot(void)
 		(void*)(uint64_t)loader_stack[4]
 	);
 	printf("!!!!! start() returned !!!!!");
+	__asm__ ("hlt;");
 	while(1);
 }

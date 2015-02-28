@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 2.8.4)
-project(sbush C ASM)
+project(sbunix C ASM)
+include_directories(include include/sys)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -D__thread= -DDEBUG -Wall -Werror -nostdinc -Iinclude -msoft-float -mno-sse -mno-red-zone -fno-builtin -fPIC -march=amdfam10 -g3 -fno-stack-protector -nostdlib")
-
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O1 -std=c99 -D__thread= -fno-stack-protector -Wall -Werror -nostdinc -Iinclude -msoft-float -mno-sse -mno-red-zone -fno-builtin -fPIC -march=amdfam10 -g3")
 # source for crt1.o
 set(crt1_SRCS crt/crt1.c)
 
@@ -14,9 +14,10 @@ file(GLOB sbush_SRCS        bin/sbush/*.c)
 
 file(GLOB alloctest_SRCS    bin/alloctest/*.c)
 
-include_directories(include)
+# Glob kernel sources
+file(GLOB kernel_SRCS       sys/*.c sys/*.s)
 
-# obj's for libs/crt
+# obj's for libc/crt
 add_library(c           STATIC ${libc_SRCS})
 add_library(crt1_O      OBJECT ${crt1_SRCS})
 
@@ -29,11 +30,17 @@ add_executable(sbush
     $<TARGET_OBJECTS:sbush_O>)
 
 target_link_libraries(sbush c)
-# This didn't work, why not?
-# target_link_libraries(sbush ${c})
 
 add_executable(alloctest
     $<TARGET_OBJECTS:crt1_O>
     $<TARGET_OBJECTS:alloctest_O>)
 
 target_link_libraries(alloctest c)
+
+# kernel binary
+add_executable(kernel ${kernel_SRCS})
+
+SET_TARGET_PROPERTIES(kernel
+  PROPERTIES 
+  LINK_FLAGS "-nostdlib -o kernel -T ${PROJECT_SOURCE_DIR}/linker.script")
+
