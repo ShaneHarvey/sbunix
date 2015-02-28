@@ -4,7 +4,7 @@
 #define VIDEO_BASE 0xb8000
 #define SCREEN_WIDTH 80
 #define SCREEN_HEIGHT 25
-#define CURRENT_START (VIDEO_BASE + x + y * SCREEN_WIDTH)
+#define CURRENT_START (VIDEO_BASE + 2*(x + y * SCREEN_WIDTH))
 
 static size_t x = 0;
 static size_t y = 0;
