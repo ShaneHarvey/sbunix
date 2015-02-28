@@ -2,6 +2,17 @@
 #include <sys/gdt.h>
 #include <sys/tarfs.h>
 
+void test_scroll(void) {
+	int i = 0;
+	for(i = 0; i < 100; i++)
+		printf("scroll test: %d\n", i);
+	printf("This is a 78 character line---------------------------------------------------\n");
+	printf("This is a 79 character line----------------------------------------------------\n");
+	printf("This is a 80 character line-----------------------------------------------------\n");
+	printf("This is a 81 character line------------------------------------------------------\n");
+	printf("This is a 82 character line-------------------------------------------------------\n");
+}
+
 void start(uint32_t* modulep, void* physbase, void* physfree)
 {
 	struct smap_t {
@@ -16,6 +27,7 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	}
 	printf("tarfs in [%p:%p]\n", &_binary_tarfs_start, &_binary_tarfs_end);
 	// kernel starts here
+	test_scroll();
 }
 
 #define INITIAL_STACK_SIZE 4096
