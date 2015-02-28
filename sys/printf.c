@@ -1,7 +1,7 @@
 #include <sys/sbunix.h>
 #include <stdarg.h>
 #include <string.h>
-#include "../include/stdlib.h"
+#include "writec.h"
 
 static char *strrev(char *str) {
     char *start = str, *end = str, temp;
@@ -89,15 +89,8 @@ static char *uitoa(unsigned long long val, int base, char *str, size_t len) {
     return strrev(str);
 }
 
-void write_console(const char *buf, size_t count, size_t offset) {
-    char *v;
-    for(v = (char*)0xb8000 + 2 * offset; count > 0; --count, v += 2)
-        *v = *buf++;
-}
-
 void printf(const char *fmt, ...) {
     va_list ap;
-    size_t printed = 0;
     va_start(ap, fmt);
 
     if(fmt == NULL)
@@ -204,11 +197,9 @@ void printf(const char *fmt, ...) {
                     towrite = (char*) fmt;
             }
             fmt += 2;
-            write_console(towrite, len, printed);
-            printed += len;
+            writec(towrite, len);
         } else {
-            write_console(fmt, 1, printed);
-            ++printed;
+            writec(fmt, 1);
             ++fmt;
         }
     }
