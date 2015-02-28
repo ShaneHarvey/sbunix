@@ -30,6 +30,8 @@
 *.hex
 
 ### Project ###
+*.tgz
+*.gpg
 .idea/
 obj/
 rootfs/
