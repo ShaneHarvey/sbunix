@@ -17,6 +17,7 @@ void writec(const char *buf, size_t count) {
         if(*buf == '\n') {
             x = 0;
             y++;
+            continue;
         }
         *v = *buf++;
         v += 2;

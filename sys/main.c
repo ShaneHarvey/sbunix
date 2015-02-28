@@ -27,7 +27,6 @@ struct tss_t tss;
 void boot(void)
 {
 	// note: function changes rsp, local stack variables can't be practically used
-	register char *s, *v;
 	__asm__(
 		"movq %%rsp, %0;"
 		"movq %1, %%rsp;"
