@@ -41,7 +41,6 @@ void boot(void)
 		&physbase,
 		(void*)(uint64_t)loader_stack[4]
 	);
-	s = "!!!!! start() returned !!!!!";
-	for(v = (char*)0xb8000; *s; ++s, v += 2) *v = *s;
+	printf("!!!!! start() returned !!!!!");
 	while(1);
 }
