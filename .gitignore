@@ -33,5 +33,9 @@
 .idea/
 obj/
 rootfs/
+kernel
 core
 vgcore.*
+*.506
+*.img
+*.iso
