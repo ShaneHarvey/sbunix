@@ -1,5 +1,6 @@
 #include <sys/sbunix.h>
 #include <sys/gdt.h>
+#include <sys/idt.h>
 #include <sys/tarfs.h>
 
 void test_scroll(void) {
@@ -28,6 +29,7 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	printf("tarfs in [%p:%p]\n", &_binary_tarfs_start, &_binary_tarfs_end);
 	/* kernel starts here */
 	test_scroll();
+	test_idt();
 }
 
 #define INITIAL_STACK_SIZE 4096
