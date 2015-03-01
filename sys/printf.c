@@ -1,7 +1,7 @@
 #include <sys/sbunix.h>
 #include <stdarg.h>
 #include <string.h>
-#include "writec.h"
+#include <sys/writec.h>
 
 static char *strrev(char *str) {
     char *start = str, *end = str, temp;
