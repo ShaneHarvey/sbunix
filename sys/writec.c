@@ -9,13 +9,14 @@
 
 static size_t x = 0;
 static size_t y = 0;
-// static char color = 0;
+static unsigned char color = 0x07;
 
 void clear_line(size_t lineno) {
     char *v = VIDEO_XY(0, lineno);
     size_t i = 0;
-    for(; i < SCREEN_WIDTH; i+=2) {
+    for(; i < SCREEN_WIDTH * 2; i+=2) {
         v[i] = 0;
+        v[i+1] = color;
     }
 }
 
@@ -28,8 +29,8 @@ void writec(const char *buf, size_t count) {
         char c = *buf++;
 
         if(c != '\n') {
-            *v = (char) c;
-            v += 2;
+            *v++ = c;
+            *v++ = color;
         }
 
         if(x == SCREEN_WIDTH - 1 || c == '\n') {
