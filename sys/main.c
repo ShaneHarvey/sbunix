@@ -26,7 +26,7 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 		}
 	}
 	printf("tarfs in [%p:%p]\n", &_binary_tarfs_start, &_binary_tarfs_end);
-	// kernel starts here
+	/* kernel starts here */
 	test_scroll();
 }
 
@@ -38,7 +38,7 @@ struct tss_t tss;
 
 void boot(void)
 {
-	// note: function changes rsp, local stack variables can't be practically used
+	/* note: function changes rsp, local stack variables can't be practically used */
 	__asm__(
 		"movq %%rsp, %0;"
 		"movq %1, %%rsp;"
@@ -53,6 +53,7 @@ void boot(void)
 		(void*)(uint64_t)loader_stack[4]
 	);
 	printf("!!!!! start() returned !!!!!");
-	__asm__ ("hlt;");
-	//while(1);
+	while(1){
+		__asm__ __volatile__ ("hlt;");
+	}
 }

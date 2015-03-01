@@ -47,7 +47,7 @@ struct gdtr_t {
 }__attribute__((packed));
 
 static struct gdtr_t gdtr = {
-	sizeof(gdt),
+	(uint16_t)sizeof(gdt),
 	(uint64_t)gdt,
 };
 
@@ -61,7 +61,7 @@ void setup_tss() {
 	struct sys_segment_descriptor* sd = (struct sys_segment_descriptor*)&gdt[5]; // 6th&7th entry in GDT
 	sd->sd_lolimit = sizeof(struct tss_t)-1;
 	sd->sd_lobase = ((uint64_t)&tss);
-	sd->sd_type = 9; // 386 TSS
+	sd->sd_type = 9; /* 386 TSS */
 	sd->sd_dpl = 0;
 	sd->sd_p = 1;
 	sd->sd_hilimit = 0;
