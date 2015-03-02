@@ -22,8 +22,6 @@ struct idt_t {
     uint32_t reserved;    /* Reserved, bits 96-127 */
 }__attribute__((packed));
 
-extern void _x86_64_asm_lidt(void *idtr);
-
-void test_idt(void);
+void load_idt(void);
 
 #endif

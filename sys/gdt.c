@@ -51,7 +51,7 @@ static struct gdtr_t gdtr = {
 	(uint64_t)gdt,
 };
 
-extern void _x86_64_asm_lgdt(struct gdtr_t* gdtr, uint64_t cs_idx, uint64_t ds_idx);
+extern void _x86_64_asm_lgdt(struct gdtr_t* gdtr, uint64_t cs_idx, uint64_t ds_idx); /* gdt.s */
 
 void reload_gdt() {
 	_x86_64_asm_lgdt(&gdtr, 8, 16);

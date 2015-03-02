@@ -28,8 +28,8 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	}
 	printf("tarfs in [%p:%p]\n", &_binary_tarfs_start, &_binary_tarfs_end);
 	/* kernel starts here */
+    load_idt();
 	test_scroll();
-	test_idt();
 }
 
 #define INITIAL_STACK_SIZE 4096

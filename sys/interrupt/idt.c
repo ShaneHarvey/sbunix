@@ -1,10 +1,6 @@
 #include <sys/idt.h>
 #include <sys/sbunix.h>
 
-void test_idt(void) {
-    printf("sizeof(struct idt_t): %lu\n", sizeof(struct idt_t));
-}
-
 #define INTERRUPT 0x0e /* Automatically disable interrupts on entry */
 #define TRAP_GATE 0x0f /* Allow interrupts to continue on entry */
 #define TASK_GATE 0x05 /* The selector will be a TSS Segement Selector in
@@ -363,11 +359,9 @@ DUMMY_INTERRUPT(29)
 DUMMY_INTERRUPT(30)
 DUMMY_INTERRUPT(31)
 
-void _x86_64_load_idt() {
+extern void _x86_64_asm_lidt(void *idtr); /* idt.s */
 
-//      for(int vector = 0; vector<256; ++vector)
-    //      SET_ISR(vector, PRESENT_ISR(8, 0, INTERRUPT , 0, ((uint64_t)&x86_64_isr_vector999)));
-
+void load_idt(void) {
     SET_ISR(0);
     SET_ISR(1);
     SET_ISR(2);
@@ -400,6 +394,6 @@ void _x86_64_load_idt() {
     SET_ISR(29);
     SET_ISR(30);
     SET_ISR(31);
-
-    _x86_64_asm_lidt(&idtr);
+    __asm__ __volatile__ ("lidt (%0)" : : "p"(&idtr));
+    /* _x86_64_asm_lidt(&idtr); */
 }
