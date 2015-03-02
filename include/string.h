@@ -1,7 +1,6 @@
 #ifndef _STRING_H
 #define _STRING_H
 
-#include <sys/defs.h>
 #include <sys/types.h>
 
 #define NULL ((void*)0)
@@ -22,8 +21,6 @@ char    *strdup(const char *);
 
 char    *strerror(int);
 
-int     *strerror_r(int, char *, size_t);
-
 size_t   strlen(const char *);
 char    *strncat(char *restrict, const char *restrict, size_t);
 int      strncmp(const char *, const char *, size_t);
@@ -33,5 +30,8 @@ char    *strrchr(const char *, int);
 size_t   strspn(const char *, const char *);
 char    *strstr(const char *, const char *);
 char    *strtok(char *restrict, const char *restrict);
+char    *strrev(char *str);
+char    *itoa(long long val, int base, char *str, size_t len);
+char    *uitoa(unsigned long long val, int base, char *str, size_t len);
 
 #endif /* _STRING_H */

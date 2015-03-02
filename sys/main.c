@@ -3,6 +3,7 @@
 #include <sys/idt.h>
 #include <sys/tarfs.h>
 #include <sys/pic8259.h>
+#include <sys/writec.h>
 
 void test_scroll(void) {
 	int i = 0;
@@ -33,6 +34,17 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	/* kernel starts here */
 	load_idt();
 	PIC_protected_mode();
+	/* Setup the PIT to send an INT at 18HZ */
+	__asm__ __volatile__ (
+		"cli;"
+		"movb $0x36, %al;"
+		"out %al, $0x43;"
+		"movw $0x10000, %ax;"
+		"out %al, $0x40;"
+		"movb %ah, %al;"
+		"out %al, $0x40;"
+		"sti;"
+	);
 	while(1){
 		/* do nothing */
 	}
