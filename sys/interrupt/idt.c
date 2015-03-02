@@ -1,6 +1,8 @@
 #include <sys/idt.h>
 #include <sys/sbunix.h>
 
+/* adapted from Chris Stones, shovelos */
+
 #define INTERRUPT 0x0e /* Automatically disable interrupts on entry */
 #define TRAP_GATE 0x0f /* Allow interrupts to continue on entry */
 #define TASK_GATE 0x05 /* The selector will be a TSS Segement Selector in
@@ -40,7 +42,7 @@ static struct idt_t idt[] = {
     *  ist:      0, not used
     *  type:     INTERRUPT
     *  dpl:      0, ring 0
-    *  target:   pointer to the ISR
+    *  target:   _isr_XXX are deleted by the macro
     */
     ABSENT_ISR  (8, 0, INTERRUPT , 0, &_isr_000),
     ABSENT_ISR  (8, 0, INTERRUPT , 0, &_isr_001),
@@ -315,13 +317,13 @@ struct idtr_t idtr = {
 
 #define SET_ISR(vector) \
     { \
-            struct idt_t _idt = PRESENT_ISR(8, 0, INTERRUPT , 0, ((uint64_t)&x86_64_isr_vector ## vector)); \
+            struct idt_t _idt = PRESENT_ISR(8, 0, INTERRUPT , 0, ((uint64_t)&_isr_wrapper_ ## vector)); \
             idt[vector] = _idt; \
     }
 
 #define DUMMY_INTERRUPT(vector) \
-    extern void x86_64_isr_vector ## vector(); \
-    void x86_64_isr_vector ## vector() \
+    extern void _isr_wrapper_ ## vector(); \
+    void _isr_handler_ ## vector() \
     { \
             printf("DUMMY INTERRUPT VECTOR! " #vector "\n"); \
     }

@@ -30,6 +30,9 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	/* kernel starts here */
     load_idt();
 	test_scroll();
+	int x = 8;
+	int y = 15;
+	printf("Div by zero %d\n", x/(y-15));
 }
 
 #define INITIAL_STACK_SIZE 4096
