@@ -331,7 +331,11 @@ struct idtr_t idtr = {
             printf("DUMMY INTERRUPT VECTOR! " #vector "\n"); \
     }
 
-DUMMY_INTERRUPT(0)
+#define REAL_INTERRUPT(vector) \
+    extern void _isr_wrapper_ ## vector();
+
+
+DUMMY_INTERRUPT(0) /* DIVIDE BY ZERO */
 DUMMY_INTERRUPT(1)
 DUMMY_INTERRUPT(2)
 DUMMY_INTERRUPT(3)
@@ -342,9 +346,9 @@ DUMMY_INTERRUPT(7)
 DUMMY_INTERRUPT(8)
 DUMMY_INTERRUPT(9)
 DUMMY_INTERRUPT(10)
-DUMMY_INTERRUPT(11)
+DUMMY_INTERRUPT(11) /* NOT PRESENT FAULT */
 DUMMY_INTERRUPT(12)
-DUMMY_INTERRUPT(13)
+DUMMY_INTERRUPT(13) /* GENERAL PROTECTION FAULT */
 DUMMY_INTERRUPT(14)
 DUMMY_INTERRUPT(15)
 DUMMY_INTERRUPT(16)
@@ -402,7 +406,7 @@ DUMMY_INTERRUPT(47);    /* Secondary ATA Hard Disk */
 extern void _x86_64_asm_lidt(void *idtr); /* idt.s */
 
 void load_idt(void) {
-    SET_ISR(0);
+    SET_ISR(0); /* DIVIDE BY ZERO */
     SET_ISR(1);
     SET_ISR(2);
     SET_ISR(3);
@@ -413,9 +417,9 @@ void load_idt(void) {
     SET_ISR(8);
     SET_ISR(9);
     SET_ISR(10);
-    SET_ISR(11);
+    SET_ISR(11); /* NOT PRESENT FAULT */
     SET_ISR(12);
-    SET_ISR(13);
+    SET_ISR(13); /* GENERAL PROTECTION FAULT */
     SET_ISR(14);
     SET_ISR(15);
     SET_ISR(16);
