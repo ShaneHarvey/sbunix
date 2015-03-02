@@ -1,0 +1,12 @@
+#ifndef _PIT_H
+#define _PIT_H
+
+#include <sys/types.h>
+
+extern uint64_t system_time;
+extern uint32_t time_counter;
+extern uint32_t time_reset;
+
+int pit_set_freq(double freq);
+
+#endif

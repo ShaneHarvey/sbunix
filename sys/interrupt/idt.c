@@ -1,8 +1,5 @@
 #include <sys/idt.h>
 #include <sys/sbunix.h>
-#include <sys/pic8259.h>
-#include <sys/types.h>
-#include <sys/writec.h>
 
 /* adapted from Chris Stones, shovelos */
 
@@ -369,24 +366,7 @@ DUMMY_INTERRUPT(30)
 DUMMY_INTERRUPT(31)
 
 /* PIC IRQ's */
-/* Programmable Interrupt Timer Interrupt */
-uint64_t system_time = 0;
-uint32_t time_counter = 0;
-uint32_t time_reset = 18;
-
-extern void _isr_wrapper_32();
-void _isr_handler_32() {
-    time_counter++;
-    if(time_counter == time_reset) {
-        time_counter = 0;
-        system_time++;
-        /* Print Seconds since boot in lower right corner of the console */
-        writec_time(system_time);
-    }
-    /* Acknowledge interrupt */
-    PIC_sendEOI(32);
-}
-
+REAL_INTERRUPT(32);  /* Programmable Interrupt Timer Interrupt */
 DUMMY_INTERRUPT(33);    /* Keyboard Interrupt */
 DUMMY_INTERRUPT(34);    /* Cascade (used internally by the two PICs. never raised) */
 DUMMY_INTERRUPT(35);    /* COM2 (if enabled) */
