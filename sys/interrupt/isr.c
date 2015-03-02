@@ -68,3 +68,21 @@ ISR_WRAPPER(28);
 ISR_WRAPPER(29);
 ISR_WRAPPER(30);
 ISR_WRAPPER(31);
+
+/* The PIC IRQ's */
+ISR_WRAPPER(32);    /* Programmable Interrupt Timer Interrupt */
+ISR_WRAPPER(33);    /* Keyboard Interrupt */
+ISR_WRAPPER(34);    /* Cascade (used internally by the two PICs. never raised) */
+ISR_WRAPPER(35);    /* COM2 (if enabled) */
+ISR_WRAPPER(36);    /* COM1 (if enabled) */
+ISR_WRAPPER(37);    /* LPT2 (if enabled) */
+ISR_WRAPPER(38);    /* Floppy Disk */
+ISR_WRAPPER(39);    /* LPT1 / Unreliable "spurious" interrupt (usually) */
+ISR_WRAPPER(40);    /* CMOS real-time clock (if enabled) */
+ISR_WRAPPER(41);    /* Free for peripherals / legacy SCSI / NIC */
+ISR_WRAPPER(42);    /* Free for peripherals / SCSI / NIC */
+ISR_WRAPPER(43);    /* Free for peripherals / SCSI / NIC */
+ISR_WRAPPER(44);    /* PS2 Mouse */
+ISR_WRAPPER(45);    /* FPU / Coprocessor / Inter-processor */
+ISR_WRAPPER(46);    /* Primary ATA Hard Disk */
+ISR_WRAPPER(47);    /* Secondary ATA Hard Disk */

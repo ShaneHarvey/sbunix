@@ -12,7 +12,7 @@
 #define PIC_S_DATA  0xA1
 
 /* PIC Setup */
-void PIC_protcted_mode(void);
+void PIC_protected_mode(void);
 void PIC_remap(uint8_t offset1, uint8_t offset2);
 
 /* Interrupt Routines */

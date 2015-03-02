@@ -11,7 +11,7 @@ void PIC_sendEOI(uint8_t irq)
     outb(PIC_M_CMD,PIC_EOI);
 }
 
-void PIC_protcted_mode(void) {
+void PIC_protected_mode(void) {
     PIC_remap(0x20, 0x28);
 }
 
@@ -37,31 +37,17 @@ arguments:
 	offset2 - same for slave PIC: offset2..offset2+7
 */
 void PIC_remap(uint8_t offset1, uint8_t offset2) {
-    uint8_t a1, a2;
-
-    a1 = inb(PIC_M_DATA);                 // save masks
-    a2 = inb(PIC_S_DATA);
-
     outb(PIC_M_CMD, ICW1_INIT+ICW1_ICW4); // starts the initialization sequence (in cascade mode)
-    io_wait();
     outb(PIC_S_CMD, ICW1_INIT+ICW1_ICW4);
-    io_wait();
+
     outb(PIC_M_DATA, offset1);            // ICW2: Master PIC vector offset
-    io_wait();
     outb(PIC_S_DATA, offset2);            // ICW2: Slave PIC vector offset
-    io_wait();
-    outb(PIC_M_DATA, 4);                  // ICW3: tell Master PIC that there is a slave PIC at IRQ2 (0000 0100)
-    io_wait();
-    outb(PIC_S_DATA, 2);                  // ICW3: tell Slave PIC its cascade identity (0000 0010)
-    io_wait();
 
-    outb(PIC_M_DATA, ICW4_8086);
-    io_wait();
+    outb(PIC_M_DATA, 2);                  /* ICW3: tell Master PIC that there is a slave PIC at IRQ2 (0000 0010) */
+    outb(PIC_S_DATA, 2);                  /* ICW3: tell Slave PIC its cascade identity (0000 0010) */
+
+    outb(PIC_M_DATA, ICW4_8086);          /* 8086 mode */
     outb(PIC_S_DATA, ICW4_8086);
-    io_wait();
-
-    outb(PIC_M_DATA, a1);                 // restore saved masks.
-    outb(PIC_S_DATA, a2);
 }
 
 void IRQ_set_mask(uint8_t IRQline) {

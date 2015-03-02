@@ -2,6 +2,7 @@
 #include <sys/gdt.h>
 #include <sys/idt.h>
 #include <sys/tarfs.h>
+#include <sys/pic8259.h>
 
 void test_scroll(void) {
 	int i = 0;
@@ -12,6 +13,8 @@ void test_scroll(void) {
 	printf("This is a 80 character line-----------------------------------------------------\n");
 	printf("This is a 81 character line------------------------------------------------------\n");
 	printf("This is a 82 character line-------------------------------------------------------\n");
+	printf("This is a tab:'\t'-------------------------------------------------------------\n");
+	printf("This is a space:' '------------------------------------------------------------\n");
 }
 
 void start(uint32_t* modulep, void* physbase, void* physfree)
@@ -28,11 +31,16 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	}
 	printf("tarfs in [%p:%p]\n", &_binary_tarfs_start, &_binary_tarfs_end);
 	/* kernel starts here */
-    load_idt();
-	test_scroll();
-	int x = 8;
-	int y = 15;
-	printf("Div by zero %d\n", x/(y-15));
+	load_idt();
+	PIC_protected_mode();
+	while(1){
+		/* do nothing */
+	}
+
+	//test_scroll();
+	//int x = 8;
+	//int y = 15;
+	//printf("Div by zero %d\n", x/(y-15));
 }
 
 #define INITIAL_STACK_SIZE 4096

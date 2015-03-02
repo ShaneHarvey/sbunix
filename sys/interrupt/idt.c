@@ -8,7 +8,7 @@
 #define TASK_GATE 0x05 /* The selector will be a TSS Segement Selector in
                        the GDT. Offset values are not used. Set them to 0. */
 
-#define PRESENT_ISR(selector, ist, type, dpl, target) { \
+#define PRESENT_ISR(selector, ist, type, dpl, target) (struct idt_t){ \
     (target) & 0x0000ffff, \
     selector, \
     ist, \
@@ -361,6 +361,24 @@ DUMMY_INTERRUPT(29)
 DUMMY_INTERRUPT(30)
 DUMMY_INTERRUPT(31)
 
+/* The PIC IRQ's */
+DUMMY_INTERRUPT(32);    /* Programmable Interrupt Timer Interrupt */
+DUMMY_INTERRUPT(33);    /* Keyboard Interrupt */
+DUMMY_INTERRUPT(34);    /* Cascade (used internally by the two PICs. never raised) */
+DUMMY_INTERRUPT(35);    /* COM2 (if enabled) */
+DUMMY_INTERRUPT(36);    /* COM1 (if enabled) */
+DUMMY_INTERRUPT(37);    /* LPT2 (if enabled) */
+DUMMY_INTERRUPT(38);    /* Floppy Disk */
+DUMMY_INTERRUPT(39);    /* LPT1 / Unreliable "spurious" interrupt (usually) */
+DUMMY_INTERRUPT(40);    /* CMOS real-time clock (if enabled) */
+DUMMY_INTERRUPT(41);    /* Free for peripherals / legacy SCSI / NIC */
+DUMMY_INTERRUPT(42);    /* Free for peripherals / SCSI / NIC */
+DUMMY_INTERRUPT(43);    /* Free for peripherals / SCSI / NIC */
+DUMMY_INTERRUPT(44);    /* PS2 Mouse */
+DUMMY_INTERRUPT(45);    /* FPU / Coprocessor / Inter-processor */
+DUMMY_INTERRUPT(46);    /* Primary ATA Hard Disk */
+DUMMY_INTERRUPT(47);    /* Secondary ATA Hard Disk */
+
 extern void _x86_64_asm_lidt(void *idtr); /* idt.s */
 
 void load_idt(void) {
@@ -396,6 +414,24 @@ void load_idt(void) {
     SET_ISR(29);
     SET_ISR(30);
     SET_ISR(31);
+
+    /* The PIC IRQ's */
+    SET_ISR(32);    /* Programmable Interrupt Timer Interrupt */
+    SET_ISR(33);    /* Keyboard Interrupt */
+    SET_ISR(34);    /* Cascade (used internally by the two PICs. never raised) */
+    SET_ISR(35);    /* COM2 (if enabled) */
+    SET_ISR(36);    /* COM1 (if enabled) */
+    SET_ISR(37);    /* LPT2 (if enabled) */
+    SET_ISR(38);    /* Floppy Disk */
+    SET_ISR(39);    /* LPT1 / Unreliable "spurious" interrupt (usually) */
+    SET_ISR(40);    /* CMOS real-time clock (if enabled) */
+    SET_ISR(41);    /* Free for peripherals / legacy SCSI / NIC */
+    SET_ISR(42);    /* Free for peripherals / SCSI / NIC */
+    SET_ISR(43);    /* Free for peripherals / SCSI / NIC */
+    SET_ISR(44);    /* PS2 Mouse */
+    SET_ISR(45);    /* FPU / Coprocessor / Inter-processor */
+    SET_ISR(46);    /* Primary ATA Hard Disk */
+    SET_ISR(47);    /* Secondary ATA Hard Disk */
     __asm__ __volatile__ ("lidt (%0)" : : "p"(&idtr));
     /* _x86_64_asm_lidt(&idtr); */
 }
