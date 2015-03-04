@@ -332,7 +332,7 @@ struct idtr_t idtr = {
     extern void _isr_wrapper_ ## vector();
 
 
-DUMMY_INTERRUPT(0); /* DIVIDE BY ZERO */
+REAL_INTERRUPT(0); /* DIVIDE BY ZERO */
 DUMMY_INTERRUPT(1);
 DUMMY_INTERRUPT(2);
 DUMMY_INTERRUPT(3);
