@@ -3,7 +3,7 @@
 
 #include <sys/defs.h>
 
-#define ISR_HANDLER(vector) _isr_hanlder_ ## vector()
+#define ISR_HANDLER(vector) _isr_handler_ ## vector()
 
 /**
 * An entry in the Interrupt Descriptor Table(IDT). 16 bytes for x86_64.
