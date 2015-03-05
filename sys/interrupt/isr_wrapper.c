@@ -35,7 +35,7 @@
         "    popq %rax;" \
         "    iretq;" )
 
-
+/* Intel Reserved 0-31 */
 ISR_WRAPPER(0);
 ISR_WRAPPER(1);
 ISR_WRAPPER(2);
