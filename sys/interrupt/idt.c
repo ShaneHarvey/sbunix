@@ -55,9 +55,9 @@ static struct idt_t idt[] = {
     ABSENT_ISR  (8, 0, INTERRUPT , 0, &_isr_008),
     ABSENT_ISR  (8, 0, INTERRUPT , 0, &_isr_009),
     ABSENT_ISR  (8, 0, INTERRUPT , 0, &_isr_010),
-    ABSENT_ISR  (8, 0, INTERRUPT , 0, &_isr_011), /* NOT PRESENT FAULT */
+    ABSENT_ISR  (8, 0, INTERRUPT , 0, &_isr_011),
     ABSENT_ISR  (8, 0, INTERRUPT , 0, &_isr_012),
-    ABSENT_ISR  (8, 0, INTERRUPT , 0, &_isr_013), /* GENERAL PROTECTION FAULT */
+    ABSENT_ISR  (8, 0, INTERRUPT , 0, &_isr_013),
     ABSENT_ISR  (8, 0, INTERRUPT , 0, &_isr_014),
     ABSENT_ISR  (8, 0, INTERRUPT , 0, &_isr_015),
     ABSENT_ISR  (8, 0, INTERRUPT , 0, &_isr_016),
@@ -332,28 +332,28 @@ struct idtr_t idtr = {
     extern void _isr_wrapper_ ## vector();
 
 
-REAL_INTERRUPT(0); /* DIVIDE BY ZERO */
-DUMMY_INTERRUPT(1);
-DUMMY_INTERRUPT(2);
-DUMMY_INTERRUPT(3);
-DUMMY_INTERRUPT(4);
-DUMMY_INTERRUPT(5);
-DUMMY_INTERRUPT(6);
-DUMMY_INTERRUPT(7);
-DUMMY_INTERRUPT(8);
-DUMMY_INTERRUPT(9);
-DUMMY_INTERRUPT(10);
-DUMMY_INTERRUPT(11); /* NOT PRESENT FAULT */
-DUMMY_INTERRUPT(12);
-DUMMY_INTERRUPT(13); /* GENERAL PROTECTION FAULT */
-DUMMY_INTERRUPT(14);
-DUMMY_INTERRUPT(15);
-DUMMY_INTERRUPT(16);
-DUMMY_INTERRUPT(17);
-DUMMY_INTERRUPT(18);
-DUMMY_INTERRUPT(19);
-DUMMY_INTERRUPT(20);
-DUMMY_INTERRUPT(21);
+REAL_INTERRUPT(0);   /* 0    Divide Error Exception         (#DE) */
+REAL_INTERRUPT(1);   /* 1    Debug Exception                (#DB) */
+REAL_INTERRUPT(2);   /* 2    NMI Interrupt                        */
+REAL_INTERRUPT(3);   /* 3    Breakpoint Exception           (#BP) */
+REAL_INTERRUPT(4);   /* 4    Overflow Exception             (#OF) */
+REAL_INTERRUPT(5);   /* 5    BOUND Range Exceeded Exception (#BR) */
+REAL_INTERRUPT(6);   /* 6    Invalid Opcode Exception       (#UD) */
+REAL_INTERRUPT(7);   /* 7    Device Not Available Exception (#NM) */
+REAL_INTERRUPT(8);   /* 8    Double Fault Exception         (#DF) */
+REAL_INTERRUPT(9);   /* 9    Coprocessor Segment Overrun          */
+REAL_INTERRUPT(10);  /* 10   Invalid TSS Exception          (#TS) */
+REAL_INTERRUPT(11);  /* 11   Segment Not Present            (#NP) */
+REAL_INTERRUPT(12);  /* 12   Stack Fault Exception          (#SS) */
+REAL_INTERRUPT(13);  /* 13   General Protection Exception   (#GP) */
+REAL_INTERRUPT(14);  /* 14   Page-Fault Exception           (#PF) */
+DUMMY_INTERRUPT(15); /* 15   Reserved */
+REAL_INTERRUPT(16);  /* 16   x87 FPU Floating-Point Error   (#MF) */
+REAL_INTERRUPT(17);  /* 17   Alignment Check Exception      (#AC) */
+REAL_INTERRUPT(18);  /* 18   Machine-Check Exception        (#MC) */
+REAL_INTERRUPT(19);  /* 19   SIMD Floating-Point Exception  (#XM) */
+REAL_INTERRUPT(20);  /* 20   Virtualization Exception       (#VE) */
+DUMMY_INTERRUPT(21); /* 21-31 Reserved */
 DUMMY_INTERRUPT(22);
 DUMMY_INTERRUPT(23);
 DUMMY_INTERRUPT(24);
@@ -367,21 +367,21 @@ DUMMY_INTERRUPT(31);
 
 /* PIC IRQ's */
 REAL_INTERRUPT(32);  /* Programmable Interrupt Timer Interrupt */
-DUMMY_INTERRUPT(33);    /* Keyboard Interrupt */
-DUMMY_INTERRUPT(34);    /* Cascade (used internally by the two PICs. never raised) */
-DUMMY_INTERRUPT(35);    /* COM2 (if enabled) */
-DUMMY_INTERRUPT(36);    /* COM1 (if enabled) */
-DUMMY_INTERRUPT(37);    /* LPT2 (if enabled) */
-DUMMY_INTERRUPT(38);    /* Floppy Disk */
-DUMMY_INTERRUPT(39);    /* LPT1 / Unreliable "spurious" interrupt (usually) */
-DUMMY_INTERRUPT(40);    /* CMOS real-time clock (if enabled) */
-DUMMY_INTERRUPT(41);    /* Free for peripherals / legacy SCSI / NIC */
-DUMMY_INTERRUPT(42);    /* Free for peripherals / SCSI / NIC */
-DUMMY_INTERRUPT(43);    /* Free for peripherals / SCSI / NIC */
-DUMMY_INTERRUPT(44);    /* PS2 Mouse */
-DUMMY_INTERRUPT(45);    /* FPU / Coprocessor / Inter-processor */
-DUMMY_INTERRUPT(46);    /* Primary ATA Hard Disk */
-DUMMY_INTERRUPT(47);    /* Secondary ATA Hard Disk */
+DUMMY_INTERRUPT(33); /* Keyboard Interrupt */
+DUMMY_INTERRUPT(34); /* Cascade (used internally by the two PICs. never raised) */
+DUMMY_INTERRUPT(35); /* COM2 (if enabled) */
+DUMMY_INTERRUPT(36); /* COM1 (if enabled) */
+DUMMY_INTERRUPT(37); /* LPT2 (if enabled) */
+DUMMY_INTERRUPT(38); /* Floppy Disk */
+DUMMY_INTERRUPT(39); /* LPT1 / Unreliable "spurious" interrupt (usually) */
+DUMMY_INTERRUPT(40); /* CMOS real-time clock (if enabled) */
+DUMMY_INTERRUPT(41); /* Free for peripherals / legacy SCSI / NIC */
+DUMMY_INTERRUPT(42); /* Free for peripherals / SCSI / NIC */
+DUMMY_INTERRUPT(43); /* Free for peripherals / SCSI / NIC */
+DUMMY_INTERRUPT(44); /* PS2 Mouse */
+DUMMY_INTERRUPT(45); /* FPU / Coprocessor / Inter-processor */
+DUMMY_INTERRUPT(46); /* Primary ATA Hard Disk */
+DUMMY_INTERRUPT(47); /* Secondary ATA Hard Disk */
 
 extern void _x86_64_asm_lidt(void *idtr); /* idt.s */
 
