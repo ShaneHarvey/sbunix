@@ -1,5 +1,8 @@
 #include <sys/idt.h>
 #include <sys/sbunix.h>
+#include <sys/ports.h>
+#include <sys/pic8259.h>
+#include <sys/writec.h>
 
 /* adapted from Chris Stones, shovelos */
 
@@ -311,7 +314,7 @@ struct idtr_t {
 
 struct idtr_t idtr = {
 
-        (uint16_t)sizeof(idt),
+        (uint16_t)(sizeof(idt)),
         (uint64_t)idt,
 };
 
@@ -367,7 +370,14 @@ DUMMY_INTERRUPT(31)
 
 /* PIC IRQ's */
 REAL_INTERRUPT(32);  /* Programmable Interrupt Timer Interrupt */
-DUMMY_INTERRUPT(33);    /* Keyboard Interrupt */
+REAL_INTERRUPT(33);    /* Keyboard Interrupt */
+void ISR_HANDLER(33) {
+    uint8_t scan_code = inb(0x60);
+    sc_buf_add(scan_code);
+    /* Acknowledge interrupt */
+    PIC_sendEOI(33);
+}
+
 DUMMY_INTERRUPT(34);    /* Cascade (used internally by the two PICs. never raised) */
 DUMMY_INTERRUPT(35);    /* COM2 (if enabled) */
 DUMMY_INTERRUPT(36);    /* COM1 (if enabled) */
