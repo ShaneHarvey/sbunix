@@ -3,6 +3,7 @@ project(sbunix C ASM)
 include_directories(include)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O1 -std=c99 -D__thread= -fno-stack-protector -Wall -Werror -nostdinc -Iinclude -msoft-float -mno-sse -mno-red-zone -fno-builtin -fPIC -march=amdfam10 -g3")
+set(CMAKE_EXE_LINKER_FLAGS "-nostdlib")
 # source for crt1.o
 set(crt1_SRCS crt/crt1.c)
 
@@ -15,7 +16,7 @@ file(GLOB sbush_SRCS        bin/sbush/*.c)
 file(GLOB alloctest_SRCS    bin/alloctest/*.c)
 
 # Glob kernel sources
-file(GLOB kernel_SRCS       sys/*.c sys/*.s)
+file(GLOB kernel_SRCS       sys/*.c sys/*.s sys/*/*.c sys/*/*.s)
 
 # obj's for libc/crt
 add_library(c           STATIC ${libc_SRCS})
@@ -42,5 +43,5 @@ add_executable(kernel ${kernel_SRCS})
 
 SET_TARGET_PROPERTIES(kernel
   PROPERTIES 
-  LINK_FLAGS "-nostdlib -o kernel -T ${PROJECT_SOURCE_DIR}/linker.script")
+  LINK_FLAGS "-nostdlib -T ${PROJECT_SOURCE_DIR}/linker.script")
 
