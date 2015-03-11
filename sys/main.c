@@ -1,9 +1,9 @@
-#include <sys/sbunix.h>
-#include <sys/gdt.h>
-#include <sys/idt.h>
-#include <sys/tarfs.h>
-#include <sys/pic8259.h>
-#include <sys/pit.h>
+#include <sbunix/sbunix.h>
+#include <sbunix/gdt.h>
+#include <sbunix/idt.h>
+#include <sbunix/tarfs.h>
+#include <sbunix/pic8259.h>
+#include <sbunix/pit.h>
 
 void test_scroll(void) {
 	int i = 0;
@@ -36,7 +36,8 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	load_idt();
 	PIC_protected_mode();
 	pit_set_freq(18.0);
-	while(1){
+	while(1) {
+        __asm__ __volatile__ ("hlt;");
 		/* do nothing */
 	}
 
@@ -52,6 +53,10 @@ uint32_t* loader_stack;
 extern char kernmem, physbase; /* defined by linker.script */
 struct tss_t tss;
 
+/**
+* boot is the entry point to the kernel:
+* ENTRY(boot) in the linker.script
+*/
 void boot(void)
 {
 	/* note: function changes rsp, local stack variables can't be practically used */

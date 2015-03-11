@@ -1,8 +1,8 @@
-#include <sys/idt.h>
-#include <sys/sbunix.h>
-#include <sys/ports.h>
-#include <sys/pic8259.h>
-#include <sys/writec.h>
+#include <sbunix/idt.h>
+#include <sbunix/sbunix.h>
+#include <sbunix/ports.h>
+#include <sbunix/pic8259.h>
+#include <sbunix/writec.h>
 
 /* adapted from Chris Stones, shovelos */
 

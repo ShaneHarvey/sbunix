@@ -1,5 +1,5 @@
 #include <string.h>
-#include <sys/writec.h>
+#include <sbunix/writec.h>
 
 #define VIDEO_BASE ((void *)0xb8000)
 #define SCREEN_WIDTH 80

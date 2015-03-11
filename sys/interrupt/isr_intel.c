@@ -1,7 +1,7 @@
-#include <sys/idt.h>
-#include <sys/sbunix.h>
+#include <sbunix/idt.h>
+#include <sbunix/sbunix.h>
 
-#define halt_msg(msg) printf("!! Debug Exception (#DB) !!\n"); \
+#define halt_msg(msg) printf(msg); \
     while(1) { \
     __asm__ __volatile__ ("hlt;"); \
     }
