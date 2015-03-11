@@ -4,44 +4,48 @@ include_directories(include)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O1 -std=c99 -D__thread= -fno-stack-protector -Wall -Werror -nostdinc -Iinclude -msoft-float -mno-sse -mno-red-zone -fno-builtin -fPIC -march=amdfam10 -g3")
 set(CMAKE_EXE_LINKER_FLAGS "-nostdlib")
+
 # source for crt1.o
 set(crt1_SRCS crt/crt1.c)
 
 # Glob the libc sources
 file(GLOB libc_SRCS         libc/*.c)
 
-# sbush, the shell sources
-file(GLOB sbush_SRCS        bin/sbush/*.c)
-
-file(GLOB alloctest_SRCS    bin/alloctest/*.c)
-
-# Glob kernel sources
-file(GLOB kernel_SRCS       sys/*.c sys/*.s sys/*/*.c sys/*/*.s)
-
 # obj's for libc/crt
 add_library(c           STATIC ${libc_SRCS})
 add_library(crt1_O      OBJECT ${crt1_SRCS})
 
-# obj's for executables
-add_library(sbush_O     OBJECT ${sbush_SRCS})
-add_library(alloctest_O OBJECT ${alloctest_SRCS})
+# Grab all the directories in bin/
+execute_process(COMMAND ls  ${PROJECT_SOURCE_DIR}/bin/
+                OUTPUT_VARIABLE progdirs)
 
-add_executable(sbush
-    $<TARGET_OBJECTS:crt1_O>
-    $<TARGET_OBJECTS:sbush_O>)
+# Replace '\n' from ls with ';', the cmake seperator for lists
+string(REPLACE "\n" ";" progdirs_list ${progdirs})
 
-target_link_libraries(sbush c)
+# Loop over the directories (which will be the executables)
+foreach(progname  ${progdirs_list})
+    # Sources
+    file(GLOB   ${progname}_SRCS    bin/${progname}/*.c)
 
-add_executable(alloctest
-    $<TARGET_OBJECTS:crt1_O>
-    $<TARGET_OBJECTS:alloctest_O>)
+    # Objects
+    add_library(${progname}_O   OBJECT  ${${progname}_SRCS})
 
-target_link_libraries(alloctest c)
+    add_executable(${progname}
+        $<TARGET_OBJECTS:crt1_O>
+        $<TARGET_OBJECTS:${progname}_O>)
+
+    # Link with "sblibc"
+    target_link_libraries(${progname} c)
+endforeach(progname)
+
+
+# Glob kernel sources
+file(GLOB kernel_SRCS       sys/*.c sys/*.s sys/*/*.c sys/*/*.s)
 
 # kernel binary
 add_executable(kernel ${kernel_SRCS})
 
 SET_TARGET_PROPERTIES(kernel
-  PROPERTIES 
+  PROPERTIES
   LINK_FLAGS "-nostdlib -T ${PROJECT_SOURCE_DIR}/linker.script")
 

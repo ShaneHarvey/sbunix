@@ -31,6 +31,7 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 		}
 	}
 	printf("tarfs in [%p:%p]\n", &_binary_tarfs_start, &_binary_tarfs_end);
+	printf("physbase %p, physfree %p\n", physbase, physfree);
 	/* kernel starts here */
 	load_idt();
 	PIC_protected_mode();
