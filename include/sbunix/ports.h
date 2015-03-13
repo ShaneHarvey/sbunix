@@ -1,5 +1,5 @@
-#ifndef _PORTS_H
-#define _PORTS_H
+#ifndef _SBUNIX_PORTS_H
+#define _SBUNIX_PORTS_H
 
 #include <sys/defs.h>
 

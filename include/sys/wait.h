@@ -1,5 +1,5 @@
-#ifndef _WAIT_H
-#define _WAIT_H
+#ifndef _SYS_WAIT_H
+#define _SYS_WAIT_H
 
 #include <sys/resource.h>
 

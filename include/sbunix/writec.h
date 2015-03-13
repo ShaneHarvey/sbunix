@@ -1,5 +1,5 @@
-#ifndef _WRITEC_H
-#define _WRITEC_H 1
+#ifndef _SBUNIX_WRITEC_H
+#define _SBUNIX_WRITEC_H 1
 
 #include <sys/types.h>
 

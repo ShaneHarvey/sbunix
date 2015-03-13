@@ -1,5 +1,5 @@
-#ifndef _IDT_H
-#define _IDT_H
+#ifndef _SBUNIX_IDT_H
+#define _SBUNIX_IDT_H
 
 #include <sys/defs.h>
 

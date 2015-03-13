@@ -1,5 +1,5 @@
-#ifndef _GDT_H
-#define _GDT_H
+#ifndef _SBUNIX_GDT_H
+#define _SBUNIX_GDT_H
 
 #include <sys/defs.h>
 

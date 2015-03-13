@@ -1,10 +1,6 @@
-#include <sbunix/idt.h>
 #include <sbunix/sbunix.h>
-
-#define halt_msg(msg) printf(msg); \
-    while(1) { \
-    __asm__ __volatile__ ("hlt;"); \
-    }
+#include <sbunix/idt.h>
+#include <sbunix/asm.h>
 
 /**
 * This file is for Interrupt Service Routine Handlers for the Reserved
@@ -15,85 +11,85 @@
 * Divide by Zero Exception Handler (#DE)
 */
 void ISR_HANDLER(0) {
-    halt_msg("!! DIVIDE BY ZERO !!\n");
+    halt_loop("!! DIVIDE BY ZERO !!\n");
 }
 
 void ISR_HANDLER(1) {
-    halt_msg("!! Debug Exception (#DB) !!\n");
+    halt_loop("!! Debug Exception (#DB) !!\n");
 }
 
 void ISR_HANDLER(2) {
-    halt_msg("!! NMI Interrupt !!\n");
+    halt_loop("!! NMI Interrupt !!\n");
 }
 
 void ISR_HANDLER(3) {
-    halt_msg("!! Breakpoint Exception (#BP) !!\n");
+    halt_loop("!! Breakpoint Exception (#BP) !!\n");
 }
 
 void ISR_HANDLER(4) {
-    halt_msg("!! Overflow Exception (#OF) !!\n");
+    halt_loop("!! Overflow Exception (#OF) !!\n");
 }
 
 void ISR_HANDLER(5) {
-    halt_msg("!! BOUND Range Exceeded Exception (#BR) !!\n");
+    halt_loop("!! BOUND Range Exceeded Exception (#BR) !!\n");
 }
 
 void ISR_HANDLER(6) {
-    halt_msg("!! Invalid Opcode Exception (#UD) !!\n");
+    halt_loop("!! Invalid Opcode Exception (#UD) !!\n");
 }
 
 void ISR_HANDLER(7) {
-    halt_msg("!! Device Not Available Exception (#NM) !!\n");
+    halt_loop("!! Device Not Available Exception (#NM) !!\n");
 }
 
 void ISR_HANDLER(8) {
-    halt_msg("!! Double Fault Exception (#DF) !!\n");
+    halt_loop("!! Double Fault Exception (#DF) !!\n");
 }
 
 void ISR_HANDLER(9) {
-    halt_msg("!! Coprocessor Segment Overrun !!\n");
+    halt_loop("!! Coprocessor Segment Overrun !!\n");
 }
 
 void ISR_HANDLER(10) {
-    halt_msg("!! Invalid TSS Exception (#TS) !!\n");
+    halt_loop("!! Invalid TSS Exception (#TS) !!\n");
 }
 
 void ISR_HANDLER(11) {
-    halt_msg("!! Segment Not Present (#NP) !!\n");
+    halt_loop("!! Segment Not Present (#NP) !!\n");
 }
 
 void ISR_HANDLER(12) {
-    halt_msg("!! Stack Fault Exception (#SS) !!\n");
+    halt_loop("!! Stack Fault Exception (#SS) !!\n");
 }
 
 void ISR_HANDLER(13) {
-    halt_msg("!! General Protection Exception (#GP) !!\n");
+    halt_loop("!! General Protection Exception (#GP) !!\n");
 }
 
 void ISR_HANDLER(14) {
-    halt_msg("!! Page-Fault Exception (#PF) !!\n");
+    halt_loop("!! Page-Fault Exception (#PF) !!\n");
 }
 
 /* 15 Reserved */
 
 void ISR_HANDLER(16) {
-    halt_msg("!! x87 FPU Floating-Point Erro (#MF) !!\n");
+    halt_loop("!! x87 FPU Floating-Point Erro (#MF) !!\n");
 }
 
 void ISR_HANDLER(17) {
-    halt_msg("!! Alignment Check Exception (#AC) !!\n");
+    halt_loop("!! Alignment Check Exception (#AC) !!\n");
 }
 
 void ISR_HANDLER(18) {
-    halt_msg("!! Machine-Check Exception (#MC) !!\n");
+    halt_loop("!! Machine-Check Exception (#MC) !!\n");
 }
 
 void ISR_HANDLER(19) {
-    halt_msg("!! SIMD Floating-Point Exception (#XM) !!\n");
+    halt_loop("!! SIMD Floating-Point Exception (#XM) !!\n");
 }
 
 void ISR_HANDLER(20) {
-    halt_msg("!! Virtualization Exception (#VE) !!\n");
+    halt_loop("!! Virtualization Exception (#VE) !!\n");
 }
 
 /* 21-31 Reserved */

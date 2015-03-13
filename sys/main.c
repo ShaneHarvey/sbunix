@@ -4,6 +4,7 @@
 #include <sbunix/tarfs.h>
 #include <sbunix/pic8259.h>
 #include <sbunix/pit.h>
+#include <sbunix/asm.h>
 
 void test_scroll(void) {
 	int i = 0;
@@ -36,10 +37,7 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	load_idt();
 	PIC_protected_mode();
 	pit_set_freq(18.0);
-	while(1) {
-        __asm__ __volatile__ ("hlt;");
-		/* do nothing */
-	}
+	halt_loop("Halting in start()...\n")
 
 	//test_scroll();
 	//int x = 8;
@@ -73,8 +71,5 @@ void boot(void)
 		&physbase,
 		(void*)(uint64_t)loader_stack[4]
 	);
-	printf("!!!!! start() returned !!!!!");
-	while(1){
-		__asm__ __volatile__ ("hlt;");
-	}
+	halt_loop("!!!!! start() returned !!!!!\n");
 }

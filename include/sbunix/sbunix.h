@@ -1,5 +1,5 @@
-#ifndef _SBUNIX_H
-#define _SBUNIX_H
+#ifndef _SBUNIX_SBUNIX_H
+#define _SBUNIX_SBUNIX_H
 
 #include <sys/defs.h>
 

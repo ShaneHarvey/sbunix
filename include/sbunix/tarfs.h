@@ -1,5 +1,5 @@
-#ifndef _TARFS_H
-#define _TARFS_H
+#ifndef _SBUNIX_TARFS_H
+#define _SBUNIX_TARFS_H
 
 extern char _binary_tarfs_start;
 extern char _binary_tarfs_end;
