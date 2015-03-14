@@ -5,4 +5,10 @@
 
 void printf(const char *fmt, ...);
 
+#ifdef DEBUG
+#   define debug(fmt, ...)   printf("DEBUG: %s:%s: " fmt, __FILE__, __FUNCTION__, ##__VA_ARGS__);
+#else
+#   define debug(S, ...)
+#endif /* DEBUG */
+
 #endif

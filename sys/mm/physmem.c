@@ -70,7 +70,7 @@ void pmem_init(struct pzone *pzonehead) {
         curr->ppages = NULL;
         prev->ppages = NULL; /* todo remove? */
 
-        printf("PZone%d: [%lx-%lx] has %ld pages.\n",  x, curr->start, curr->end, npages);
+        debug("PZ%d: [%lx-%lx] has %ld pages.\n",  x, curr->start, curr->end, npages);
         x++;
     }
 }
