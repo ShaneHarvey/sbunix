@@ -25,7 +25,9 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 		uint64_t base, length;
 		uint32_t type;
 	}__attribute__((packed)) *smap;
-	while(modulep[0] != 0x9001) modulep += modulep[1]+2;
+	while(modulep[0] != 0x9001) {
+		modulep += modulep[1] + 2;
+	}
 	for(smap = (struct smap_t*)(modulep+2); smap < (struct smap_t*)((char*)modulep+modulep[1]+2*4); ++smap) {
 		if (smap->type == 1 /* memory */ && smap->length != 0) {
 			printf("Available Physical Memory [%lx-%lx]\n", smap->base, smap->base + smap->length);
