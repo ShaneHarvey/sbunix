@@ -1,9 +1,10 @@
 #include <sbunix/sbunix.h>
 #include <sbunix/gdt.h>
-#include <sbunix/idt.h>
 #include <sbunix/tarfs.h>
-#include <sbunix/pic8259.h>
-#include <sbunix/pit.h>
+#include <sbunix/interrupt/idt.h>
+#include <sbunix/interrupt/pic8259.h>
+#include <sbunix/interrupt/pit.h>
+#include <sbunix/mm/physmem.h>
 #include <sbunix/asm.h>
 
 void test_scroll(void) {
@@ -21,6 +22,7 @@ void test_scroll(void) {
 
 void start(uint32_t* modulep, void* physbase, void* physfree)
 {
+	struct pzone *pzonehd = NULL;
 	struct smap_t {
 		uint64_t base, length;
 		uint32_t type;
@@ -31,14 +33,29 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	for(smap = (struct smap_t*)(modulep+2); smap < (struct smap_t*)((char*)modulep+modulep[1]+2*4); ++smap) {
 		if (smap->type == 1 /* memory */ && smap->length != 0) {
 			printf("Available Physical Memory [%lx-%lx]\n", smap->base, smap->base + smap->length);
+			pzonehd = pzone_new(smap->base, smap->base + smap->length, PZONE_USABLE);
 		}
 	}
+	/**
+	* This is between physbase and physfree:
+	* physbase				= 0x200000
+	* _binary_tarfs_start 	= 0x209780
+	* _binary_tarfs_end 	= 0x32df80
+	* physfree				= 0x333000
+	* The kernel's size (physfree) will grow but is tarfs in a fixed location?
+	* How should we treat this memory range?
+	*/
 	printf("tarfs in [%p:%p]\n", &_binary_tarfs_start, &_binary_tarfs_end);
 	printf("physbase %p, physfree %p\n", physbase, physfree);
+
 	/* kernel starts here */
 	load_idt();
 	PIC_protected_mode();
 	pit_set_freq(18.0);
+
+	/* Physical Mem Init */
+	pmem_init(pzonehd);
+
 	halt_loop("Halting in start()...\n")
 
 	//test_scroll();

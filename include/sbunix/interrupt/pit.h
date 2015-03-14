@@ -1,5 +1,5 @@
-#ifndef _SBUNIX_PIT_H
-#define _SBUNIX_PIT_H
+#ifndef _SBUNIX_INTERRUPT_PIT_H
+#define _SBUNIX_INTERRUPT_PIT_H
 
 #include <sys/types.h>
 

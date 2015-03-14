@@ -1,7 +1,7 @@
-#include <sbunix/pit.h>
-#include <sbunix/idt.h>
+#include <sbunix/interrupt/pit.h>
+#include <sbunix/interrupt/idt.h>
+#include <sbunix/interrupt/pic8259.h>
 #include <sbunix/writec.h>
-#include <sbunix/pic8259.h>
 
 /* Programmable Interrupt Timer */
 

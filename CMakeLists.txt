@@ -1,3 +1,8 @@
+#
+# Currently just so CLion provides syntax highlighting, static analysis, ...
+# This is not a full port of the project Makefile, this will fail when linking
+# the kernel.
+#
 cmake_minimum_required(VERSION 2.8.4)
 project(sbunix C ASM)
 include_directories(include)

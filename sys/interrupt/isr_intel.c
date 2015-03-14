@@ -1,5 +1,5 @@
 #include <sbunix/sbunix.h>
-#include <sbunix/idt.h>
+#include <sbunix/interrupt/idt.h>
 #include <sbunix/asm.h>
 
 /**

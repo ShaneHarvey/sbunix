@@ -1,5 +1,5 @@
-#ifndef _SBUNIX_IDT_H
-#define _SBUNIX_IDT_H
+#ifndef _SBUNIX_INTERRUPT_IDT_H
+#define _SBUNIX_INTERRUPT_IDT_H
 
 #include <sys/defs.h>
 

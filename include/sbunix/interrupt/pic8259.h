@@ -1,5 +1,5 @@
-#ifndef _SBUNIX_PIC8259_H
-#define _SBUNIX_PIC8259_H
+#ifndef _SBUNIX_INTERRUPT_PIC8259_H
+#define _SBUNIX_INTERRUPT_PIC8259_H
 
 #include <sys/defs.h>
 
