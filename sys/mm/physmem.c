@@ -3,6 +3,16 @@
 #include <sbunix/mm/physmem.h>
 
 /**
+* Deals with bootstrapping physical memory management.
+*
+* The pzones have a static array which is returned by pzone_new().
+* After calls to pzone_new(), call pzone_remove() with regions that must
+* be reserved (currently for the kernel's memory, physbase to physfree).
+* Finally call physmem_init()
+*/
+
+
+/**
 * Array of pzone{}'s
 * To simplify allocation of zones on startup this is a static array for now.
 */
@@ -11,27 +21,24 @@ static size_t pzone_num = 0; /* Number of pzones (and first free slot) */
 static struct pzone pzones[PZONE_MAX_NUM];
 
 /* Private functions. */
-static void ppage_new(struct ppage *base, size_t nppages);
+static void _ppage_new(struct ppage *base, size_t nppages);
 static void _pzone_entry(size_t i, uint64_t startpage, uint64_t endpage, uint32_t zflags);
 
 
 /**
-* Create an entry. The args must be ALIGNed to PAGE_SIZE.
+* Create an entry. Caller MUST align startpage/endpage to PAGE_SIZE.
 */
 void _pzone_entry(size_t i, uint64_t startpage, uint64_t endpage, uint32_t zflags) {
     pzones[i].zflags    = zflags;
     pzones[i].start     = startpage;
     pzones[i].end       = endpage;
     pzones[i].ppages    = NULL;
-    /*pzones[i].next      = NULL;
-    if(i > 0) {
-        pzones[i - 1].next = pzones + i;
-    }*/
 }
 
 /**
-* Info the OS about a range of physical memory.
-* Adds a new pzone.
+* Inform the OS about a range of physical memory.
+* Calls to pzone_new() MUST be in increasing order of zones and
+* MUST not overlap.
 *
 * @startpage:   start addr of zone.
 * @endpage:     first addr after end of zone.
@@ -127,7 +134,7 @@ struct pzone *pzone_remove(uint64_t startpage, uint64_t endpage) {
 * @base:    start address of ppage array.
 * @nppages: number of ppages to initializ.
 */
-void ppage_new(struct ppage *base, size_t nppages) {
+void _ppage_new(struct ppage *base, size_t nppages) {
     memset(base, 0, nppages);
 }
 
@@ -155,7 +162,7 @@ void physmem_init(struct pzone *base) {
         }
         /* Put ppage array in first pages of the pzone */
         base[i].ppages = (struct ppage*)base[i].start;
-        ppage_new(base[i].ppages, needpages);
+        _ppage_new(base[i].ppages, needpages);
 
         /* Bump up the start address, possibly wasting space. */
         base[i].start = ALIGN_UP(base[i].start + needbytes, PAGE_SIZE);
