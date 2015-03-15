@@ -22,13 +22,17 @@ struct pzone {
     uint64_t start; /* Address of first page in range (Page frame aligned). */
     uint64_t end;   /* First address after range (Page frame aligned). */
     struct ppage *ppages; /* Array of info on page frames in this range. MAY REMOVE */
-    struct pzone *next;   /* Next phys_range{} */
+    /*struct pzone *next;*/   /* Next phys_range{} */
 };
 
 enum zflags {
     PZONE_USABLE   = 0x001,
     PZONE_KERNEL   = 0x002
 };
+
+/* Calculate the number of pages in this pzone. (returns uint64_t) */
+#define PZONE_NUM_PAGES(pzonep) ( ((pzonep)->end - (pzonep)->start) >> PAGE_SHIFT )
+
 
 /**
 * Physical Page descriptor, one per physical page frame on the system.
@@ -46,14 +50,15 @@ struct ppage {
 
 enum pflags {
     PPAGE_USED     = 0x001,
-    PPAGE_AVAIL    = 0x002,
-    PPAGE_KERNEL   = 0x004
+    PPAGE_KERNEL   = 0x002
 };
 
 
 struct pzone *pzone_new(uint64_t startpage, uint64_t endpage, uint32_t zflags);
+struct pzone *pzone_remove(uint64_t startpage, uint64_t endpage);
 
-void pmem_init(struct pzone *pzonehead);
+void physmem_init(struct pzone *pzonehead);
+void physmem_report(void);
 
 
 #endif

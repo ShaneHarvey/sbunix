@@ -21,7 +21,7 @@
  * * Feb 2015, Scott Harvey <scott.harvey@stonybrook.edu>
  */
 
-#include <string.h>
+#include <sbunix/string.h>
 #include <ctype.h>
 
 

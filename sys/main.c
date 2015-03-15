@@ -48,13 +48,16 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	printf("tarfs in [%p:%p]\n", &_binary_tarfs_start, &_binary_tarfs_end);
 	printf("physbase %p, physfree %p\n", physbase, physfree);
 
+	pzonehd = pzone_remove((uint64_t)physbase, (uint64_t)physfree);
+
 	/* kernel starts here */
 	load_idt();
 	PIC_protected_mode();
 	pit_set_freq(18.0);
 
 	/* Physical Mem Init */
-	pmem_init(pzonehd);
+	physmem_init(pzonehd);
+	physmem_report();
 
 	halt_loop("Halting in start()...\n")
 
