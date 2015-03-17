@@ -5,7 +5,6 @@
 #include <sbunix/interrupt/pic8259.h>
 #include <sbunix/interrupt/pit.h>
 #include <sbunix/mm/physmem.h>
-#include <sbunix/asm.h>
 
 void test_scroll(void) {
 	int i = 0;
@@ -59,7 +58,7 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	physmem_init(pzonehd);
 	physmem_report();
 
-	halt_loop("Halting in start()...\n")
+	halt_loop("Halting in start()...\n");
 
 	//test_scroll();
 	//int x = 8;

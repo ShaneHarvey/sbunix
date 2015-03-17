@@ -3,9 +3,12 @@
 
 /* Header for common assembly routines. */
 
-#define halt_loop(msg) printf(msg); \
-    while(1) { \
-    __asm__ __volatile__ ("hlt;"); \
-    }
+#define halt_loop(fmt, ...) \
+            do { \
+                printf(fmt, ##__VA_ARGS__); \
+                while(1) { \
+                    __asm__ __volatile__ ("hlt;"); \
+                } \
+            } while(0)
 
 #endif
