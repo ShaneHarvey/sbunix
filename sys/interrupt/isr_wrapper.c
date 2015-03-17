@@ -1,7 +1,6 @@
-#define ISR_WRAPPER(vector) \
-    __asm__ ( \
-        ".global _isr_wrapper_" # vector "\n" \
-        "_isr_wrapper_" # vector ":\n" \
+#include <sbunix/interrupt/idt.h>
+
+#define PUSHQALL \
         "    pushq %rax;" \
         "    pushq %rbx;" \
         "    pushq %rcx;" \
@@ -16,8 +15,9 @@
         "    pushq %r12;" \
         "    pushq %r13;" \
         "    pushq %r14;" \
-        "    pushq %r15;" \
-        "    call _isr_handler_" # vector ";" \
+        "    pushq %r15;"
+
+#define POPQALL \
         "    popq %r15;" \
         "    popq %r14;" \
         "    popq %r13;" \
@@ -32,8 +32,16 @@
         "    popq %rdx;" \
         "    popq %rcx;" \
         "    popq %rbx;" \
-        "    popq %rax;" \
-        "    iretq;" )
+        "    popq %rax;"
+
+#define ISR_WRAPPER(vector) \
+    __asm__ ( \
+        ".global _isr_wrapper_" # vector "\n" \
+        "_isr_wrapper_" # vector ":\n" \
+            PUSHQALL \
+            "    call _isr_handler_" # vector ";" \
+            POPQALL \
+            "    iretq;" )
 
 /* Intel Reserved 0-31 */
 ISR_WRAPPER(0);
@@ -50,7 +58,27 @@ ISR_WRAPPER(10);
 ISR_WRAPPER(11);
 ISR_WRAPPER(12);
 ISR_WRAPPER(13);
-ISR_WRAPPER(14);
+
+/** Special Page Fault wrapper
+* After PUSHQALL,
+* 144(%rsp)  is  %rflags
+* 136(%rsp)  is  cs
+* 128(%rsp)  is  faulting %rip
+* 120(%rsp)  is  error code
+*
+* Grab the faulting address from %cr2
+*/
+__asm__ (
+    ".global _isr_wrapper_14\n"
+    "_isr_wrapper_14:\n"
+        PUSHQALL
+        "movq %cr2, %rdi;"      /* Faulting address into %rdi */
+        "movq 120(%rsp), %rsi;" /* Error code into %rsi. */
+        "call _isr_handler_14;"
+        POPQALL
+        "iretq;"
+);
+
 ISR_WRAPPER(15);
 ISR_WRAPPER(16);
 ISR_WRAPPER(17);

@@ -66,8 +66,14 @@ void ISR_HANDLER(13) {
     halt_loop("!! General Protection Exception (#GP) !!\n");
 }
 
-void ISR_HANDLER(14) {
-    halt_loop("!! Page-Fault Exception (#PF) !!\n");
+/**
+* Page fault handler.
+*
+* @address:     The faulting address.
+* @errorcode:   Placed on stack by processor.
+*/
+void _isr_handler_14(uint64_t addr, uint64_t errorcode) {
+    halt_loop("!! Page-Fault Exception (#PF) at %p, errorcode 0x%lx !!\n", (void*)addr, errorcode);
 }
 
 /* 15 Reserved */

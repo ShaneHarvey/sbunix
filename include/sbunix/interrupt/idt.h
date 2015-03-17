@@ -24,6 +24,18 @@ struct idt_t {
     uint32_t reserved;    /* Reserved, bits 96-127 */
 }__attribute__((packed));
 
+/**
+* Error code at stack pointer (rsp) on a page fault.
+* see: http://wiki.osdev.org/Exceptions#Page_Fault
+*/
+enum pf_error_code {
+    PF_PROT     = 1,
+    PF_WRITE    = 1 << 1,
+    PF_USER     = 1 << 2,
+    PF_RSVD     = 1 << 3,
+    PF_INSTR    = 1 << 4
+};
+
 void load_idt(void);
 
 #endif

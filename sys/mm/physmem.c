@@ -181,7 +181,7 @@ void physmem_init(struct pzone *base) {
         debug("pz%ld: [%lx-%lx] has %ld pages.\n", i, base[i].start, base[i].end, PZONE_NUM_PAGES(base + i));
     }
 
-    _create_free_page_list(base);
+    //_create_free_page_list(base);
 }
 
 /**
