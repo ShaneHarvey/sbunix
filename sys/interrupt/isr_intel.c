@@ -72,7 +72,8 @@ void ISR_HANDLER(13) {
 * @address:     The faulting address.
 * @errorcode:   Placed on stack by processor.
 */
-void _isr_handler_14(uint64_t addr, uint64_t errorcode) {
+void _isr_handler_14(uint64_t addr, uint64_t errorcode, uint64_t efer_msr) {
+    printf("!!  IA32_EFER: 0x%lx  !!\n", efer_msr);
     halt_loop("!! Page-Fault Exception (#PF) at %p, errorcode 0x%lx !!\n", (void*)addr, errorcode);
 }
 
