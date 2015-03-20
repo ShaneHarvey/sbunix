@@ -1,17 +1,10 @@
 #ifndef _SBUNIX_MM_PHYSMEM_H
 #define _SBUNIX_MM_PHYSMEM_H
 
+#include <sbunix/mm/align.h> /* alignment macros */
+
 #define PAGE_SIZE   4096
 #define PAGE_SHIFT  12
-
-/* Used by ALIGN_DOWN */
-#define ALIGN_MASK(x, mask)     ( ((x) + (mask)) & ~(mask) )
-
-/* Rounds down to multiple of almt (alignment), must power of 2 */
-#define ALIGN_DOWN(ptr, almt)   ( (ptr) & ~(((__typeof__(ptr))(almt) - 1)) )
-
-/* Same as above but rounds up. */
-#define ALIGN_UP(ptr, almt)   ALIGN_MASK(ptr, ( ((__typeof__(ptr))(almt) - 1) ))
 
 /**
 * Physical page Zone, contains region specific info about the physical
