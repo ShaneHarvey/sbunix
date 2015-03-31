@@ -47,6 +47,8 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	printf("tarfs in [%p:%p]\n", &_binary_tarfs_start, &_binary_tarfs_end);
 	printf("physbase %p, physfree %p\n", physbase, physfree);
 
+	pzone_remove(0x3f000, 0x42000); /* FIXME: DELETE line after moving page tables!*/
+
 	pzonehd = pzone_remove((uint64_t)physbase, (uint64_t)physfree);
 
 	/* kernel starts here */
@@ -58,7 +60,7 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	physmem_init(pzonehd);
 	physmem_report();
 
-	halt_loop("Halting in start()...\n");
+	halt_loop("Halting in start(), time and key presses should update...\n");
 
 	//test_scroll();
 	//int x = 8;
