@@ -118,7 +118,7 @@ struct pzone *pzone_remove(uint64_t startpage, uint64_t endpage) {
             if(pzone_num >= PZONE_MAX_NUM)
                 return NULL; /* We could recover here, instead of failing */
             if(pzone_num > i + 1)
-                memmove((pzones+i+1), (pzones+i+2), sizeof(struct pzone) * (pzone_num-i-1));
+                memmove((pzones+i+2), (pzones+i+1), sizeof(struct pzone) * (pzone_num-i-1));
 
             _pzone_entry(i+1, endpage, oldend, pzones[i].zflags);
             pzone_num++;
