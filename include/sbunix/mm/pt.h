@@ -21,5 +21,10 @@ enum pml4eflags {
     XD      = (1L << 63), /* If IA32_EFER.NXE = 1, disable code execution */
 };
 
+int get_paging_mode(void);
 
+/**
+* Displays the current paging mode to the console
+*/
+void print_paging_mode(void);
 #endif //_SBUNIX_PT_H_

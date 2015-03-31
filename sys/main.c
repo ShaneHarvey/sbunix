@@ -5,6 +5,7 @@
 #include <sbunix/interrupt/pic8259.h>
 #include <sbunix/interrupt/pit.h>
 #include <sbunix/mm/physmem.h>
+#include <sbunix/mm/pt.h>
 
 void test_scroll(void) {
 	int i = 0;
@@ -53,6 +54,9 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	load_idt();
 	PIC_protected_mode();
 	pit_set_freq(18.0);
+
+	/* Init page tables */
+	print_paging_mode();
 
 	/* Physical Mem Init */
 	physmem_init(pzonehd);

@@ -11,6 +11,24 @@
                 } \
             } while(0)
 
+/**
+* Read a 64-bit value from a MSR. The A constraint stands for concatenation
+* of registers EAX and EDX.
+*/
+inline uint64_t rdmsr(uint32_t msr_id) {
+    uint64_t msr_value;
+    __asm__ __volatile__ ( "rdmsr" : "=A" (msr_value) : "c" (msr_id) );
+    return msr_value;
+}
+
+/**
+* Write a 64-bit value to a MSR. The A constraint stands for concatenation
+* of registers EAX and EDX.
+*/
+inline void wrmsr(uint32_t msr_id, uint64_t msr_value) {
+    __asm__ __volatile__ ( "wrmsr" : : "c" (msr_id), "A" (msr_value) );
+}
+
 static inline uint64_t read_cr0(void) {
     uint64_t ret;
     __asm__ __volatile__ ("movq %%cr0, %0;":"=r"(ret));
