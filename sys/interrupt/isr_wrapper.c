@@ -73,10 +73,6 @@ __asm__ (
     "_isr_wrapper_14:\n"
         PUSHQALL
 
-        "movl $0xC0000080, %ecx;" /* Read %EFER msr */
-        "rdmsr;"
-        "shl $32, %rdx;"
-        "or %rax, %rdx;"        /* 3rd arg: EFER msr */
         "movq %cr2, %rdi;"      /* 1st arg: Faulting address into %rdi */
         "movq 120(%rsp), %rsi;" /* 2nd arg: Error code into %rsi. */
 
