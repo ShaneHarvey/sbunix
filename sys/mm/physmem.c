@@ -8,8 +8,10 @@
 * Deals with bootstrapping physical memory management.
 *
 * The pzones have a static array which is returned by pzone_new().
-* After calls to pzone_new(), call pzone_remove() with regions that must
-* be reserved (currently for the kernel's memory, physbase to physfree).
+* After calls to pzone_new() with increasing addresses, call pzone_remove()
+* with regions that must be reserved (currently for the kernel's memory,
+* physbase to physfree).
+*
 * Finally call physmem_init()
 */
 
@@ -58,7 +60,7 @@ struct pzone *pzone_new(uint64_t startpage, uint64_t endpage, uint32_t zflags) {
     endpage = ALIGN_DOWN(endpage, PAGE_SIZE);
 
     if(0 == startpage) { /* Disallow page 0 access */
-        startpage += 0x1000;
+        startpage += PAGE_SIZE;
     }
 
     if(endpage <= startpage)
@@ -85,6 +87,7 @@ struct pzone *pzone_remove(uint64_t startpage, uint64_t endpage) {
 
     startpage = ALIGN_DOWN(startpage, PAGE_SIZE);
     endpage = ALIGN_UP(endpage, PAGE_SIZE);
+    /* debug("rm'ing 0x%lx-0x%lx\n", startpage, endpage); */
 
     if(endpage <= startpage)
         return NULL;
@@ -118,7 +121,7 @@ struct pzone *pzone_remove(uint64_t startpage, uint64_t endpage) {
             if(pzone_num >= PZONE_MAX_NUM)
                 return NULL; /* We could recover here, instead of failing */
             if(pzone_num > i + 1)
-                memmove((pzones+i+1), (pzones+i+2), sizeof(struct pzone) * (pzone_num-i-1));
+                memmove((pzones+i+2), (pzones+i+1), sizeof(struct pzone) * (pzone_num-i-1));
 
             _pzone_entry(i+1, endpage, oldend, pzones[i].zflags);
             pzone_num++;
@@ -181,7 +184,7 @@ void physmem_init(struct pzone *base) {
         debug("pz%ld: [%lx-%lx] has %ld pages.\n", i, base[i].start, base[i].end, PZONE_NUM_PAGES(base + i));
     }
 
-    //_create_free_page_list(base);
+    _create_free_page_list(base);
 }
 
 /**
@@ -222,7 +225,7 @@ void _create_free_page_list(struct pzone *base) {
 
         freepagehd.freepages = (struct freepage *) base[i].start;
         prev = freepagehd.freepages;
-        debug("Found freepagehd at %p\n", freepagehd.freepages);
+        debug("Setting freepagehd to %p\n", freepagehd.freepages);
         break;
     }
 
@@ -234,19 +237,15 @@ void _create_free_page_list(struct pzone *base) {
         if(!(base[i].zflags & PZONE_USABLE))
             continue;
 
-        /* todo remove. Test page faults */
-        //((struct freepage*)0x40000)->next = (struct freepage*)0x41000;
-        //debug("test: %lx-> = %lx\n", 0x40000, 0x41000);
-
         curr = (struct freepage*) base[i].start;
-        debug("pz%ld adding [%lx-%lx] to freelist.\n", i, base[i].start, base[i].end);
+        debug("pz%ld add [%lx-%lx] to freelist.\n", i, base[i].start, base[i].end);
         for(;curr < (struct freepage*) base[i].end; prev = curr, curr++) {
-            //debug("%p->next == %p\n", prev, curr);
+            /* debug("%p->next == %p\n", prev, curr); */
             prev->next = curr;
             freepagehd.nfree++;
         }
     }
     prev->next = NULL;
 
-    debug("%ld free pages.\n", freepagehd.nfree);
+    debug("%ld free pages total.\n", freepagehd.nfree);
 }
