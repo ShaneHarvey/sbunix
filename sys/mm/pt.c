@@ -2,15 +2,6 @@
 #include <sbunix/mm/align.h>
 #include <sbunix/mm/pt.h>
 
-#define IS_PAGE_PRESENT(p) ((p) & 1)
-
-enum paging_mode {
-    pm_none   = 0,
-    pm_32_bit = 1,
-    pm_pae    = 2,
-    pm_ia_32e = 3
-};
-
 /**
 * This file sets the cpu in IA-32e Paging mode which enables 64-bit page tables
 */
@@ -65,12 +56,121 @@ void print_paging_mode(void) {
     printf("Paging mode: %s\n", mode);
 }
 
+/**
+* NOTE: This code assumes the current page tables are 1-1 virtual-to-physical
+*
+* Traverse each entry in the Page Table
+*
+* @pt: The PD entry corresponding to this PT
+*/
+void walk_pt(uint64_t* pt) {
+    int index;
+    for(index = 0; index < PAGE_ENTRIES; index++) {
+        uint64_t pte = pt[index];
+
+        /* Print flags of this pml4 entry */
+
+        if(PDE_PRESENT(pte)) {
+            /* Print info */
+        }
+    }
+}
+
+/**
+* NOTE: This code assumes the current page tables are 1-1 virtual-to-physical
+*
+* Traverse each entry in the Page Directory
+*
+* @pd: The PDPT entry corresponding to this PD
+*/
+void walk_pd(uint64_t* pd) {
+    int index;
+    for(index = 0; index < PAGE_ENTRIES; index++) {
+        uint64_t pde = pd[index];
+
+        /* Print flags of this pml4 entry */
+
+        if(PDE_PRESENT(pde)) {
+            if(PDE_2MB_PAGE(pde)) {
+                debug("PDE_2MB_PAGE\n");
+            } else {
+                /* pde holds the address of a Page Table */
+                walk_pt(PE_PHYS_ADDR(pde));
+            }
+        }
+    }
+}
+
+/**
+* NOTE: This code assumes the current page tables are 1-1 virtual-to-physical
+*
+* Traverse each entry in the Page Directory Pointer Table
+*
+* @pdpt: The PML4 entry corresponding to this PDPT
+*/
+void walk_pdpt(uint64_t* pdpt) {
+    int index;
+    for(index = 0; index < PAGE_ENTRIES; index++) {
+        uint64_t pdpte = pdpt[index];
+
+        /* Print flags of this pml4 entry */
+
+        if(PDPTE_PRESENT(pdpte)) {
+            if(PDPTE_1GB_PAGE(pdpte)) {
+                debug("PDPTE_1GB_PAGE\n");
+            } else {
+                /* pdpte holds the address of a Page Directory */
+                walk_pd(PE_PHYS_ADDR(pdpte));
+            }
+        }
+    }
+}
+
+/**
+* NOTE: This code assumes the current page tables are 1-1 virtual-to-physical
+*
+* Traverse each entry in the Page Map level-4 Table pointed to by the physical
+* address in cr3
+*
+* @pml4: The physical address of the PML4 page table
+*/
+void walk_pml4(uint64_t *pml4) {
+    int index;
+    if(get_paging_mode() != pm_ia_32e) {
+        kpanic("Paging mode is not IA-32e!!!\n");
+    }
+    for(index = 0; index < PAGE_ENTRIES; index++) {
+        uint64_t pml4e = pml4[index];
+
+        /* Print flags of this pml4 entry */
+
+        if(PML4E_PRESENT(pml4e)) {
+            walk_pdpt(PE_PHYS_ADDR(pml4e));
+        }
+    }
+}
+
+/**
+* This was a exercise to better understand the IA-32e paging mode and should
+* probably never be called.
+*
+* Walk through each present entry in the page table
+*/
 void walk_pages(void) {
-    uint64_t cr3;
-    cr3 = read_cr3();
-    printf("cr3: %p\n", cr3);
-    printf("*cr3: %p\n", *(uint64_t*)cr3);
-    printf("**cr3: %p\n", *(uint64_t *)(ALIGN_DOWN(*(uint64_t*)cr3, 4096)));
-    printf("***cr3: %p\n", *(uint64_t *)ALIGN_DOWN(*(uint64_t *)(ALIGN_DOWN(*(uint64_t*)cr3, 4096)),4096));
+    uint64_t cr3 = read_cr3();
+
+    if(PML4_CACHE_DISABLED(cr3)) {
+        debug("PML4 cache DISABLED\n");
+    } else {
+        debug("PML4 cache ENABLED\n");
+    }
+    walk_pml4(PE_PHYS_ADDR(cr3));
+}
+
+/**
+* Sets up the page tables for the kernel in the space after the kernel code.
+* The kernel is address space is in the high address
+*/
+void init_kernel_pt(void) {
 
 }
