@@ -16,4 +16,7 @@ struct freepagehd {
 
 extern struct freepagehd freepagehd;
 
+uint64_t get_free_page(uint32_t gpf_flags);
+void free_page(uint64_t virt_page_addr);
+
 #endif

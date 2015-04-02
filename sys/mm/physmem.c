@@ -7,12 +7,12 @@
 /**
 * Deals with bootstrapping physical memory management.
 *
-* The pzones have a static array which is returned by pzone_new().
-* After calls to pzone_new() with increasing addresses, call pzone_remove()
-* with regions that must be reserved (currently for the kernel's memory,
-* physbase to physfree).
-*
-* Finally call physmem_init()
+* The pzones are stored in a static array (of length PZONE_MAX_NUM).
+* The steps to initialize physical memory:
+*   1. pzone_new() -- with increasing addresses
+*   2. pzone_remove() -- with ranges that are not usable (optional)
+*      (currently for the kernel's memory, physbase to physfree)
+*   3. physmem_init() -- creates a ppage{} for each phys page.
 */
 
 
@@ -45,16 +45,14 @@ void _pzone_entry(size_t i, uint64_t startpage, uint64_t endpage, uint32_t zflag
 * Inform the OS about a range of physical memory.
 * Calls to pzone_new() MUST be in increasing order of zones and
 * MUST not overlap.
-*
 * @startpage:   start addr of zone.
 * @endpage:     first addr after end of zone.
 * @zflags:      zflags for new pzone.
-* @return:      ptr to list of pzones or NULL.
 */
-struct pzone *pzone_new(uint64_t startpage, uint64_t endpage, uint32_t zflags) {
+void pzone_new(uint64_t startpage, uint64_t endpage, uint32_t zflags) {
     /* todo dynamic pzone creation */
     if(pzone_num >= PZONE_MAX_NUM)
-        return NULL;
+        return;
 
     startpage = ALIGN_UP(startpage, PAGE_SIZE);
     endpage = ALIGN_DOWN(endpage, PAGE_SIZE);
@@ -64,25 +62,22 @@ struct pzone *pzone_new(uint64_t startpage, uint64_t endpage, uint32_t zflags) {
     }
 
     if(endpage <= startpage)
-        return NULL;
+        return;
 
     /* Create new zone */
     _pzone_entry(pzone_num, startpage, endpage, zflags);
 
     pzone_num++;
-    /* Returned to ensure that pzone_new() is called prior to physmem_init()*/
-    return pzones;
 }
 
 /**
 * Use to remove or split a pzone (e.g. kernel's memory region).
 * If this region is currently a pzone, remove or split it up.
-*
 * @startpage:   start addr of zone.
 * @endpage:     first addr after end of zone.
 * @return:      ptr to list of pzones or NULL.
 */
-struct pzone *pzone_remove(uint64_t startpage, uint64_t endpage) {
+void pzone_remove(uint64_t startpage, uint64_t endpage) {
     size_t i = 0;
 
     startpage = ALIGN_DOWN(startpage, PAGE_SIZE);
@@ -90,7 +85,7 @@ struct pzone *pzone_remove(uint64_t startpage, uint64_t endpage) {
     /* debug("rm'ing 0x%lx-0x%lx\n", startpage, endpage); */
 
     if(endpage <= startpage)
-        return NULL;
+        return;
 
     while(i < pzone_num) {
         /* For clarity there are 4 cases for the way the remove region can
@@ -119,7 +114,7 @@ struct pzone *pzone_remove(uint64_t startpage, uint64_t endpage) {
             pzones[i].end = startpage;
             /* Move the rest of the array forward 1 slot */
             if(pzone_num >= PZONE_MAX_NUM)
-                return NULL; /* We could recover here, instead of failing */
+                return; /* We could recover here, instead of failing */
             if(pzone_num > i + 1)
                 memmove((pzones+i+2), (pzones+i+1), sizeof(struct pzone) * (pzone_num-i-1));
 
@@ -130,16 +125,10 @@ struct pzone *pzone_remove(uint64_t startpage, uint64_t endpage) {
 
         i++;
     }
-
-    if(pzone_num == 0)
-        return NULL;
-    return pzones;
 }
-
 
 /**
 * Fill array of ppage{}s
-*
 * @base:    start address of ppage array.
 * @nppages: number of ppages in array base[].
 */
@@ -168,23 +157,21 @@ void _pzone_ppages_init(struct pzone *pzone) {
     pzone->start = ALIGN_UP(pzone->start + needbytes, PAGE_SIZE);
 }
 
-
 /**
 * Initialize physical memory meta-data.
-*
 * @pzonehead:  obtained from a call to pzone_new()
 */
-void physmem_init(struct pzone *base) {
+void physmem_init(void) {
     size_t i = 0;
-    if(!base)
+    if(pzone_num == 0)
         kpanic("No physical zones?!?!\n");
 
     for(;i < pzone_num; i++) {
-        _pzone_ppages_init(base + i);
-        debug("pz%ld: [%lx-%lx] has %ld pages.\n", i, base[i].start, base[i].end, PZONE_NUM_PAGES(base + i));
+        _pzone_ppages_init(pzones + i);
+        debug("pz%ld: [%lx-%lx] has %ld pages.\n", i, pzones[i].start, pzones[i].end, PZONE_NUM_PAGES(pzones + i));
     }
 
-    _create_free_page_list(base);
+    _create_free_page_list(pzones);
 }
 
 /**
@@ -201,11 +188,8 @@ void physmem_report(void) {
     debug("%ld total ppages across %ld pzones.\n", totpages, pzone_num);
 }
 
-
-
 /**
 * Create free list of pages.
-*
 * @base: Array of pzone{}'s
 */
 void _create_free_page_list(struct pzone *base) {

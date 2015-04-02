@@ -22,7 +22,6 @@ void test_scroll(void) {
 
 void start(uint32_t* modulep, void* physbase, void* physfree)
 {
-	struct pzone *pzonehd = NULL;
 	struct smap_t {
 		uint64_t base, length;
 		uint32_t type;
@@ -33,7 +32,7 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	for(smap = (struct smap_t*)(modulep+2); smap < (struct smap_t*)((char*)modulep+modulep[1]+2*4); ++smap) {
 		if (smap->type == 1 /* memory */ && smap->length != 0) {
 			printf("Available Physical Memory [%lx-%lx]\n", smap->base, smap->base + smap->length);
-			pzonehd = pzone_new(smap->base, smap->base + smap->length, PZONE_USABLE);
+			pzone_new(smap->base, smap->base + smap->length, PZONE_USABLE);
 		}
 	}
 	/**
@@ -50,7 +49,7 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 
 	pzone_remove(0x3f000, 0x42000); /* FIXME: DELETE line after moving page tables!*/
 
-	pzonehd = pzone_remove((uint64_t)physbase, (uint64_t)physfree);
+	pzone_remove((uint64_t)physbase, (uint64_t)physfree);
 
 	/* kernel starts here */
 	load_idt();
@@ -61,7 +60,7 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	print_paging_mode();
 
 	/* Physical Mem Init */
-	physmem_init(pzonehd);
+	physmem_init();
 	physmem_report();
 
 	halt_loop("Halting in start(), time and key presses should update...\n");
