@@ -82,15 +82,15 @@ void pzone_remove(uint64_t startpage, uint64_t endpage) {
 
     startpage = ALIGN_DOWN(startpage, PAGE_SIZE);
     endpage = ALIGN_UP(endpage, PAGE_SIZE);
-    /* debug("rm'ing 0x%lx-0x%lx\n", startpage, endpage); */
+    /*debug("Removing 0x%lx-0x%lx\n", startpage, endpage);*/
 
     if(endpage <= startpage)
         return;
 
+    /* For clarity there are 4 cases for the way the remove region can
+     * overlap with the pzone's region.
+     * And this code assumes the global pzones may be unordered! */
     while(i < pzone_num) {
-        /* For clarity there are 4 cases for the way the remove region can
-        * overlap with the pzone's region.
-        * Assumes the global pzones may be unordered */
         if(startpage <= pzones[i].start && pzones[i].end <= endpage) {
             /* rm whole region */
             /* Delete here, then move the rest of the array back 1 slot */
@@ -100,7 +100,7 @@ void pzone_remove(uint64_t startpage, uint64_t endpage) {
             pzone_num--;
             continue; /* don't inc i */
 
-        } else if(startpage <= pzones[i].start && endpage <= pzones[i].end) {
+        } else if(startpage <= pzones[i].start && pzones[i].start < endpage) {
             /* rm beginning of pzone. */
             pzones[i].start = endpage;
 
@@ -112,9 +112,12 @@ void pzone_remove(uint64_t startpage, uint64_t endpage) {
             /* rm middle of pzone. */
             uint64_t oldend = pzones[i].end;
             pzones[i].end = startpage;
+
+            if(pzone_num >= PZONE_MAX_NUM) {
+                printf("Splitting region but pzone array full!\n");
+                continue; /* We could recover better here */
+            }
             /* Move the rest of the array forward 1 slot */
-            if(pzone_num >= PZONE_MAX_NUM)
-                return; /* We could recover here, instead of failing */
             if(pzone_num > i + 1)
                 memmove((pzones+i+2), (pzones+i+1), sizeof(struct pzone) * (pzone_num-i-1));
 
@@ -122,7 +125,6 @@ void pzone_remove(uint64_t startpage, uint64_t endpage) {
             pzone_num++;
             i++; /* i should be inc'd twice */
         }
-
         i++;
     }
 }
@@ -184,6 +186,7 @@ void physmem_report(void) {
     for(; i < pzone_num; i++) {
         npages = PZONE_NUM_PAGES(pzones + i);
         totpages += npages;
+        /*debug("pz%ld:[%lx-%lx]\n", i, pzones[i].start, pzones[i].end);*/
     }
     debug("%ld total ppages across %ld pzones.\n", totpages, pzone_num);
 }
@@ -222,7 +225,7 @@ void _create_free_page_list(struct pzone *base) {
             continue;
 
         curr = (struct freepage*) base[i].start;
-        debug("pz%ld add [%lx-%lx] to freelist.\n", i, base[i].start, base[i].end);
+        /*debug("pz%ld add [%lx-%lx] to freelist.\n", i, base[i].start, base[i].end);*/
         for(;curr < (struct freepage*) base[i].end; prev = curr, curr++) {
             /* debug("%p->next == %p\n", prev, curr); */
             prev->next = curr;
