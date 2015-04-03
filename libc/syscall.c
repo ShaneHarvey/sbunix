@@ -142,8 +142,8 @@ void exit(int status) {
 int brk(void *addr) {
     /**
     * Calls the real Linux syscall, which returns:
-    *   new break on success
-    *   current break on failure
+    *   new break     -- on success
+    *   current break -- on failure
     */
     void *newaddr = (void*)syscall_1(SYS_brk, (uint64_t)addr);
     if(newaddr == addr)

@@ -217,7 +217,7 @@ void *malloc(size_t size) {
         intptr_t increment = ((reqsize/PAGE_SIZE) + 1) * PAGE_SIZE;
         target = sbrk(increment);
         if(target == (struct _freeblk*)-1) {
-            errno = ENOMEM;
+            /* errno = ENOMEM;  Set by sbrk() */
             return NULL;
         } else {
             target->blocklen = reqsize;
