@@ -47,10 +47,10 @@ enum pflags {
 };
 
 
-struct pzone *pzone_new(uint64_t startpage, uint64_t endpage, uint32_t zflags);
-struct pzone *pzone_remove(uint64_t startpage, uint64_t endpage);
+void pzone_new(uint64_t startpage, uint64_t endpage, uint32_t zflags);
+void pzone_remove(uint64_t startpage, uint64_t endpage);
 
-void physmem_init(struct pzone *pzonehead);
+void physmem_init(void);
 void physmem_report(void);
 
 
