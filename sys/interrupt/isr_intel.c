@@ -73,7 +73,19 @@ void ISR_HANDLER(13) {
 * @errorcode:   Placed on stack by processor.
 */
 void _isr_handler_14(uint64_t addr, uint64_t errorcode) {
-    halt_loop("!! Page-Fault Exception (#PF) at %p, errorcode 0x%lx !!\n", (void*)addr, errorcode);
+
+    static char *err_str[] = {
+        "Kernel tried to read a non-present page entry",
+        "Kernel tried to read a page and caused a protection fault",
+        "Kernel tried to write to a non-present page entry",
+        "Kernel tried to write a page and caused a protection fault",
+        "User tried to read a non-present page entry",
+        "User tried to read a page and caused a protection fault",
+        "User tried to write to a non-present page entry",
+        "User tried to write a page and caused a protection fault"
+    };
+    halt_loop("!! Page-Fault Exception (#PF) at %p, errorcode 0x%lx !!\n!! %s !!\n",
+              (void*)addr, errorcode, err_str[errorcode&0x7]);
 }
 
 /* 15 Reserved */
