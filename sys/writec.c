@@ -1,7 +1,7 @@
 #include <string.h>
 #include <sbunix/writec.h>
 
-#define VIDEO_BASE ((void *)0xb8000)
+#define VIDEO_BASE ((void *)0xffffffff800b8000)
 #define SCREEN_WIDTH 80
 #define SCREEN_HEIGHT 25
 #define VIDEO_XY(X, Y) (void *)(VIDEO_BASE + 2 * ((X) + (Y) * SCREEN_WIDTH))

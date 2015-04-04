@@ -2,6 +2,9 @@
 #include <sbunix/mm/align.h>
 #include <sbunix/mm/pt.h>
 
+#define VIRTUAL_BASE 0xffffffff80000000UL
+#define PAGE_SIZE   4096
+
 /**
 * This file sets the cpu in IA-32e Paging mode which enables 64-bit page tables
 */
@@ -167,10 +170,52 @@ void walk_pages(void) {
     walk_pml4(PE_PHYS_ADDR(cr3));
 }
 
-/**
-* Sets up the page tables for the kernel in the space after the kernel code.
-* The kernel is address space is in the high address
-*/
-void init_kernel_pt(void) {
+void map_frame_1GB(uint64_t virt_addr, uint64_t phy_addr, uint64_t pte_flags) {
+    if(virt_addr != ALIGN_DOWN(virt_addr, 1<<30)) {
+        kpanic("Virtual address not on a 1GB boundary: %lx\n", virt_addr);
+    }
+    if(phy_addr != ALIGN_DOWN(phy_addr, 1<<30)) {
+        kpanic("Physical address not on a 1GB boundary: %lx\n", phy_addr);
+    }
 
+    pte_flags |= PFLAG_P;
+}
+
+/**
+ * Sets up the page tables for the kernel in the space after the kernel code.
+ * The kernel should have access to all physical addresses and be mapped into
+ * the high address space. 0xffffffff80000000
+ *
+ * The mapping will be 1-1 starting at virtual_base.
+ * To map a physical address to virtual just add virtual_base
+ * To map a virtual address to physical just subtract virtual_base
+ *
+ * @phys_free_page: physical address of the first free page to put the page table
+ */
+void init_kernel_pt(uint64_t phys_free_page) {
+    uint64_t *pml4, *pdpt;
+    int i;
+
+    if(get_paging_mode() != pm_ia_32e) {
+        kpanic("Paging mode is not IA-32e!!!\n");
+    }
+
+    pml4 = (uint64_t *)phys_free_page;
+    pdpt = (uint64_t *)(phys_free_page + PAGE_SIZE);
+
+    for(i = 0; i < PAGE_ENTRIES; i++) {
+        pml4[i] = PFLAG_RW;
+    }
+    for(i = 0; i < PAGE_ENTRIES; i++) {
+        pdpt[i] = PFLAG_RW;
+    }
+
+    /* Map 0xffffffff80000000 to the 1GB physical page starting at 0x0 */
+    pml4[511] = (uint64_t)pdpt|PFLAG_RW|PFLAG_P;
+    pdpt[510] = (uint64_t)0|PFLAG_PS|PFLAG_RW|PFLAG_P;
+
+    /* Set CR3 to the pml4 table */
+    __asm__ __volatile__ ("movq %0, %%cr3;"::"g"(pml4));
+
+    printf("NEW PAGE TABLE! at 0x%lx and 0x%lx\n", pml4, pdpt);
 }

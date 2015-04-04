@@ -47,7 +47,9 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	printf("tarfs in [%p:%p]\n", &_binary_tarfs_start, &_binary_tarfs_end);
 	printf("physbase %p, physfree %p\n", physbase, physfree);
 
-	pzone_remove(0x3f000, 0x42000); /* FIXME: DELETE line after moving page tables!*/
+	/* Init page tables */
+	init_kernel_pt((uint64_t)physfree);
+	physfree += 2 * PAGE_SIZE;
 
 	pzone_remove((uint64_t)physbase, (uint64_t)physfree);
 
@@ -55,9 +57,6 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	load_idt();
 	PIC_protected_mode();
 	pit_set_freq(18.0);
-
-	/* Init page tables */
-	print_paging_mode();
 
 	/* Physical Mem Init */
 	physmem_init();
