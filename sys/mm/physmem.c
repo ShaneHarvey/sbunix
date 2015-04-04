@@ -26,7 +26,7 @@ static struct pzone pzones[PZONE_MAX_NUM];
 
 /* Private functions. */
 static void _ppage_new(struct ppage *base, size_t nppages);
-static void _pzone_entry(size_t i, uint64_t startpage, uint64_t endpage, uint32_t zflags);
+static void _pzone_fill_entry(size_t i, uint64_t startpage, uint64_t endpage, uint32_t zflags);
 void _pzone_ppages_init(struct pzone *pzone);
 void _create_free_page_list(struct pzone *base);
 
@@ -34,11 +34,26 @@ void _create_free_page_list(struct pzone *base);
 /**
 * Create an entry. Caller MUST align startpage/endpage to PAGE_SIZE.
 */
-void _pzone_entry(size_t i, uint64_t startpage, uint64_t endpage, uint32_t zflags) {
-    pzones[i].zflags    = zflags;
-    pzones[i].start     = startpage;
-    pzones[i].end       = endpage;
-    pzones[i].ppages    = NULL;
+void _pzone_fill_entry(size_t i, uint64_t startpage, uint64_t endpage, uint32_t zflags) {
+    pzones[i].zflags = zflags;
+    pzones[i].start  = startpage;
+    pzones[i].end    = endpage;
+    pzones[i].ppages = NULL;
+}
+
+/**
+* Return the pzone{} which contains the physical address physpage.
+* @physpage: a physical page address
+*/
+struct pzone* pzone_find(uint64_t physpage) {
+    size_t i = 0;
+
+    for(; i < pzone_num; i++) {
+        if(pzones[i].start <= physpage && physpage < pzones[i].end)
+            return &pzones[i];
+    }
+
+    return NULL;
 }
 
 /**
@@ -65,7 +80,7 @@ void pzone_new(uint64_t startpage, uint64_t endpage, uint32_t zflags) {
         return;
 
     /* Create new zone */
-    _pzone_entry(pzone_num, startpage, endpage, zflags);
+    _pzone_fill_entry(pzone_num, startpage, endpage, zflags);
 
     pzone_num++;
 }
@@ -121,7 +136,7 @@ void pzone_remove(uint64_t startpage, uint64_t endpage) {
             if(pzone_num > i + 1)
                 memmove((pzones+i+2), (pzones+i+1), sizeof(struct pzone) * (pzone_num-i-1));
 
-            _pzone_entry(i+1, endpage, oldend, pzones[i].zflags);
+            _pzone_fill_entry(i + 1, endpage, oldend, pzones[i].zflags);
             pzone_num++;
             i++; /* i should be inc'd twice */
         }
@@ -141,22 +156,24 @@ void _ppage_new(struct ppage *base, size_t nppages) {
 /**
 * Try to allocate space for pzone->ppages in the first pages of zone.
 */
-void _pzone_ppages_init(struct pzone *pzone) {
-    uint64_t npages = PZONE_NUM_PAGES(pzone);
+void _pzone_ppages_init(struct pzone *pz) {
+    uint64_t npages = PZONE_NUM_PAGES(pz);
     uint64_t needbytes = npages * sizeof(struct ppage);
     uint64_t needpages = ALIGN_UP(needbytes, PAGE_SIZE) >> PAGE_SHIFT;
 
     /*debug("PZ%ld: [%lx-%lx] has %ld pages.\n", i, base[i].start, base[i].end, npages);
     debug("PZ%ld: needbytes %ld, needpages %ld.\n", i, needbytes, needpages);*/
-    if(needpages >= npages)
+    if(needpages >= npages) {
+        pz->zflags &= ~PZONE_USABLE; /* Can't use, no space for ppages. */
         return;
+    }
 
     /* Put ppage array in first pages of the pzone */
-    pzone->ppages = (struct ppage*)pzone->start;
-    _ppage_new(pzone->ppages, needpages);
+    pz->ppages = (struct ppage*)pz->start;
+    _ppage_new(pz->ppages, needpages);
 
     /* Bump up the start address, possibly wasting space. */
-    pzone->start = ALIGN_UP(pzone->start + needbytes, PAGE_SIZE);
+    pz->start = ALIGN_UP(pz->start + needbytes, PAGE_SIZE);
 }
 
 /**
@@ -235,4 +252,26 @@ void _create_free_page_list(struct pzone *base) {
     prev->next = NULL;
 
     debug("%ld free pages total.\n", freepagehd.nfree);
+}
+
+/**
+* Mark a physical page's ppage{} as used.
+* return: -1 on error, 0 on success
+*/
+int ppage_mark_used(uint64_t physpage) {
+    struct pzone* pz = pzone_find(physpage);
+    size_t ppagei;
+    if(!pz)
+        return -1;
+
+    ppagei = physpage - pz->start;
+
+    /* If page already says USED then error */
+    if(pz->ppages[ppagei].pflags & PPAGE_USED)
+        return -1;
+
+    /* Mark as USED */
+    pz->ppages[ppagei].pflags &= PPAGE_USED;
+
+    return 0;
 }

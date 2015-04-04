@@ -10,7 +10,7 @@ ulong _free_page_pop(void);
 struct freepagehd freepagehd = { .nfree = 0, .freepages = NULL};
 
 /**
-* Return the logical address of a usable page of memory.
+* Return the physical (logical) address of a usable page of memory.
 * todo: actually use gpf_flags
 */
 uint64_t get_free_page(uint32_t gpf_flags) {
@@ -23,14 +23,14 @@ uint64_t get_free_page(uint32_t gpf_flags) {
     return logical_addr;
 }
 
-void free_page(uint64_t virt_page_addr) {
+void free_page(uint64_t phys_page_addr) {
 
 }
 
 /**
 * Pop the head off the free page list, and return it.
-* Also mark the corresponding ppage{} appropiately.
-* Returns a logical address.
+* Also mark the corresponding ppage{} appropriately.
+* Returns a physical (logical) address.
 */
 uint64_t _free_page_pop(void) {
     struct freepage* retval;
@@ -40,12 +40,13 @@ uint64_t _free_page_pop(void) {
 
     retval = freepagehd.freepages; /* grab head free page */
     if(!retval)
-        kpanic("freepages=NULL, but nfree=%lu!\n", freepagehd.nfree);
+        kpanic("Page list corrupted! freepages=NULL, but nfree=%lu!\n", freepagehd.nfree);
 
     freepagehd.freepages = retval->next;
     /* todo: maybe need to convert a virt to phys (once kern page tables set up) */
 
-    //ppage_mark_used();
+    if(ppage_mark_used((uint64_t)retval))
+        kpanic("Unable to mark %p's ppage{} as USED!\n", retval);
 
     return (uint64_t)retval;
 }
