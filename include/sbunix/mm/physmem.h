@@ -49,6 +49,9 @@ enum pflags {
 
 void pzone_new(uint64_t startpage, uint64_t endpage, uint32_t zflags);
 void pzone_remove(uint64_t startpage, uint64_t endpage);
+struct pzone* pzone_find(uint64_t physpage);
+
+int ppage_mark_used(uint64_t physpage);
 
 void physmem_init(void);
 void physmem_report(void);
