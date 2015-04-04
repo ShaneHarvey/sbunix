@@ -210,6 +210,10 @@ void init_kernel_pt(uint64_t phys_free_page) {
         pdpt[i] = PFLAG_RW;
     }
 
+    /* This is the self referencing entry, this lets us modify the page table */
+    /* 0x1FE Is our "magic" 9 bits */
+    pml4[510] = (uint64_t)pml4|PFLAG_RW|PFLAG_P;
+
     /* Map 0xffffffff80000000 to the 1GB physical page starting at 0x0 */
     pml4[511] = (uint64_t)pdpt|PFLAG_RW|PFLAG_P;
     pdpt[510] = (uint64_t)0|PFLAG_PS|PFLAG_RW|PFLAG_P;
