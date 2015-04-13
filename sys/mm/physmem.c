@@ -251,6 +251,7 @@ void _create_free_page_list(struct pzone *base) {
     }
     prev->next = NULL;
 
+    freepagehd.maxfree = freepagehd.nfree;
     debug("%ld free pages total.\n", freepagehd.nfree);
 }
 
