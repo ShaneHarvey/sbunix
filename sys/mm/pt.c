@@ -185,10 +185,11 @@ void map_frame_1GB(uint64_t virt_addr, uint64_t phy_addr, uint64_t pte_flags) {
  * Sets up the page tables for the kernel in the space after the kernel code.
  * The kernel should have access to all physical addresses and be mapped
  * starting at virt_base.
+ * The mapping will be 1-1 starting at virtual_base.
  *
- * The mapping will be 1-1 starting at virt_base.
+ * @phys_free_page: physical address of the first free page to put the page table
  */
-void init_kernel_pt(void) {
+void init_kernel_pt(uint64_t phys_free_page) {
     uint64_t *pml4, *pdpt;
     int i;
 
@@ -196,11 +197,8 @@ void init_kernel_pt(void) {
         kpanic("Paging mode is not IA-32e!!!\n");
     }
 
-    pml4 = (uint64_t *)get_phys_page();
-    pdpt = (uint64_t *)get_phys_page();
-    if(!pml4 || !pdpt) {
-        kpanic("No pages!!");
-    }
+    pml4 = (uint64_t *)phys_free_page;
+    pdpt = (uint64_t *)(phys_free_page + PAGE_SIZE);
 
     for(i = 0; i < PAGE_ENTRIES; i++) {
         pml4[i] = PFLAG_RW;
