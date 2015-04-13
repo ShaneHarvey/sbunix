@@ -1,10 +1,10 @@
 #include <sbunix/sbunix.h>
 #include <sbunix/mm/kmalloc.h>
 
-
 /**
  * For allocations smaller than one PAGE_SIZE.
  * Must be kfree()'d.
+ * @return: kernel virtual pointer to memory of length size
  * TODO: Don't just call get_free_page()
  */
 void* kmalloc(size_t size) {
