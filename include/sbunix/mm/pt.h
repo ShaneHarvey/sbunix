@@ -92,6 +92,6 @@ void print_paging_mode(void);
 
 void walk_pages(void);
 
-void init_kernel_pt(uint64_t phys_free_page);
+void init_kernel_pt();
 
 #endif //_SBUNIX_PT_H_

@@ -5,22 +5,18 @@
 #include <sbunix/interrupt/pic8259.h>
 #include <sbunix/interrupt/pit.h>
 #include <sbunix/mm/physmem.h>
-#include <sbunix/mm/pt.h>
+#include "kmain.h"
 
-void test_scroll(void) {
-	int i = 0;
-	for(i = 0; i < 40; i++)
-		printf("scroll test: %d\n", i);
-	printf("This is a 78 character line---------------------------------------------------\n");
-	printf("This is a 79 character line----------------------------------------------------\n");
-	printf("This is a 80 character line-----------------------------------------------------\n");
-	printf("This is a 81 character line------------------------------------------------------\n");
-	printf("This is a 82 character line-------------------------------------------------------\n");
-	printf("This is a tab:'\t'-------------------------------------------------------------\n");
-	printf("This is a space:' '------------------------------------------------------------\n");
-}
 
-void start(uint32_t* modulep, void* physbase, void* physfree)
+/*
+ * This is the base virtual address that maps one-to-one to physical memory
+ * It is defined by kernmem - physbase (see /linker.script)
+ */
+uint64_t virt_base;
+struct tss_t tss;
+
+
+void start(uint32_t* modulep, uint64_t physbase, uint64_t physfree)
 {
 	struct smap_t {
 		uint64_t base, length;
@@ -35,46 +31,27 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 			pzone_new(smap->base, smap->base + smap->length, PZONE_USABLE);
 		}
 	}
-	/**
-	* This is between physbase and physfree:
-	* physbase				= 0x200000
-	* _binary_tarfs_start 	= 0x209780
-	* _binary_tarfs_end 	= 0x32df80
-	* physfree				= 0x333000
-	* The kernel's size (physfree) will grow but is tarfs in a fixed location?
-	* How should we treat this memory range?
-	*/
+
 	printf("tarfs in [%p:%p]\n", &_binary_tarfs_start, &_binary_tarfs_end);
-	printf("physbase %p, physfree %p\n", physbase, physfree);
+	printf("physbase 0x%lx, physfree 0x%lx\n", physbase, physfree);
 
-	/* Init page tables */
-	init_kernel_pt((uint64_t)physfree);
-	physfree += 2 * PAGE_SIZE;
-
-	pzone_remove((uint64_t)physbase, (uint64_t)physfree);
-
-	/* kernel starts here */
+	/* Initialize interrupts and memory allocation */
 	load_idt();
 	PIC_protected_mode();
 	pit_set_freq(18.0);
 
-	/* Physical Mem Init */
+	pzone_remove(physbase, physfree);
 	physmem_init();
 	physmem_report();
-
+	/* Start the kernel */
+	kmain();
 	halt_loop("Halting in start(), time and key presses should update...\n");
-
-	//test_scroll();
-	//int x = 8;
-	//int y = 15;
-	//printf("Div by zero %d\n", x/(y-15));
 }
 
 #define INITIAL_STACK_SIZE 4096
 char stack[INITIAL_STACK_SIZE];
 uint32_t* loader_stack;
 extern char kernmem, physbase; /* defined by linker.script */
-struct tss_t tss;
 
 /**
 * boot is the entry point to the kernel:
@@ -91,10 +68,11 @@ void boot(void)
 	);
 	reload_gdt();
 	setup_tss();
+	virt_base = (uint64_t)&kernmem - (uint64_t)&physbase;
 	start(
 		(uint32_t*)((char*)(uint64_t)loader_stack[3] + (uint64_t)&kernmem - (uint64_t)&physbase),
-		&physbase,
-		(void*)(uint64_t)loader_stack[4]
+		(uint64_t)&physbase,
+		(uint64_t)loader_stack[4]
 	);
 	halt_loop("!!!!! start() returned !!!!!\n");
 }
