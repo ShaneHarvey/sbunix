@@ -11,12 +11,15 @@ struct freepage  {
 
 struct freepagehd {
     uint64_t nfree;
+    uint64_t maxfree;
     struct freepage *freepages;
 };
 
 extern struct freepagehd freepagehd;
 
 uint64_t get_free_page(uint32_t gpf_flags);
+uint64_t get_phys_page(void);
+uint64_t get_zero_page(void);
 void free_page(uint64_t virt_page_addr);
 
 #endif

@@ -3,6 +3,7 @@
 
 #include <sys/defs.h>
 #include <sbunix/asm.h>
+#include <sbunix/mm/page_alloc.h>
 
 #define kpanic(fmt, ...)     halt_loop("\n[PANIC] %s: " fmt, __FUNCTION__, ##__VA_ARGS__)
 
