@@ -5,6 +5,7 @@
 #include <sbunix/interrupt/pic8259.h>
 #include <sbunix/interrupt/pit.h>
 #include <sbunix/mm/physmem.h>
+#include <sbunix/mm/pt.h>
 #include "kmain.h"
 
 
@@ -39,6 +40,10 @@ void start(uint32_t* modulep, uint64_t physbase, uint64_t physfree)
 	load_idt();
 	PIC_protected_mode();
 	pit_set_freq(18.0);
+
+	/* Init kernel page table */
+	init_kernel_pt(physfree);
+	physfree += 2 * PAGE_SIZE;
 
 	pzone_remove(physbase, physfree);
 	physmem_init();
