@@ -42,14 +42,14 @@ void _pzone_fill_entry(size_t i, uint64_t startpage, uint64_t endpage, uint32_t 
 }
 
 /**
-* Return the pzone{} which contains the physical address physpage.
-* @physpage: a physical page address
+* Return the pzone{} which contains the physical address of kvirtpg.
+* @kvirtpg: kernel virtual page address
 */
-struct pzone* pzone_find(uint64_t physpage) {
+struct pzone* pzone_find(uint64_t kvirtpg) {
     size_t i = 0;
 
     for(; i < pzone_num; i++) {
-        if(pzones[i].start <= physpage && physpage < pzones[i].end)
+        if(pzones[i].start <= kvirtpg && kvirtpg < pzones[i].end)
             return &pzones[i];
     }
 
@@ -60,8 +60,8 @@ struct pzone* pzone_find(uint64_t physpage) {
 * Inform the OS about a range of physical memory.
 * Calls to pzone_new() MUST be in increasing order of zones and
 * MUST not overlap.
-* @startpage:   start addr of zone.
-* @endpage:     first addr after end of zone.
+* @startpage:   physical start addr of zone.
+* @endpage:     physical first addr after end of zone.
 * @zflags:      zflags for new pzone.
 */
 void pzone_new(uint64_t startpage, uint64_t endpage, uint32_t zflags) {
@@ -69,6 +69,8 @@ void pzone_new(uint64_t startpage, uint64_t endpage, uint32_t zflags) {
     if(pzone_num >= PZONE_MAX_NUM)
         return;
 
+    startpage = kphys_to_virt(startpage);
+    endpage = kphys_to_virt(endpage);
     startpage = ALIGN_UP(startpage, PAGE_SIZE);
     endpage = ALIGN_DOWN(endpage, PAGE_SIZE);
 
@@ -88,13 +90,15 @@ void pzone_new(uint64_t startpage, uint64_t endpage, uint32_t zflags) {
 /**
 * Use to remove or split a pzone (e.g. kernel's memory region).
 * If this region is currently a pzone, remove or split it up.
-* @startpage:   start addr of zone.
-* @endpage:     first addr after end of zone.
+* @startpage:   physical start addr of zone.
+* @endpage:     physical first addr after end of zone.
 * @return:      ptr to list of pzones or NULL.
 */
 void pzone_remove(uint64_t startpage, uint64_t endpage) {
     size_t i = 0;
 
+    startpage = kphys_to_virt(startpage);
+    endpage = kphys_to_virt(endpage);
     startpage = ALIGN_DOWN(startpage, PAGE_SIZE);
     endpage = ALIGN_UP(endpage, PAGE_SIZE);
     /*debug("Removing 0x%lx-0x%lx\n", startpage, endpage);*/
@@ -161,7 +165,7 @@ void _pzone_ppages_init(struct pzone *pz) {
     uint64_t needbytes = npages * sizeof(struct ppage);
     uint64_t needpages = ALIGN_UP(needbytes, PAGE_SIZE) >> PAGE_SHIFT;
 
-    /*debug("PZ%ld: [%lx-%lx] has %ld pages.\n", i, base[i].start, base[i].end, npages);
+    /*debug("PZ%ld: [%lx-%lx] %ld pages\n", i, base[i].start, base[i].end, npages);
     debug("PZ%ld: needbytes %ld, needpages %ld.\n", i, needbytes, needpages);*/
     if(needpages >= npages) {
         pz->zflags &= ~PZONE_USABLE; /* Can't use, no space for ppages. */
@@ -187,7 +191,7 @@ void physmem_init(void) {
 
     for(;i < pzone_num; i++) {
         _pzone_ppages_init(pzones + i);
-        debug("pz%ld: [%lx-%lx] has %ld pages.\n", i, pzones[i].start, pzones[i].end, PZONE_NUM_PAGES(pzones + i));
+        debug("pz%ld: [%lx-%lx] %ld pages\n", i, pzones[i].start, pzones[i].end, PZONE_NUM_PAGES(pzones + i));
     }
 
     _create_free_page_list(pzones);

@@ -65,7 +65,7 @@ extern char kernmem, physbase; /* defined by linker.script */
 void boot(void)
 {
 	/* note: function changes rsp, local stack variables can't be practically used */
-	__asm__(
+	__asm__ __volatile__(
 		"movq %%rsp, %0;"
 		"movq %1, %%rsp;"
 		:"=g"(loader_stack)

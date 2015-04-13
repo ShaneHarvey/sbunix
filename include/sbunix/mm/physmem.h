@@ -12,8 +12,8 @@
 */
 struct pzone {
     uint32_t zflags; /* Zone Flags, availability/type of memory range */
-    uint64_t start; /* Address of first page in range (Page frame aligned). */
-    uint64_t end;   /* First address after range (Page frame aligned). */
+    uint64_t start; /* Kernel Virt Address of first page in range (Page frame aligned). */
+    uint64_t end;   /* Kernel Virt First address after range (Page frame aligned). */
     struct ppage *ppages; /* Array of info on page frames in this range. MAY REMOVE */
     /*struct pzone *next;*/   /* Next phys_range{} */
 };
@@ -49,7 +49,7 @@ enum pflags {
 
 void pzone_new(uint64_t startpage, uint64_t endpage, uint32_t zflags);
 void pzone_remove(uint64_t startpage, uint64_t endpage);
-struct pzone* pzone_find(uint64_t physpage);
+struct pzone* pzone_find(uint64_t kvirtpg);
 
 int ppage_mark_used(uint64_t physpage);
 
