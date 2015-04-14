@@ -7,6 +7,15 @@
 /* Number of entries in a table */
 #define PAGE_ENTRIES 512
 
+
+#define GET_BITS(x, start, end) (((x) & (~0ULL >> (64 - (end)))) >> (start))
+
+/* Get the page table indexes from a virtual address */
+#define PML4_INDEX(va) GET_BITS(va, 39, 48)
+#define PDPT_INDEX(va) GET_BITS(va, 30, 39)
+#define PD_INDEX(va)   GET_BITS(va, 21, 30)
+#define PT_INDEX(va)   GET_BITS(va, 12, 21)
+
 /* Align down to one page */
 #define PAGE_ALIGN(ptr) ALIGN_DOWN(ptr, 4096)
 

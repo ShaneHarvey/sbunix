@@ -2,12 +2,14 @@
 #include <sbunix/mm/align.h>
 #include <sbunix/mm/pt.h>
 
-#define VIRTUAL_BASE 0xffffffff80000000UL
 #define PAGE_SIZE   4096
 
 /**
-* This file sets the cpu in IA-32e Paging mode which enables 64-bit page tables
-*/
+ * This file sets the cpu in IA-32e Paging mode which enables 64-bit page tables
+ */
+
+int pml4_self_index;
+
 
 /**
 * Determines the current paging mode of the CPU
@@ -191,7 +193,7 @@ void map_frame_1GB(uint64_t virt_addr, uint64_t phy_addr, uint64_t pte_flags) {
  */
 void init_kernel_pt(uint64_t phys_free_page) {
     uint64_t *pml4, *pdpt;
-    int i;
+    int i, pml4_1g_index, pdpt_1g_index;
 
     if(get_paging_mode() != pm_ia_32e) {
         kpanic("Paging mode is not IA-32e!!!\n");
@@ -206,14 +208,16 @@ void init_kernel_pt(uint64_t phys_free_page) {
     for(i = 0; i < PAGE_ENTRIES; i++) {
         pdpt[i] = PFLAG_RW;
     }
-
+    pml4_1g_index = (int)PML4_INDEX(virt_base);
+    pdpt_1g_index = (int)PDPT_INDEX(virt_base);
     /* This is the self referencing entry, this lets us modify the page table */
     /* 0x1FE Is our "magic" 9 bits */
-    pml4[510] = (uint64_t)pml4|PFLAG_RW|PFLAG_P;
+    pml4_self_index = (int)((pml4_1g_index - 1) & 0x1FFULL);
+    pml4[pml4_self_index] = (uint64_t)pml4|PFLAG_RW|PFLAG_P;
 
     /* Map 0xffffffff80000000 to the 1GB physical page starting at 0x0 */
-    pml4[511] = (uint64_t)pdpt|PFLAG_RW|PFLAG_P;
-    pdpt[510] = (uint64_t)0|PFLAG_PS|PFLAG_RW|PFLAG_P;
+    pml4[pml4_1g_index] = (uint64_t)pdpt|PFLAG_RW|PFLAG_P;
+    pdpt[pdpt_1g_index] = (uint64_t)0|PFLAG_PS|PFLAG_RW|PFLAG_P;
 
     /* Set CR3 to the pml4 table */
     __asm__ __volatile__ ("movq %0, %%cr3;"::"g"(pml4));
