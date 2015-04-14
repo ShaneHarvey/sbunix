@@ -75,7 +75,7 @@ uint64_t freepagehd_pop(void) {
     freepagehd.freepages = freepg->next;
     /* todo: maybe need to convert a virt to phys (once kern page tables set up) */
 
-    if(ppage_mark_used((uint64_t) freepg))
+    if(ppage_mark_used((uint64_t)freepg))
         kpanic("Unable to mark %p's ppage{} as USED!\n", freepg);
 
     freepagehd.nfree--;
