@@ -6,7 +6,9 @@
 
 /* Number of entries in a table */
 #define PAGE_ENTRIES 512
-
+#define PAGE_SIZE_4KB  (1<<12)
+#define PAGE_SIZE_2MB  (1<<21)
+#define PAGE_SIZE_1GB  (1<<30)
 
 #define GET_BITS(x, start, end) (((x) & (~0ULL >> (64 - (end)))) >> (start))
 
