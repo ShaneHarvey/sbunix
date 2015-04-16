@@ -11,59 +11,59 @@
 * Divide by Zero Exception Handler (#DE)
 */
 void ISR_HANDLER(0) {
-    halt_loop("!! DIVIDE BY ZERO !!\n");
+    kpanic("!! DIVIDE BY ZERO !!\n");
 }
 
 void ISR_HANDLER(1) {
-    halt_loop("!! Debug Exception (#DB) !!\n");
+    kpanic("!! Debug Exception (#DB) !!\n");
 }
 
 void ISR_HANDLER(2) {
-    halt_loop("!! NMI Interrupt !!\n");
+    kpanic("!! NMI Interrupt !!\n");
 }
 
 void ISR_HANDLER(3) {
-    halt_loop("!! Breakpoint Exception (#BP) !!\n");
+    kpanic("!! Breakpoint Exception (#BP) !!\n");
 }
 
 void ISR_HANDLER(4) {
-    halt_loop("!! Overflow Exception (#OF) !!\n");
+    kpanic("!! Overflow Exception (#OF) !!\n");
 }
 
 void ISR_HANDLER(5) {
-    halt_loop("!! BOUND Range Exceeded Exception (#BR) !!\n");
+    kpanic("!! BOUND Range Exceeded Exception (#BR) !!\n");
 }
 
 void ISR_HANDLER(6) {
-    halt_loop("!! Invalid Opcode Exception (#UD) !!\n");
+    kpanic("!! Invalid Opcode Exception (#UD) !!\n");
 }
 
 void ISR_HANDLER(7) {
-    halt_loop("!! Device Not Available Exception (#NM) !!\n");
+    kpanic("!! Device Not Available Exception (#NM) !!\n");
 }
 
 void ISR_HANDLER(8) {
-    halt_loop("!! Double Fault Exception (#DF) !!\n");
+    kpanic("!! Double Fault Exception (#DF) !!\n");
 }
 
 void ISR_HANDLER(9) {
-    halt_loop("!! Coprocessor Segment Overrun !!\n");
+    kpanic("!! Coprocessor Segment Overrun !!\n");
 }
 
 void ISR_HANDLER(10) {
-    halt_loop("!! Invalid TSS Exception (#TS) !!\n");
+    kpanic("!! Invalid TSS Exception (#TS) !!\n");
 }
 
 void ISR_HANDLER(11) {
-    halt_loop("!! Segment Not Present (#NP) !!\n");
+    kpanic("!! Segment Not Present (#NP) !!\n");
 }
 
 void ISR_HANDLER(12) {
-    halt_loop("!! Stack Fault Exception (#SS) !!\n");
+    kpanic("!! Stack Fault Exception (#SS) !!\n");
 }
 
 void ISR_HANDLER(13) {
-    halt_loop("!! General Protection Exception (#GP) !!\n");
+    kpanic("!! General Protection Exception (#GP) !!\n");
 }
 
 /**
@@ -73,41 +73,41 @@ void ISR_HANDLER(13) {
 * @errorcode:   Placed on stack by processor.
 */
 void _isr_handler_14(uint64_t addr, uint64_t errorcode) {
+    static char *pf_who[] = { "Kernel ", "User "};
+    static char *pf_read[] = { "read ", "write "};
+    static char *pf_prot[] = { "non-present", "protection"};
+    static char *pf_rsvd[] = { "", "reserved "};
+    static char *pf_inst[] = { "", ", instr fetch "};
 
-    static char *err_str[] = {
-        "Kernel tried to read a non-present page entry",
-        "Kernel tried to read a page and caused a protection fault",
-        "Kernel tried to write to a non-present page entry",
-        "Kernel tried to write a page and caused a protection fault",
-        "User tried to read a non-present page entry",
-        "User tried to read a page and caused a protection fault",
-        "User tried to write to a non-present page entry",
-        "User tried to write a page and caused a protection fault"
-    };
-    halt_loop("!! Page-Fault Exception (#PF) at %p, errorcode 0x%lx !!\n!! %s !!\n",
-              (void*)addr, errorcode, err_str[errorcode&0x7]);
+    printf("!! Page-Fault Exception (#PF) at %p, errorcode 0x%lx !!\n", (void*)addr, errorcode);
+    kpanic("!! %s%s%s%s%s !!\n",
+           pf_who[(errorcode & PF_USER) == PF_USER],
+           pf_rsvd[(errorcode & PF_RSVD) == PF_RSVD],
+           pf_read[(errorcode & PF_WRITE) == PF_WRITE],
+           pf_inst[(errorcode & PF_INSTR) == PF_INSTR],
+           pf_prot[(errorcode & PF_PROT) == PF_PROT]);
 }
 
 /* 15 Reserved */
 
 void ISR_HANDLER(16) {
-    halt_loop("!! x87 FPU Floating-Point Erro (#MF) !!\n");
+    kpanic("!! x87 FPU Floating-Point Erro (#MF) !!\n");
 }
 
 void ISR_HANDLER(17) {
-    halt_loop("!! Alignment Check Exception (#AC) !!\n");
+    kpanic("!! Alignment Check Exception (#AC) !!\n");
 }
 
 void ISR_HANDLER(18) {
-    halt_loop("!! Machine-Check Exception (#MC) !!\n");
+    kpanic("!! Machine-Check Exception (#MC) !!\n");
 }
 
 void ISR_HANDLER(19) {
-    halt_loop("!! SIMD Floating-Point Exception (#XM) !!\n");
+    kpanic("!! SIMD Floating-Point Exception (#XM) !!\n");
 }
 
 void ISR_HANDLER(20) {
-    halt_loop("!! Virtualization Exception (#VE) !!\n");
+    kpanic("!! Virtualization Exception (#VE) !!\n");
 }
 
 /* 21-31 Reserved */
