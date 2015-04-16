@@ -43,7 +43,7 @@ void start(uint32_t* modulep, uint64_t physbase, uint64_t physfree)
 
 	/* Init kernel page table */
 	init_kernel_pt(physfree);
-	physfree += 2 * PAGE_SIZE;
+	physfree += 3 * PAGE_SIZE;
 
 	pzone_remove(physbase, physfree);
 	physmem_init();
