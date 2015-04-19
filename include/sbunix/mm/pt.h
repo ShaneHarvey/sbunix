@@ -87,6 +87,8 @@
 #define PTE_PAT(ptr)            ((ptr) & PFLAG_PAT ) /* Determines type of memory access */
 #define PTE_GLOBAL(ptr)         ((ptr) & PFLAG_G   ) /* True if the translation is global */
 
+extern uint64_t kernel_pt;
+
 enum paging_mode {
     pm_none   = 0,
     pm_32_bit = 1,
@@ -102,6 +104,8 @@ int get_paging_mode(void);
 void print_paging_mode(void);
 
 void walk_pages(void);
+
+int map_page(uint64_t virt_addr, uint64_t phy_addr, uint64_t pte_flags);
 
 void init_kernel_pt(uint64_t phys_free_page);
 

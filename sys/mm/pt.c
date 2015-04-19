@@ -3,12 +3,17 @@
 #include <sbunix/mm/pt.h>
 
 #define PAGE_SIZE   4096
-
+/* Construct virtual addresses which point to the PTE of a given virtual address */
+#define VA_PML4E(va) (uint64_t *)((-1ULL << PHYADDRW) | (GET_BITS(va, 39, 48) << 3) | (pml4_self_index << (PHYADDRW - 9)) | (pml4_self_index << (PHYADDRW - 18)) | (pml4_self_index << (PHYADDRW - 27)) | (pml4_self_index << (PHYADDRW - 36)))
+#define VA_PDPTE(va) (uint64_t *)((-1ULL << PHYADDRW) | (GET_BITS(va, 30, 48) << 3) | (pml4_self_index << (PHYADDRW - 9)) | (pml4_self_index << (PHYADDRW - 18)) | (pml4_self_index << (PHYADDRW - 27)))
+#define VA_PDE(va)   (uint64_t *)((-1ULL << PHYADDRW) | (GET_BITS(va, 21, 48) << 3) | (pml4_self_index << (PHYADDRW - 9)) | (pml4_self_index << (PHYADDRW - 18)))
+#define VA_PTE(va)   (uint64_t *)((-1ULL << PHYADDRW) | (GET_BITS(va, 12, 48) << 3) | (pml4_self_index << (PHYADDRW - 9)))
 /**
  * This file sets the cpu in IA-32e Paging mode which enables 64-bit page tables
  */
 
-int pml4_self_index;
+uint64_t pml4_self_index;
+uint64_t kernel_pt;
 
 
 /**
@@ -172,7 +177,7 @@ void walk_pages(void) {
     walk_pml4(PE_PHYS_ADDR(cr3));
 }
 
-void map_frame_1GB(uint64_t virt_addr, uint64_t phy_addr, uint64_t pte_flags) {
+void map_page_1GB(uint64_t virt_addr, uint64_t phy_addr, uint64_t pte_flags) {
     if(virt_addr != ALIGN_DOWN(virt_addr, 1<<30)) {
         kpanic("Virtual address not on a 1GB boundary: %lx\n", virt_addr);
     }
@@ -182,6 +187,74 @@ void map_frame_1GB(uint64_t virt_addr, uint64_t phy_addr, uint64_t pte_flags) {
 
     pte_flags |= PFLAG_P;
 }
+
+static inline int _ensure_present_pde(uint64_t virt_addr) {
+    uint64_t *magic = VA_PDE(virt_addr);
+    if(!PDE_PRESENT(*magic)) {
+        uint64_t pde = get_zero_page();
+        if(!pde)
+            return 0;
+        *magic = pde|PFLAG_RW|PFLAG_US|PFLAG_P;
+    }
+    return 1;
+}
+
+static inline int _ensure_present_pdpte(uint64_t virt_addr) {
+    uint64_t *magic = VA_PDPTE(virt_addr);
+    if(!PDPTE_PRESENT(*magic)) {
+        uint64_t pdpte = get_zero_page();
+        if(!pdpte)
+            return 0;
+        *magic = pdpte|PFLAG_RW|PFLAG_US|PFLAG_P;
+    }
+    return 1;
+}
+
+static inline int _ensure_present_pml4e(uint64_t virt_addr) {
+    uint64_t *magic = VA_PML4E(virt_addr);
+    if(!PML4E_PRESENT(*magic)) {
+        uint64_t pml4e = get_zero_page();
+        if(!pml4e)
+            return 0;
+        *magic = pml4e|PFLAG_RW|PFLAG_US|PFLAG_P;
+    }
+    return 1;
+}
+
+/**
+ * Map a 4KB virtual page to the given 4KB physical page.
+ * @virt_addr The virtual address we want to map
+ * @phy_addr
+ */
+int map_page(uint64_t virt_addr, uint64_t phy_addr, uint64_t pte_flags) {
+    uint64_t old_pte, *magic;
+    /* Should virtual check be done? could be easier on the caller to pass any
+     * virtual address and just map to its page.
+     */
+    if(virt_addr != PAGE_ALIGN(virt_addr)) {
+        kpanic("Virtual address not on a page boundary: %lx\n", virt_addr);
+    }
+    if(phy_addr != PAGE_ALIGN(phy_addr)) {
+        kpanic("Physical address not on a page boundary: %lx\n", phy_addr);
+    }
+
+    if(!_ensure_present_pml4e(virt_addr) ||
+       !_ensure_present_pdpte(virt_addr) ||
+       !_ensure_present_pde(virt_addr)) {
+        return 0;
+    }
+    /* "Magic" address points to the pte we want to overwrite */
+    magic = VA_PTE(virt_addr);
+    old_pte = *magic;
+    if(PTE_PRESENT(old_pte)) {
+        kpanic("Error: tried to remap present pte 0x%lx\n", old_pte);
+        return 0;
+    } else {
+        *magic = phy_addr | pte_flags | PFLAG_P;
+    }
+    return 1;
+}
+
 
 /**
  * Sets up the page tables for the kernel in the space after the kernel code.
@@ -205,8 +278,8 @@ void init_kernel_pt(uint64_t phys_free_page) {
 
     pdte = (uint64_t)0|PFLAG_PS|PFLAG_RW|PFLAG_P;
     for(i = 0; i < PAGE_ENTRIES; i++) {
-        pml4[i] = PFLAG_RW;
-        pdpt[i] = PFLAG_RW;
+        pml4[i] = 0;
+        pdpt[i] = 0;
         pdt[i] = pdte;
         pdte += PAGE_SIZE_2MB;
     }
@@ -216,15 +289,15 @@ void init_kernel_pt(uint64_t phys_free_page) {
     pml4e_index = (int)PML4_INDEX(virt_base);
     pdpte_index = (int)PDPT_INDEX(virt_base);
     /* This is the self referencing entry, this lets us modify the page table */
-    /* 0x1FE Is our "magic" 9 bits */
-    pml4_self_index = (int)((pml4e_index - 1) & 0x1FFULL);
+    pml4_self_index = ((pml4e_index - 1) & 0x1FFULL);
     pml4[pml4_self_index] = (uint64_t)pml4|PFLAG_RW|PFLAG_P;
 
-    /* Map 0xffffffff80000000 to the 1GB physical page starting at 0x0 */
+    /* Map virt_base one to one for 1GB at physical address 0x0 */
     pml4[pml4e_index] = (uint64_t)pdpt|PFLAG_RW|PFLAG_P;
     pdpt[pdpte_index] = (uint64_t)pdt|PFLAG_RW|PFLAG_P;
 
     /* Set CR3 to the pml4 table */
+    kernel_pt = (uint64_t)pml4;
     __asm__ __volatile__ ("movq %0, %%cr3;"::"g"(pml4));
 
     printf("NEW PAGE TABLE! at 0x%lx and 0x%lx\n", pml4, pdpt);
