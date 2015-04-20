@@ -1,18 +1,34 @@
-//
-// Created by shane on 4/14/15.
-//
-
 #ifndef _SBUNIX_SCHED_H
 #define _SBUNIX_SCHED_H
 
 #include <sys/defs.h>
+#include <sbunix/mm/types.h> /* mm_struct */
 
+
+/* Kernel thread or user process */
 struct task_struct {
+    int state;
     uint64_t kernel_rsp;
+    struct mm_struct *mm;  /* virtual memory info, NULL if kthread */
+    struct mm_struct *active_mm;  /* mm_struct being used */
     struct task_struct *next_task, *prev_task;
 };
 
-struct task_struct *run_queue;
+enum task_state {
+    TASK_UNRUNNABLE         = -1,
+    TASK_RUNNABLE           = 0,
+    TASK_INTERRUPTIBLE      = 1,
+    TASK_UNINTERRUPTIBLE    = 2,
+    TASK_BLOCKED            = 3,
+};
+
+/* Run-Queue */
+struct rq {
+    ulong num_switches; /* num context switches */
+    struct task_struct *curr; /* Currently running task */
+    struct task_struct *tasks; /* task queue */
+};
+extern struct rq run_queue;
 
 void schedule(void);
 

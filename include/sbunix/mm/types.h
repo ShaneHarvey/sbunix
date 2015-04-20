@@ -1,6 +1,9 @@
 #ifndef SBUNIX_MM_TYPES_H
 #define SBUNIX_MM_TYPES_H
 
+/* An address of a top level page table */
+typedef uint64_t pgd_t;
+
 /*
  * This struct defines a memory VMM memory area. There is one of these
  * per VM-area/task.  A VM area is any part of the process virtual memory
@@ -23,9 +26,9 @@ struct vm_area_struct {
 /* Fixme: work in progress */
 struct mm_struct {
     struct vm_area_struct  *mmap;               /* list of memory areas */
-    /*pgd_t                  *pgd;*/                /* page global directory */
+    pgd_t                  *pgd;                /* page global directory */
     /*atomic_t               mm_users;*/            /* address space users */
-    /*atomic_t               mm_count;*/            /* primary usage counter */
+    int                    mm_count;            /* primary usage counter */
     int                    map_count;           /* number of memory areas */
     /* struct rw_semaphore    mmap_sem; */            /* memory area semaphore */
     /* spinlock_t             page_table_lock; */     /* page table lock */
@@ -47,4 +50,4 @@ struct mm_struct {
 };
 
 
-#endif //SBUNIX_MM_TYPES_H
+#endif
