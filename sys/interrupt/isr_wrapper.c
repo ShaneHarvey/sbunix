@@ -61,9 +61,7 @@ ISR_WRAPPER(13);
 
 /** Special Page Fault wrapper
 * After PUSHQALL,
-* 144(%rsp)  is  %rflags
-* 136(%rsp)  is  cs
-* 128(%rsp)  is  faulting %rip
+* cr2 holds faulting address
 * 120(%rsp)  is  error code
 *
 * Grab the faulting address from %cr2

@@ -68,4 +68,8 @@ static inline uint64_t read_cr8(void) {
     return ret;
 }
 
+static inline void write_cr3(uint64_t pml4e_ptr) {
+    __asm__ __volatile__ ("movq %0, %%cr3;"::"r"(pml4e_ptr));
+}
+
 #endif

@@ -298,7 +298,7 @@ void init_kernel_pt(uint64_t phys_free_page) {
 
     /* Set CR3 to the pml4 table */
     kernel_pt = (uint64_t)pml4;
-    __asm__ __volatile__ ("movq %0, %%cr3;"::"g"(pml4));
+    write_cr3(kernel_pt);
 
     printf("NEW PAGE TABLE! at 0x%lx and 0x%lx\n", pml4, pdpt);
 }
