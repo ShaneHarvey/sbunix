@@ -3,6 +3,41 @@
 
 /* Header for common assembly routines. */
 
+#define PUSHQALL \
+        "pushq %rax;" \
+        "pushq %rbx;" \
+        "pushq %rcx;" \
+        "pushq %rdx;" \
+        "pushq %rsi;" \
+        "pushq %rdi;" \
+        "pushq %r8;"  \
+        "pushq %r9;"  \
+        "pushq %r10;" \
+        "pushq %r11;" \
+        "pushq %r12;" \
+        "pushq %r13;" \
+        "pushq %r14;" \
+        "pushq %r15;" \
+        "pushq %rbp;"
+
+
+#define POPQALL \
+        "popq %rbp;" \
+        "popq %r15;" \
+        "popq %r14;" \
+        "popq %r13;" \
+        "popq %r12;" \
+        "popq %r11;" \
+        "popq %r10;" \
+        "popq %r9;"  \
+        "popq %r8;"  \
+        "popq %rdi;" \
+        "popq %rsi;" \
+        "popq %rdx;" \
+        "popq %rcx;" \
+        "popq %rbx;" \
+        "popq %rax;"
+
 #define halt_loop(fmt, ...) \
             do { \
                 printf(fmt, ##__VA_ARGS__); \
@@ -71,5 +106,21 @@ static inline uint64_t read_cr8(void) {
 static inline void write_cr3(uint64_t pml4e_ptr) {
     __asm__ __volatile__ ("movq %0, %%cr3;"::"r"(pml4e_ptr));
 }
+
+#define switch_to(prev, next, last)                                     \
+	__asm__ __volatile__ (                                              \
+         PUSHQALL                                                       \
+         "pushq %%rbx;"           /* ptr to local last (&last) */       \
+	     "movq %%rsp, %0(%%rax);" /* save RSP */	                    \
+	     "movq %0(%%rcx), %%rsp;" /* restore RSP */	                    \
+         "popq %%rbx;"            /* get next’s ptr to &last */         \
+         "movq %%rax, (%%rbx);"   /* store prev in &last */             \
+         POPQALL                                                        \
+         :  /* no outputs */                                            \
+	     : "i" (__builtin_offsetof(struct task_struct, kernel_rsp)),    \
+	       "a" (prev), "c" (next), "b" (last)	                        \
+	     : "memory", "cc", "rcx", "rbx", "rdx", "r8", "r9", "r10",      \
+           "r11", "r12", "r13", "r14", "r15", "flags")
+
 
 #endif

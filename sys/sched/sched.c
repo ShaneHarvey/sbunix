@@ -44,6 +44,7 @@ void switch_mm(struct mm_struct *prev, struct mm_struct *next) {
  */
 void context_switch(struct task_struct *prev, struct task_struct *next) {
     struct mm_struct *mm, *prev_mm;
+    struct task_struct *last;
     mm = next->mm;
     prev_mm = prev->active_mm;
 
@@ -58,7 +59,8 @@ void context_switch(struct task_struct *prev, struct task_struct *next) {
         prev->active_mm = NULL;
     }
 
-    /* fixme: call switch_to() */
+    /* TODO: verify that switch_to() is probably broken */
+    switch_to(prev, next, &last);
 }
 
 /**
