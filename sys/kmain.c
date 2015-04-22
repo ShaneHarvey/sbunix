@@ -45,23 +45,27 @@ struct task_struct *create_kthread(void(*start)(void)) {
 }
 
 void printA(void) {
+    int a = 1, b = 2, c = 3, d = 4, e = 5, f = 6, g = 7, h = 8;
     while(1) {
-        printf("A");
+        printf("%d %d %d %d %d %d %d %d\n", a, b, c, d, e ,f, g, h);
         schedule();
+        a++;b++;c++;d++;e++;f++;g++;h++;
     }
 }
 
 void printB(void) {
     while(1) {
-        printf("B");
+        printf("B\n");
         schedule();
     }
 }
 
 void printC(void) {
+    int a = -1, b = -2, c = -3, d = -4, e = -5, f = -6, g = -7, h = -8;
     while(1) {
-        printf("C");
+        printf("%d %d %d %d %d %d %d %d\n", a, b, c, d, e ,f, g, h);
         schedule();
+        a--;b--;c--;d--;e--;f--;g--;h--;
     }
 }
 
@@ -71,7 +75,7 @@ void printC(void) {
  */
 void kmain(void) {
     struct task_struct *a, *b, *c;
-
+    int i;
 
     a = create_kthread(printA);
     b = create_kthread(printB);
@@ -88,8 +92,8 @@ void kmain(void) {
 
     run_queue.tasks = a;
     run_queue.curr = &init_task;
-    while(1) {
-        printf("schedule");
+    for(i = 0; i < 10; i++) {
+        printf("Main Task\n");
         schedule();
     }
     kpanic("\nReturned to kmain!!!\n");

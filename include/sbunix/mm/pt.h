@@ -109,4 +109,10 @@ int map_page(uint64_t virt_addr, uint64_t phy_addr, uint64_t pte_flags);
 
 void init_kernel_pt(uint64_t phys_free_page);
 
+uint64_t copy_kernel_pt(void);
+
+void pt_test_map(void);
+
+void print_pml4e(void);
+
 #endif //_SBUNIX_PT_H_
