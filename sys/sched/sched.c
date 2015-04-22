@@ -2,6 +2,7 @@
 #include <sbunix/sched.h>
 #include <sbunix/asm.h>
 
+struct task_struct *last_task = NULL;
 struct rq run_queue = {
         .num_switches = 0,
         .curr = NULL,
@@ -42,9 +43,8 @@ void switch_mm(struct mm_struct *prev, struct mm_struct *next) {
  * @prev: previously running (current) task
  * @next: task to switch to
  */
-void context_switch(struct task_struct *prev, struct task_struct *next) {
+inline void context_switch(struct task_struct *prev, struct task_struct *next) {
     struct mm_struct *mm, *prev_mm;
-    struct task_struct *last;
     mm = next->mm;
     prev_mm = prev->active_mm;
 
@@ -58,9 +58,9 @@ void context_switch(struct task_struct *prev, struct task_struct *next) {
     if(prev->mm == NULL) {
         prev->active_mm = NULL;
     }
-
+    last_task = prev;
     /* TODO: verify that switch_to() is probably broken */
-    switch_to(prev, next, &last);
+    switch_to(prev, next);
 }
 
 /**

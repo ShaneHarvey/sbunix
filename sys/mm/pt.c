@@ -302,3 +302,14 @@ void init_kernel_pt(uint64_t phys_free_page) {
 
     printf("NEW PAGE TABLE! at 0x%lx and 0x%lx\n", pml4, pdpt);
 }
+
+void pt_test_map(void) {
+    /* Quick test of map_page */
+    uint64_t phys_page = get_zero_page();
+    uint64_t va = 0x800000;
+    printf("Attempting to map physa 0x%lx to va 0x%lx\n", phys_page, va);
+    if(map_page(va, phys_page, PFLAG_RW))
+        printf("Success: Mapped virtual 0x%lx to physical 0x%lx, data 0x%lx\n", va, phys_page, *(uint64_t *)va);
+    else
+        kpanic("Failed to map!\n");
+}
