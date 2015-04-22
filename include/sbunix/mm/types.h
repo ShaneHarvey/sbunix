@@ -29,7 +29,7 @@ struct mm_struct {
     pgd_t                  *pgd;                /* page global directory */
     /*atomic_t               mm_users;*/            /* address space users */
     int                    mm_count;            /* primary usage counter */
-    int                    map_count;           /* number of memory areas */
+    int                    vma_count;           /* number of memory areas */
     /* struct rw_semaphore    mmap_sem; */            /* memory area semaphore */
     /* spinlock_t             page_table_lock; */     /* page table lock */
     struct mm_struct       *mm_prev;             /* list of all mm_structs */

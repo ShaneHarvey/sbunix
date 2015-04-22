@@ -2,19 +2,141 @@
 #include <sbunix/sched.h>
 #include <sbunix/asm.h>
 
+/* All kernel tasks use this mm_struct */
+struct mm_struct kernel_mm = {0};
+/* This task is associated with kmain(), the kernel at startup */
+struct task_struct kernel_task = {
+        .state = TASK_RUNNABLE,
+        .kernel_rsp = 0, /* Will be set on first call to schedule */
+        .mm = &kernel_mm,
+        .next_task = &kernel_task,
+        .prev_task = &kernel_task,
+        .next_rq = &kernel_task,
+        .prev_rq =  &kernel_task
+};
+/* The currently running task */
+struct task_struct *curr_task = &kernel_task;
+/* The last (previous) task to run, may need to be reaped */
 struct task_struct *last_task = NULL;
+
 struct rq run_queue = {
         .num_switches = 0,
-        .curr = NULL,
-        .tasks = NULL
+        .tasks = &kernel_task,
 };
 
-void scheduler_init(void) {
+/* Private functions */
+void run_queue_add(struct rq *queue, struct task_struct *task);
+void task_list_add(struct task_struct *task);
 
+
+void scheduler_init(void) {
+    /* set the kernel's page table to the initial pagetable */
+    /* fixme: use kernel_pt not read_cr3() */
+    kernel_mm.pgd = (pgd_t*)read_cr3();
+    kernel_mm.mm_count++; /* plus 1 for the kernel itself? */
 }
 
 void scheduler_start(void) {
+    /* currently no use */
+}
 
+/**
+ * Create a kernel task. It's state will be TASK_RUNNABLE and
+ * the type will be TASK_KERN.
+ * @start: function the task will start at, no arguments and returns void
+ */
+struct task_struct *ktask_create(void (*start)(void)) {
+    struct task_struct *task;
+    uint64_t *stack;
+
+    stack = (uint64_t *)get_free_page(0);
+    if(!stack)
+        return NULL;
+
+    task = kmalloc(sizeof(struct task_struct));
+    if(!task)
+        goto out_stack;
+
+    task->type = TASK_KERN;
+    task->state = TASK_RUNNABLE;
+    stack[511] = (uint64_t)start;
+    /*
+    stack[510] = (uint64_t)r15;
+    stack[509] = (uint64_t)r14;
+    stack[508] = (uint64_t)r13;
+    stack[507] = (uint64_t)r12;
+    stack[506] = (uint64_t)rbp;
+    stack[505] = (uint64_t)rbx;
+    stack[504] = (uint64_t)unused;
+    */
+    stack[503] = (uint64_t)task;
+    task->kernel_rsp = (uint64_t)&stack[503];
+    task->mm = &kernel_mm;
+    kernel_mm.mm_count++;
+    task->mm = NULL;
+    debug("created kernel thread\n");
+    return task;
+
+out_stack:
+    free_page((uint64_t)stack);
+    return NULL;
+}
+
+/**
+ * Add a task to the linked list of tasks in queue.
+ */
+void run_queue_add(struct rq *queue, struct task_struct *task) {
+    if(!queue || !task)
+        return;
+
+    if(!queue->tasks) {
+        /* Add the first element of the queue */
+        task->next_rq = task;
+        task->prev_rq = task;
+        queue->tasks = task;
+    } else {
+        /* Insert task behind the current (at the end of the queue) */
+        struct task_struct *hd = queue->tasks;
+        hd->prev_rq->next_rq = task;
+        task->prev_rq = hd->prev_rq;
+        hd->prev_rq = task;
+        task->next_rq = hd;
+    }
+}
+
+/**
+ * Add a task to the linked list of ALL tasks in the system.
+ */
+void task_list_add(struct task_struct *task) {
+    if(!task)
+        return;
+
+    if(!curr_task) {
+        /* Should never be executed */
+        task->next_task = task;
+        task->prev_task = task;
+        curr_task = task;
+    } else {
+        /* Insert task behind the current */
+        curr_task->prev_task->next_task = task;
+        task->prev_task = curr_task->prev_task;
+        curr_task->prev_task = task;
+        task->next_task = curr_task;
+    }
+}
+
+/**
+ * Add a newly created task to the system.
+ * Adds it to the list of all tasks and to the appropriate queue.
+ */
+void task_add_new(struct task_struct *task) {
+    if(!task)
+        return;
+
+    task_list_add(task);
+    if(task->state == TASK_RUNNABLE) {
+        run_queue_add(&run_queue, task);
+    }
 }
 
 /**
@@ -46,21 +168,14 @@ void switch_mm(struct mm_struct *prev, struct mm_struct *next) {
 inline void context_switch(struct task_struct *prev, struct task_struct *next) {
     struct mm_struct *mm, *prev_mm;
     mm = next->mm;
-    prev_mm = prev->active_mm;
+    prev_mm = prev->mm;
 
-    if(mm == NULL) { /* next is a kernel thread */
-        next->active_mm = prev_mm;
-        prev_mm->mm_count++;
-    } else {
+    if(next->type != TASK_KERN) /* All kernel tasks can use any mm_struct */
         switch_mm(prev_mm, mm);
-    }
 
-    if(prev->mm == NULL) {
-        prev->active_mm = NULL;
-    }
-    last_task = prev;
     /* TODO: verify that switch_to() is probably broken */
     switch_to(prev, next);
+    /* next is now the current task */
 }
 
 /**
@@ -70,12 +185,13 @@ void schedule(void) {
     struct task_struct *prev, *next;
 
     /* Assuming atomicity */
-    prev = run_queue.curr;
+    prev = curr_task;
     next = pick_next_task();
 
     if(prev != next) {
         run_queue.num_switches++;
-        run_queue.curr = next;
+        curr_task = next;
+        last_task = prev; /* the last_task to run is the "prev" */
 
         context_switch(prev, next);
     }

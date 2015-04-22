@@ -6,6 +6,7 @@
 #include <sbunix/interrupt/pit.h>
 #include <sbunix/mm/physmem.h>
 #include <sbunix/mm/pt.h>
+#include <sbunix/sched.h>
 #include "kmain.h"
 
 
@@ -48,6 +49,8 @@ void start(uint32_t* modulep, uint64_t physbase, uint64_t physfree)
 	pzone_remove(physbase, physfree);
 	physmem_init();
 	physmem_report();
+
+	scheduler_init();
 	/* Start the kernel */
 	kmain();
 	halt_loop("Halting in start(), time and key presses should update...\n");

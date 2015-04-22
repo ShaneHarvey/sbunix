@@ -7,30 +7,37 @@
 
 /* Kernel thread or user process */
 struct task_struct {
+    int type;
     int state;
     uint64_t kernel_rsp;
-    struct mm_struct *mm;  /* virtual memory info, NULL if kthread */
-    struct mm_struct *active_mm;  /* mm_struct being used */
-    struct task_struct *next_task, *prev_task;
+    struct mm_struct *mm;  /* virtual memory info, kernel tasks use a global */
+    struct task_struct *next_task, *prev_task;  /* for traversing all tasks */
+    struct task_struct *next_rq,  *prev_rq;  /* for traversing a run queue */
+};
+
+enum task_type {
+    TASK_KERN,  /* kernel thread, uses another tasks mm_struct */
+    TASK_USER   /* kernel thread, no mm_struct */
 };
 
 enum task_state {
-    TASK_UNRUNNABLE         = -1,
-    TASK_RUNNABLE           = 0,
-    TASK_INTERRUPTIBLE      = 1,
-    TASK_UNINTERRUPTIBLE    = 2,
-    TASK_BLOCKED            = 3,
+    TASK_UNRUNNABLE, /* unable to be scheduled */
+    TASK_RUNNABLE,   /* able to be scheduled */
+    TASK_DEAD,       /* after a context-switch the task is cleaned-up, set on exit() */
+    TASK_BLOCKED     /* waiting for I/O */
 };
 
 /* Run-Queue */
 struct rq {
     ulong num_switches; /* num context switches */
-    struct task_struct *curr; /* Currently running task */
     struct task_struct *tasks; /* task queue */
 };
 extern struct rq run_queue;
 
 void schedule(void);
+void scheduler_init(void);
+void task_add_new(struct task_struct *task);
+struct task_struct *ktask_create(void (*start)(void));
 
 #ifdef WE_ARE_LINUX
 struct task_struct {
