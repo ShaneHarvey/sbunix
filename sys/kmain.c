@@ -7,7 +7,7 @@
 void printA(void) {
     int a = 1, b = 2, c = 3, d = 4, e = 5, f = 6, g = 7, h = 8;
     while(1) {
-        printf("%d %d %d %d %d %d %d %d\n", a, b, c, d, e ,f, g, h);
+        printk("%d %d %d %d %d %d %d %d\n", a, b, c, d, e ,f, g, h);
         schedule();
         a++;b++;c++;d++;e++;f++;g++;h++;
     }
@@ -15,7 +15,7 @@ void printA(void) {
 
 void printB(void) {
     while(1) {
-        printf("B\n");
+        printk("B\n");
         schedule();
     }
 }
@@ -23,7 +23,7 @@ void printB(void) {
 void printC(void) {
     int a = -1, b = -2, c = -3, d = -4, e = -5, f = -6, g = -7, h = -8;
     while(1) {
-        printf("%d %d %d %d %d %d %d %d\n", a, b, c, d, e ,f, g, h);
+        printk("%d %d %d %d %d %d %d %d\n", a, b, c, d, e ,f, g, h);
         schedule();
         a--;b--;c--;d--;e--;f--;g--;h--;
     }
@@ -36,14 +36,14 @@ void printC(void) {
 void kmain(void) {
     int i;
     clear_console();
-    printf("Starting task test...\n");
+    printk("Starting task test...\n");
     ktask_create(printA);
     ktask_create(printB);
     ktask_create(printC);
-    printf("Created the threads\n");
+    printk("Created the threads\n");
 
     for(i = 0; i < 5; i++) {
-        printf("Main Task\n");
+        printk("Main Task\n");
         schedule();
     }
     kpanic("\nReturned to kmain!!!\n");

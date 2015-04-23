@@ -79,7 +79,7 @@ void _isr_handler_14(uint64_t addr, uint64_t errorcode) {
     static char *pf_rsvd[] = { "", "reserved "};
     static char *pf_inst[] = { "", ", instr fetch "};
 
-    printf("!! Page-Fault Exception (#PF) at %p, errorcode 0x%lx !!\n", (void*)addr, errorcode);
+    printk("!! Page-Fault Exception (#PF) at %p, errorcode 0x%lx !!\n", (void*)addr, errorcode);
     kpanic("!! %s%s%s%s%s !!\n",
            pf_who[(errorcode & PF_USER) == PF_USER],
            pf_rsvd[(errorcode & PF_RSVD) == PF_RSVD],

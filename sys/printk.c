@@ -3,7 +3,7 @@
 #include <string.h>
 #include <sbunix/writec.h>
 
-void printf(const char *fmt, ...) {
+void printk(const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
 

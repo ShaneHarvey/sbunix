@@ -328,7 +328,7 @@ struct idtr_t idtr = {
     extern void _isr_wrapper_ ## vector(); \
     void _isr_handler_ ## vector() \
     { \
-            printf("DUMMY INTERRUPT VECTOR! " #vector "\n"); \
+            printk("DUMMY INTERRUPT VECTOR! " #vector "\n"); \
     }
 
 #define REAL_INTERRUPT(vector) \
@@ -374,7 +374,7 @@ REAL_INTERRUPT(33);    /* Keyboard Interrupt */
 void ISR_HANDLER(33) {
     uint8_t scan_code = inb(0x60);
     sc_buf_add(scan_code);
-//    printf("%x, ", (uint32_t)scan_code);
+//    printk("%x, ", (uint32_t)scan_code);
     /* Acknowledge interrupt */
     PIC_sendEOI(33);
 }

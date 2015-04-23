@@ -63,7 +63,7 @@ void print_paging_mode(void) {
         default:
             mode = "unknown!";
     }
-    printf("Paging mode: %s\n", mode);
+    printk("Paging mode: %s\n", mode);
 }
 
 /**
@@ -350,10 +350,10 @@ uint64_t copy_kernel_pt(void) {
 void print_pml4e(void) {
     int i;
     uint64_t *pml4 = (uint64_t *)kphys_to_virt(read_cr3());
-    printf("PML4 Entries:");
+    printk("PML4 Entries:");
     for(i = 0; i < PAGE_ENTRIES; i++) {
         if(PML4E_PRESENT(pml4[i])){
-            printf("%d: 0x%lx,", i, pml4[i]);
+            printk("%d: 0x%lx,", i, pml4[i]);
         }
     }
 }

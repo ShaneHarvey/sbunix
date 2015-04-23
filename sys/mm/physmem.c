@@ -133,7 +133,7 @@ void pzone_remove(uint64_t startpage, uint64_t endpage) {
             pzones[i].end = startpage;
 
             if(pzone_num >= PZONE_MAX_NUM) {
-                printf("Splitting region but pzone array full!\n");
+                printk("Splitting region but pzone array full!\n");
                 continue; /* We could recover better here */
             }
             /* Move the rest of the array forward 1 slot */

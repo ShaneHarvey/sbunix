@@ -40,7 +40,7 @@
 
 #define halt_loop(fmt, ...) \
             do { \
-                printf(fmt, ##__VA_ARGS__); \
+                printk(fmt, ##__VA_ARGS__); \
                 while(1) { \
                     __asm__ __volatile__ ("hlt;"); \
                 } \

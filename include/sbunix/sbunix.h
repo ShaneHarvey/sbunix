@@ -9,8 +9,8 @@
 #define kpanic(fmt, ...)     halt_loop("\n[PANIC] %s: " fmt, __FUNCTION__, ##__VA_ARGS__)
 
 #ifdef DEBUG
-#   define debug(fmt, ...)   printf("[DB] %s:%d: " fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__)
-/* #   define debug(fmt, ...)   printf("[DB] %s:%s: " fmt, __FILE__, __FUNCTION__, ##__VA_ARGS__) */
+#   define debug(fmt, ...)   printk("[DB] %s:%d: " fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__)
+/* #   define debug(fmt, ...)   printk("[DB] %s:%s: " fmt, __FILE__, __FUNCTION__, ##__VA_ARGS__) */
 #else
 #   define debug(S, ...)
 #endif /* DEBUG */
@@ -25,6 +25,6 @@ static __inline__ uint64_t kphys_to_virt(uint64_t phys_addr) {
     return phys_addr + virt_base;
 }
 
-void printf(const char *fmt, ...);
+void printk(const char *fmt, ...);
 
 #endif

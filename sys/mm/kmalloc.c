@@ -12,7 +12,7 @@ void* kmalloc(size_t size) {
         return 0;
 
     if(size > PAGE_SIZE) {
-        printf("kmalloc(0x%lu) too big! Use get_free_page", size);
+        printk("kmalloc(0x%lu) too big! Use get_free_page", size);
         return NULL;
     }
     return (void*)get_free_page(0);

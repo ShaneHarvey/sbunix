@@ -29,13 +29,13 @@ void start(uint32_t* modulep, uint64_t physbase, uint64_t physfree)
 	}
 	for(smap = (struct smap_t*)(modulep+2); smap < (struct smap_t*)((char*)modulep+modulep[1]+2*4); ++smap) {
 		if (smap->type == 1 /* memory */ && smap->length != 0) {
-			printf("Available Physical Memory [%lx-%lx]\n", smap->base, smap->base + smap->length);
+			printk("Available Physical Memory [%lx-%lx]\n", smap->base, smap->base + smap->length);
 			pzone_new(smap->base, smap->base + smap->length, PZONE_USABLE);
 		}
 	}
 
-	printf("tarfs in [%p:%p]\n", &_binary_tarfs_start, &_binary_tarfs_end);
-	printf("physbase 0x%lx, physfree 0x%lx\n", physbase, physfree);
+	printk("tarfs in [%p:%p]\n", &_binary_tarfs_start, &_binary_tarfs_end);
+	printk("physbase 0x%lx, physfree 0x%lx\n", physbase, physfree);
 
 	/* Initialize interrupts and memory allocation */
 	load_idt();
