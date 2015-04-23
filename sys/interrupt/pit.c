@@ -28,7 +28,8 @@ void ISR_HANDLER(32) {
  * @hz: The frequency in hertz to generate timer interrupts
  */
 void pit_set_freq(unsigned int hz) {
-    uint16_t reload_val = 0;//(uint16_t)(1193180 / hz);
+    unsigned int d = 1193180 / hz;
+    uint16_t reload_val = (d >= 1<<16)? (uint16_t)0 : (uint16_t)d;
     time_reset = hz;
     time_counter = 0;
     cli();
