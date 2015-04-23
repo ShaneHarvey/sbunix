@@ -28,6 +28,7 @@ struct rq run_queue = {
 /* Private functions */
 void run_queue_add(struct rq *queue, struct task_struct *task);
 void task_list_add(struct task_struct *task);
+void task_add_new(struct task_struct *task);
 
 
 void scheduler_init(void) {
@@ -75,7 +76,8 @@ struct task_struct *ktask_create(void (*start)(void)) {
     task->mm = &kernel_mm;
     kernel_mm.mm_count++;
     task->mm = NULL;
-    debug("created kernel thread\n");
+
+    task_add_new(task); /* add to run queue and task list */
     return task;
 
 out_stack:

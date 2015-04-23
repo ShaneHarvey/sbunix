@@ -36,7 +36,6 @@ extern struct rq run_queue;
 
 void schedule(void);
 void scheduler_init(void);
-void task_add_new(struct task_struct *task);
 struct task_struct *ktask_create(void (*start)(void));
 
 #ifdef WE_ARE_LINUX
