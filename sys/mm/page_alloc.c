@@ -51,9 +51,10 @@ uint64_t get_phys_page(void) {
 
 /**
  * Free the page.
+ * @virt_page_addr: kernel virtual page address
  */
-void free_page(uint64_t phys_page_addr) {
-    freepagehd_push((struct freepage*)phys_page_addr);
+void free_page(uint64_t virt_page_addr) {
+    freepagehd_push((struct freepage*)virt_page_addr);
 }
 
 /**
