@@ -107,34 +107,4 @@ static inline void write_cr3(uint64_t pml4e_ptr) {
     __asm__ __volatile__ ("movq %0, %%cr3;"::"r"(pml4e_ptr));
 }
 
-#define switch_to_last(prev, next, last)                                       \
-	__asm__ __volatile__ (                                                \
-         /*PUSHQALL*/                                                     \
-         "pushq %1;"            /* ptr to prev on my stack */             \
-         "pushq %3;"            /* ptr to local last (&last) */           \
-	     "movq %%rsp, %P0(%1);" /* save prev stack ptr */                 \
-	     "movq %P0(%2), %%rsp;" /* switch to next's stack */	          \
-         "popq %3;"             /* get next’s ptr to &last */             \
-         "movq %1, (%3);"       /* store prev in &last */                 \
-         "popq %1;"             /* Update me (rax) to new task */         \
-         /*POPQALL*/                                                      \
-         : /* none */                                                     \
-         : "i" (__builtin_offsetof(struct task_struct, kernel_rsp)),      \
-	       "r" (prev), "r" (next), "r" (last)	                          \
-	     : "memory", "cc", "rax", "rcx", "rbx", "rdx", "r8", "r9", "r10", \
-           "r11", "r12", "r13", "r14", "r15", "flags")
-
-#define switch_to(prev, next)                                             \
-	__asm__ __volatile__ (                                                \
-         "pushq %1;"            /* ptr to prev on my stack */             \
-         /*PUSHQALL*/                                                     \
-	     "movq %%rsp, %P0(%1);" /* save prev stack ptr */                 \
-	     "movq %P0(%2), %%rsp;" /* switch to next's stack */	          \
-         "popq %1;"             /* Update me (rax) to new task */         \
-         /*POPQALL*/                                                      \
-         : /* none */                                                     \
-         : "i" (__builtin_offsetof(struct task_struct, kernel_rsp)),      \
-	       "r" (prev), "r" (next)            	                          \
-	     : "memory", "cc", "rax", "rcx", "rbx", "rdx", "r8", "r9", "r10", \
-           "r11", "r12", "r13", "r14", "r15", "flags")
 #endif

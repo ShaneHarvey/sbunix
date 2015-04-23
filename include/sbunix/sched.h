@@ -9,15 +9,20 @@
 struct task_struct {
     int type;
     int state;
+    int flags;
     uint64_t kernel_rsp;
     struct mm_struct *mm;  /* virtual memory info, kernel tasks use a global */
     struct task_struct *next_task, *prev_task;  /* for traversing all tasks */
     struct task_struct *next_rq,  *prev_rq;  /* for traversing a run queue */
 };
 
+enum task_flags {
+    TASK_FIRST_SWITCH = 1
+};
+
 enum task_type {
     TASK_KERN,  /* kernel thread, uses another tasks mm_struct */
-    TASK_USER   /* kernel thread, no mm_struct */
+    TASK_USER   /* user thread */
 };
 
 enum task_state {
@@ -115,5 +120,24 @@ struct task_struct {
     struct signal_struct *sig;
 };
 #endif //WE_ARE_LINUX
+
+#define switch_to(prev, next)                                              \
+	__asm__ __volatile__ (                                                 \
+         PUSHQALL                                                          \
+	     "movq %%rsp, %P0(%1);"  /* save prev stack ptr */                 \
+	     "movq %P0(%2), %%rsp;"  /* switch to next's stack */	           \
+	     "testl %4, %P3(%2);"    /* check flags for TASK_FIRST_SWITCH */   \
+	     "jz _normal_switch_to;"                                           \
+	     "movq $0, %P3(%2);"     /* clear TASK_FIRST_SWITCH flag */        \
+	     "retq;"                 /* call task start function */            \
+         "_normal_switch_to:;"                                             \
+         POPQALL                                                           \
+         : /* none */                                                      \
+         : "i" (__builtin_offsetof(struct task_struct, kernel_rsp)),       \
+	       "r" (prev), "r" (next),            	                           \
+           "i" (__builtin_offsetof(struct task_struct, flags)),            \
+           "i" (TASK_FIRST_SWITCH)                                         \
+	     : "memory", "cc", "rax", "rcx", "rbx", "rdx", "r8", "r9", "r10",  \
+           "r11", "r12", "r13", "r14", "r15", "flags")
 
 #endif //_SBUNIX_SCHED_H

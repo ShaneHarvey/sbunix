@@ -91,15 +91,16 @@ void writec_glyph(char c) {
     writec_xy(glyph, len, SCREEN_WIDTH - len, 0, 0);
 }
 
-void fill_screen(void) {
+void clear_console(void) {
     char *v = VIDEO_XY(0, 0);
     char *end = VIDEO_XY(80, 25);
-    int i = 0;
 
     while(v < end) {
-        *v++ = '0' + (i++ % 10);
+        *v++ = ' ';
         *v++ = color;
     }
+    _x = 0;
+    _y = 0;
 }
 
 /* Input functions */

@@ -2,6 +2,7 @@
 #include <sbunix/sbunix.h>
 #include <sbunix/sched.h>
 #include <sbunix/mm/pt.h>
+#include <sbunix/writec.h>
 
 void printA(void) {
     int a = 1, b = 2, c = 3, d = 4, e = 5, f = 6, g = 7, h = 8;
@@ -35,7 +36,7 @@ void printC(void) {
 void kmain(void) {
     struct task_struct *a, *b, *c;
     int i;
-
+    clear_console();
     printf("Starting task test...\n");
     a = ktask_create(printA);
     task_add_new(a);

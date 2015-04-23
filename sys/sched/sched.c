@@ -7,7 +7,9 @@
 struct mm_struct kernel_mm = {0};
 /* This task is associated with kmain(), the kernel at startup */
 struct task_struct kernel_task = {
+        .type = TASK_KERN,
         .state = TASK_RUNNABLE,
+        .flags = 0,
         .kernel_rsp = 0, /* Will be set on first call to schedule */
         .mm = &kernel_mm,
         .next_task = &kernel_task,
@@ -60,18 +62,10 @@ struct task_struct *ktask_create(void (*start)(void)) {
 
     task->type = TASK_KERN;
     task->state = TASK_RUNNABLE;
+    /* Put the start function on the stack for switch_to  */
+    task->flags = TASK_FIRST_SWITCH;
     stack[511] = (uint64_t)start;
-    /*
-    stack[510] = (uint64_t)r15;
-    stack[509] = (uint64_t)r14;
-    stack[508] = (uint64_t)r13;
-    stack[507] = (uint64_t)r12;
-    stack[506] = (uint64_t)rbp;
-    stack[505] = (uint64_t)rbx;
-    stack[504] = (uint64_t)unused;
-    */
-    stack[503] = (uint64_t)task;
-    task->kernel_rsp = (uint64_t)&stack[503];
+    task->kernel_rsp = (uint64_t)&stack[511];
     task->mm = &kernel_mm;
     kernel_mm.mm_count++;
     task->mm = NULL;

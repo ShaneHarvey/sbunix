@@ -7,7 +7,7 @@ void writec_xy(const char *buf, size_t count, uint8_t x, uint8_t y, int save_xy)
 void writec(const char *buf, size_t count);
 void writec_time(uint64_t seconds);
 void writec_glyph(char c);
-void fill_screen(void);
+void clear_console(void);
 
 
 void sc_buf_add(uint8_t scan_code);
