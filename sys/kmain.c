@@ -4,23 +4,27 @@
 #include <sbunix/mm/pt.h>
 
 void printA(void) {
+    int a = 1, b = 2, c = 3, d = 4, e = 5, f = 6, g = 7, h = 8;
     while(1) {
-        printf("A");
+        printf("%d %d %d %d %d %d %d %d\n", a, b, c, d, e ,f, g, h);
         schedule();
+        a++;b++;c++;d++;e++;f++;g++;h++;
     }
 }
 
 void printB(void) {
     while(1) {
-        printf("B");
+        printf("B\n");
         schedule();
     }
 }
 
 void printC(void) {
+    int a = -1, b = -2, c = -3, d = -4, e = -5, f = -6, g = -7, h = -8;
     while(1) {
-        printf("C");
+        printf("%d %d %d %d %d %d %d %d\n", a, b, c, d, e ,f, g, h);
         schedule();
+        a--;b--;c--;d--;e--;f--;g--;h--;
     }
 }
 
@@ -42,7 +46,7 @@ void kmain(void) {
     printf("Created the threads\n");
 
     for(i = 0; i < 5; i++) {
-        printf("\nschedule");
+        printf("Main Task\n");
         schedule();
     }
     kpanic("\nReturned to kmain!!!\n");

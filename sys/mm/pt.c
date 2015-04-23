@@ -75,6 +75,7 @@ void print_paging_mode(void) {
 */
 void walk_pt(uint64_t* pt) {
     int index;
+    pt = (uint64_t *)kphys_to_virt((uint64_t)pt);
     for(index = 0; index < PAGE_ENTRIES; index++) {
         uint64_t pte = pt[index];
 
@@ -95,6 +96,7 @@ void walk_pt(uint64_t* pt) {
 */
 void walk_pd(uint64_t* pd) {
     int index;
+    pd = (uint64_t *)kphys_to_virt((uint64_t)pd);
     for(index = 0; index < PAGE_ENTRIES; index++) {
         uint64_t pde = pd[index];
 
@@ -120,6 +122,7 @@ void walk_pd(uint64_t* pd) {
 */
 void walk_pdpt(uint64_t* pdpt) {
     int index;
+    pdpt = (uint64_t *)kphys_to_virt((uint64_t)pdpt);
     for(index = 0; index < PAGE_ENTRIES; index++) {
         uint64_t pdpte = pdpt[index];
 
@@ -146,9 +149,8 @@ void walk_pdpt(uint64_t* pdpt) {
 */
 void walk_pml4(uint64_t *pml4) {
     int index;
-    if(get_paging_mode() != pm_ia_32e) {
-        kpanic("Paging mode is not IA-32e!!!\n");
-    }
+
+    pml4 = (uint64_t *)kphys_to_virt((uint64_t)pml4);
     for(index = 0; index < PAGE_ENTRIES; index++) {
         uint64_t pml4e = pml4[index];
 
@@ -169,6 +171,9 @@ void walk_pml4(uint64_t *pml4) {
 void walk_pages(void) {
     uint64_t cr3 = read_cr3();
 
+    if(get_paging_mode() != pm_ia_32e) {
+        kpanic("Paging mode is not IA-32e!!!\n");
+    }
     if(PML4_CACHE_DISABLED(cr3)) {
         debug("PML4 cache DISABLED\n");
     } else {
@@ -194,7 +199,10 @@ static inline int _ensure_present_pde(uint64_t virt_addr) {
         uint64_t pde = get_zero_page();
         if(!pde)
             return 0;
-        *magic = pde|PFLAG_RW|PFLAG_US|PFLAG_P;
+        pde |= PFLAG_RW|PFLAG_US|PFLAG_P;
+        debug("Adding PML4[%ld]->PDPT[%ld]->PD[%ld]=0x%lx\n",
+              PML4_INDEX(virt_addr), PDPT_INDEX(virt_addr), PD_INDEX(virt_addr), pde);
+        *magic = pde;
     }
     return 1;
 }
@@ -205,7 +213,10 @@ static inline int _ensure_present_pdpte(uint64_t virt_addr) {
         uint64_t pdpte = get_zero_page();
         if(!pdpte)
             return 0;
-        *magic = pdpte|PFLAG_RW|PFLAG_US|PFLAG_P;
+        pdpte |= PFLAG_RW|PFLAG_US|PFLAG_P;
+        debug("Adding PML4[%ld]->PDPT[%ld]=0x%lx\n", PML4_INDEX(virt_addr),
+              PDPT_INDEX(virt_addr), pdpte);
+        *magic = pdpte;
     }
     return 1;
 }
@@ -216,13 +227,17 @@ static inline int _ensure_present_pml4e(uint64_t virt_addr) {
         uint64_t pml4e = get_zero_page();
         if(!pml4e)
             return 0;
-        *magic = pml4e|PFLAG_RW|PFLAG_US|PFLAG_P;
+        pml4e |= PFLAG_RW|PFLAG_US|PFLAG_P;
+        debug("Adding PML4[%ld]=0x%lx\n", PML4_INDEX(virt_addr), pml4e);
+        *magic = pml4e;
+        write_cr3(read_cr3());
     }
     return 1;
 }
 
 /**
  * Map a 4KB virtual page to the given 4KB physical page.
+ * This maps a page into the current page table  table
  * @virt_addr The virtual address we want to map
  * @phy_addr
  */
@@ -250,7 +265,10 @@ int map_page(uint64_t virt_addr, uint64_t phy_addr, uint64_t pte_flags) {
         kpanic("Error: tried to remap present pte 0x%lx\n", old_pte);
         return 0;
     } else {
-        *magic = phy_addr | pte_flags | PFLAG_P;
+        uint64_t new_pte = phy_addr | pte_flags | PFLAG_P;
+        debug("Adding PML4[%ld]->PDPT[%ld]->PD[%ld]->PT[%ld]=0x%lx\n",
+              PML4_INDEX(virt_addr), PDPT_INDEX(virt_addr), PD_INDEX(virt_addr), PT_INDEX(virt_addr), new_pte);
+        *magic = new_pte;
     }
     return 1;
 }
@@ -283,9 +301,6 @@ void init_kernel_pt(uint64_t phys_free_page) {
         pdt[i] = pdte;
         pdte += PAGE_SIZE_2MB;
     }
-    for(i = 0; i < PAGE_ENTRIES; i++) {
-
-    }
     pml4e_index = (int)PML4_INDEX(virt_base);
     pdpte_index = (int)PDPT_INDEX(virt_base);
     /* This is the self referencing entry, this lets us modify the page table */
@@ -300,16 +315,57 @@ void init_kernel_pt(uint64_t phys_free_page) {
     kernel_pt = (uint64_t)pml4;
     write_cr3(kernel_pt);
 
-    printf("NEW PAGE TABLE! at 0x%lx and 0x%lx\n", pml4, pdpt);
+    debug("NEW PAGE TABLE! at 0x%lx and 0x%lx\n", pml4, pdpt);
+}
+
+
+/**
+ * Create a copy of the kernel page table
+ *
+ * @return: physical address of a new PML4 table with the kernel page table entries
+ */
+uint64_t copy_kernel_pt(void) {
+    uint64_t *pml4;
+    uint64_t *virt_kern_pt;
+    int i;
+
+    pml4 = (uint64_t *)get_free_page(0);
+    if(!pml4)
+        return 0;
+
+    virt_kern_pt = (uint64_t *)kphys_to_virt(kernel_pt);
+
+    for(i = 0; i < PAGE_ENTRIES; i++) {
+        pml4[i] = virt_kern_pt[i];
+    }
+    /* Add PLM4E entry to self */
+    pml4[pml4_self_index] = kvirt_to_phys((uint64_t)pml4)|PFLAG_RW|PFLAG_P;
+
+    return kvirt_to_phys((uint64_t)pml4);
+}
+
+/**
+ * Prints the current page table's PML4 entries
+ */
+void print_pml4e(void) {
+    int i;
+    uint64_t *pml4 = (uint64_t *)kphys_to_virt(read_cr3());
+    printf("PML4 Entries:");
+    for(i = 0; i < PAGE_ENTRIES; i++) {
+        if(PML4E_PRESENT(pml4[i])){
+            printf("%d: 0x%lx,", i, pml4[i]);
+        }
+    }
 }
 
 void pt_test_map(void) {
     /* Quick test of map_page */
     uint64_t phys_page = get_zero_page();
-    uint64_t va = 0x800000;
-    printf("Attempting to map physa 0x%lx to va 0x%lx\n", phys_page, va);
-    if(map_page(va, phys_page, PFLAG_RW))
-        printf("Success: Mapped virtual 0x%lx to physical 0x%lx, data 0x%lx\n", va, phys_page, *(uint64_t *)va);
-    else
+    uint64_t va = 0x000000001000;
+    debug("Attempting to map physa 0x%lx to va 0x%lx\n", phys_page, va);
+    if(map_page(va, phys_page, PFLAG_RW)) {
+        debug("Mapped virtual 0x%lx to physical 0x%lx, data 0x%lx\n", va, phys_page, *(uint64_t *)va);
+    } else {
         kpanic("Failed to map!\n");
+    }
 }
