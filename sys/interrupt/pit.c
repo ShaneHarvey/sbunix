@@ -7,14 +7,14 @@
 /* Programmable Interrupt Timer */
 
 uint64_t system_time  = 0;
-uint32_t time_counter = 0;
-uint32_t time_reset   = 0;
+uint32_t time_counter = 1;
+uint32_t time_reset   = 18;
 
 
 void ISR_HANDLER(32) {
     time_counter++;
     if(time_counter == time_reset) {
-        time_counter = 0;
+        time_counter = 1;
         system_time++;
         /* Print Seconds since boot in lower right corner of the console */
         writec_time(system_time);
@@ -28,9 +28,15 @@ void ISR_HANDLER(32) {
  * @hz: The frequency in hertz to generate timer interrupts
  */
 void pit_set_freq(unsigned int hz) {
-    unsigned int d = 1193180 / hz;
-    uint16_t reload_val = (d >= 1<<16)? (uint16_t)0 : (uint16_t)d;
-    time_reset = hz;
+    uint16_t reload_val;
+    if(hz <= 18) {
+        reload_val = 0; /* 0 reload value for PIT is ~18 HZ */
+        time_reset = 18;
+    } else {
+        reload_val = (uint16_t)(1193180/hz);
+        time_reset = hz;
+    }
+    time_reset = reload_val? hz : 18;
     time_counter = 0;
     cli();
     outb(0x43, 0x36);
