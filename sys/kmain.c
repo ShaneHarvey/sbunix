@@ -34,16 +34,12 @@ void printC(void) {
  * interrupts are enabled.
  */
 void kmain(void) {
-    struct task_struct *a, *b, *c;
     int i;
     clear_console();
     printf("Starting task test...\n");
-    a = ktask_create(printA);
-    task_add_new(a);
-    b = ktask_create(printB);
-    task_add_new(b);
-    c = ktask_create(printC);
-    task_add_new(c);
+    ktask_create(printA);
+    ktask_create(printB);
+    ktask_create(printC);
     printf("Created the threads\n");
 
     for(i = 0; i < 5; i++) {
