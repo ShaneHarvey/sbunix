@@ -1,5 +1,5 @@
 #include <sbunix/interrupt/pic8259.h>
-#include <sbunix/ports.h>
+#include <sbunix/asm.h>
 
 #define PIC_EOI		0x20		/* End-of-interrupt command code */
 

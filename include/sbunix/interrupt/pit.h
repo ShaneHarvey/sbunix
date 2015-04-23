@@ -7,6 +7,6 @@ extern uint64_t system_time;
 extern uint32_t time_counter;
 extern uint32_t time_reset;
 
-int pit_set_freq(double freq);
+void pit_set_freq(unsigned int hz);
 
 #endif

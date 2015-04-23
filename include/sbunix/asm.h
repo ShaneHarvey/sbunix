@@ -55,6 +55,39 @@ static inline uint64_t read_rsp(void) {
     return ret;
 }
 
+
+/* http://wiki.osdev.org/Inline_Assembly/Examples */
+/**
+ * Send 1 byte val out on specified port.
+ */
+static inline void outb(uint16_t port, uint8_t val) {
+    __asm__ __volatile__ ( "outb %0, %1" : : "a"(val), "Nd"(port) );
+}
+
+/**
+ * Receive 1 byte off the the specified port.
+ */
+static inline uint8_t inb(uint16_t port) {
+    uint8_t ret;
+    __asm__ __volatile__ ( "inb %1, %0" : "=a"(ret) : "Nd"(port) );
+    return ret;
+}
+
+/**
+ * Disable interrupts
+ */
+static inline void cli(void) {
+    __asm__ __volatile__ ("cli");
+}
+
+/**
+ * Enable interrupts
+ */
+static inline void sti(void) {
+    __asm__ __volatile__ ("sti");
+}
+
+
 /**
  * Read a 64-bit value from a MSR. The A constraint stands for concatenation
  * of registers EAX and EDX.

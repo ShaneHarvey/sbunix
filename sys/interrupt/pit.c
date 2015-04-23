@@ -2,6 +2,7 @@
 #include <sbunix/interrupt/idt.h>
 #include <sbunix/interrupt/pic8259.h>
 #include <sbunix/writec.h>
+#include <sbunix/asm.h>
 
 /* Programmable Interrupt Timer */
 
@@ -22,23 +23,17 @@ void ISR_HANDLER(32) {
     PIC_sendEOI(32);
 }
 
-int pit_set_freq(double freq) {
-    uint16_t reload_val = 0x0000;
-
-    time_reset = 18;
+/**
+ * Initialize the PIT to generate interrupts at the specified interval
+ * @hz: The frequency in hertz to generate timer interrupts
+ */
+void pit_set_freq(unsigned int hz) {
+    uint16_t reload_val = 0;//(uint16_t)(1193180 / hz);
+    time_reset = hz;
     time_counter = 0;
-    /* Setup the PIT to send an INT at 18HZ */
-    __asm__ __volatile__ (
-        "cli;"
-        "movb $0x36, %%al;" /* Init the PIT in Rate Generator mode */
-        "out %%al, $0x43;"
-        "movw %0, %%ax;"    /* Set the reload value of the PIT */
-        "out %%al, $0x40;"  /* send reload lower 8 bits */
-        "movb %%ah, %%al;"
-        "out %%al, $0x40;"  /* send reload upper 8 bits */
-        "sti;"
-        :
-        : "g"(reload_val)
-    );
-    return 1;
+    cli();
+    outb(0x43, 0x36);
+    outb(0x40, (uint8_t)reload_val);        /* low byte of reload */
+    outb(0x40, (uint8_t)(reload_val >> 8)); /* high byte of reload */
+    sti();
 }
