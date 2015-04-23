@@ -1,6 +1,7 @@
 #include <sbunix/sbunix.h>
 #include <sbunix/sched.h>
-#include <sbunix/asm.h>
+#include <sbunix/mm/vmm.h>
+#include <sbunix/mm/align.h>
 
 /* All kernel tasks use this mm_struct */
 struct mm_struct kernel_mm = {0};
@@ -21,7 +22,7 @@ struct task_struct *last_task = NULL;
 
 struct rq run_queue = {
         .num_switches = 0,
-        .tasks = &kernel_task,
+        .tasks = NULL,
 };
 
 /* Private functions */
@@ -83,6 +84,20 @@ out_stack:
 }
 
 /**
+ * Free the task.
+ */
+void task_destroy(struct task_struct *task) {
+    mm_struct_destroy(task->mm);
+
+    if(task->next_task)
+        task->next_task->prev_task = task->prev_task;
+    if(task->prev_task)
+        task->prev_task->next_task = task->next_task;
+
+    free_page(ALIGN_DOWN(task->kernel_rsp, PAGE_SIZE));
+}
+
+/**
  * Add a task to the linked list of tasks in queue.
  */
 void run_queue_add(struct rq *queue, struct task_struct *task) {
@@ -126,6 +141,25 @@ void task_list_add(struct task_struct *task) {
 }
 
 /**
+ * Add task to the correct queue.
+ */
+void task_queue_add(struct task_struct *task) {
+    if(task->state == TASK_RUNNABLE) {
+        run_queue_add(&run_queue, task);
+    }
+}
+
+/**
+ * Remove task from its queue.
+ */
+void task_queue_remove(struct task_struct *task) {
+    if(task->next_rq)
+        task->next_rq->prev_rq = task->prev_rq;
+    if(task->prev_rq)
+        task->prev_rq->next_rq = task->next_rq;
+}
+
+/**
  * Add a newly created task to the system.
  * Adds it to the list of all tasks and to the appropriate queue.
  */
@@ -134,19 +168,18 @@ void task_add_new(struct task_struct *task) {
         return;
 
     task_list_add(task);
-    if(task->state == TASK_RUNNABLE) {
-        run_queue_add(&run_queue, task);
-    }
+    task_queue_add(task);
 }
 
 /**
  * Pick the highest priority task to run.
  */
 struct task_struct *pick_next_task(void) {
-    struct task_struct *tsk;
-    tsk = run_queue.tasks;
+    struct task_struct *task;
+    task = run_queue.tasks;
     run_queue.tasks = run_queue.tasks->next_task;
-    return tsk;
+    task_queue_remove(task);
+    return task;
 }
 
 /**
@@ -194,6 +227,12 @@ void schedule(void) {
         last_task = prev; /* the last_task to run is the "prev" */
 
         context_switch(prev, next);
+
+        if(last_task->state == TASK_DEAD) {
+            task_destroy(last_task);
+        } else {
+            task_queue_add(last_task);
+        }
     }
 
 }
