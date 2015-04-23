@@ -127,7 +127,7 @@ struct task_struct {
 	     "movq %P0(%2), %%rsp;"  /* switch to next's stack */	           \
 	     "testl %4, %P3(%2);"    /* check flags for TASK_FIRST_SWITCH */   \
 	     "jz _normal_switch_to;"                                           \
-	     "movq $0, %P3(%2);"     /* clear TASK_FIRST_SWITCH flag */        \
+	     "xorl %4, %P3(%2);"     /* clear TASK_FIRST_SWITCH flag */        \
 	     "retq;"                 /* call task start function */            \
          "_normal_switch_to:;"                                             \
          POPQALL                                                           \
