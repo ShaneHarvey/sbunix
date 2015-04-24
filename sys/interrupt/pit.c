@@ -94,7 +94,7 @@ unsigned long read_rtc_time(void) {
     month = read_rtc(RTC_MONTH);
     year  = read_rtc(RTC_MONTH);
     if(!(read_rtc(RTC_REG_B)&RTC_BINARY)) {
-        /* translate to binary from BCD */
+        /* translate from BCD to binary */
         sec   = BCD_TO_BIN(sec);
         min   = BCD_TO_BIN(min);
         hour  = BCD_TO_BIN(hour);
@@ -102,10 +102,10 @@ unsigned long read_rtc_time(void) {
         month = BCD_TO_BIN(month);
         year  = BCD_TO_BIN(year);
     }
-    year += 2000;
+    year += 2011;
     /* translate RTC values to unix time */
-    printk("year:%d, month:%d, day:%d, hour:%d, min:%d, sec:%d\n", (int)year,
-           (int)month, (int)day, (int)hour, (int)min, (int)sec);
+    printk("year:%u, month:%u, day:%u, hour:%u, min:%u, sec:%u\n", year, month,
+           day, hour, min, sec);
     return mktime(year, month, day, hour, min, sec);
 }
 
