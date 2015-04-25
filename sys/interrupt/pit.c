@@ -19,6 +19,7 @@ void ISR_HANDLER(32) {
     if(timer_ticks == timer_hz) {
         timer_ticks = 1;
         system_time++;
+        unix_time.tv_sec++;
         /* Print Seconds since boot in lower right corner of the console */
         writec_time(system_time);
     }
@@ -104,8 +105,8 @@ unsigned long read_rtc_time(void) {
     }
     year += 2011;
     /* translate RTC values to unix time */
-    printk("year:%u, month:%u, day:%u, hour:%u, min:%u, sec:%u\n", year, month,
-           day, hour, min, sec);
+//    printk("year:%u, month:%u, day:%u, hour:%u, min:%u, sec:%u\n", year, month,
+//           day, hour, min, sec);
     return mktime(year, month, day, hour, min, sec);
 }
 

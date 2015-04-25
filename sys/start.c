@@ -41,8 +41,6 @@ void start(uint32_t* modulep, uint64_t physbase, uint64_t physfree)
 	load_idt();
 	PIC_protected_mode();
 	init_unix_time();
-	printk("UNIX time at boot: %u\n", unix_time.tv_sec);
-	kpanic("stop");
 	pit_set_freq(100);
 
 	/* Init kernel page table */
