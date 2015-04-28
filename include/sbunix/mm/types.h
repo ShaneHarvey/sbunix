@@ -4,6 +4,22 @@
 /* An address of a top level page table */
 typedef uint64_t pgd_t;
 
+/* Maybe don't use this and just add vm_ops inside vma struct */
+typedef enum {
+    VM_TEXT,
+    VM_RODATA,
+    VM_RWDATA,
+    VM_HEAP,
+    VM_MMAP_ANON,
+    VM_MMAP_FILE,
+    VM_STACK
+} vm_type_t;
+
+/* Bit flags for vm_prot */
+#define VM_READ     1
+#define VM_WRITE    2
+#define VM_EXEC     4
+
 /*
  * This struct defines a memory VMM memory area. There is one of these
  * per VM-area/task.  A VM area is any part of the process virtual memory
@@ -11,12 +27,12 @@ typedef uint64_t pgd_t;
  * library, the executable area etc).
  */
 struct vm_area_struct {
+    vm_type_t                    vm_type;      /* VM_STACK, etc... */
     struct mm_struct             *vm_mm;        /* associated mm_struct */
     unsigned long                vm_start;      /* VMA start, inclusive */
     unsigned long                vm_end;        /* VMA end , exclusive */
     struct vm_area_struct        *vm_next;      /* list of VMA's */
-    /*pgprot_t                     vm_page_prot;*/  /* access permissions */
-    unsigned long                vm_flags;      /* flags */
+    unsigned long                vm_prot;        /* access permissions */
     struct vm_operations_struct  *vm_ops;           /* associated ops */
     unsigned long                vm_pgoff;          /* offset within file */
     struct file                  *vm_file;          /* mapped file, if any */
@@ -25,7 +41,7 @@ struct vm_area_struct {
 
 /* Fixme: work in progress */
 struct mm_struct {
-    struct vm_area_struct  *mmap;               /* list of memory areas */
+    struct vm_area_struct  *vmas;               /* list of memory areas */
     pgd_t                  *pgd;                /* page global directory */
     /*atomic_t               mm_users;*/            /* address space users */
     int                    mm_count;            /* primary usage counter */
