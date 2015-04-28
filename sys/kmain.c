@@ -32,9 +32,6 @@ void kmain(void) {
     int i;
     clear_console();
     printk("*** Welcome to SBUnix ***\n");
-
-    pt_test_copying();
-    
     printk("Starting task test...\n");
     ktask_create(printA);
     ktask_create(printB);
