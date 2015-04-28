@@ -173,6 +173,8 @@ void task_add_new(struct task_struct *task) {
 struct task_struct *pick_next_task(void) {
     struct task_struct *task;
     task = run_queue.tasks;
+    if(!task)
+        return curr_task;
     run_queue.tasks = run_queue.tasks->next_task;
     task_queue_remove(task);
     return task;
