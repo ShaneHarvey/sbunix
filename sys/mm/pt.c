@@ -373,8 +373,10 @@ static uint64_t rec_copy_pt(int level, uint64_t pte) {
         kpanic("Invalid call: level cannot be %d\n", level);
 
     new_pt = (uint64_t *)get_free_page(0);
-    if(!new_pt)
+    if(!new_pt) {
+        debug("get_free_page: failed! at level=%d, pte=0x%lx\n", level, pte);
         return 0;
+    }
     memset(new_pt, 0, PAGE_SIZE);
 
     current_pt = (uint64_t *)kphys_to_virt((uint64_t)PE_PHYS_ADDR(pte));
@@ -406,6 +408,7 @@ static uint64_t rec_copy_pt(int level, uint64_t pte) {
     return kvirt_to_phys((uint64_t)new_pt) | PE_FLAGS(pte);
 error_copy:
     /* free all the pages we allocated for the current page */
+    debug("error_copy: level=%d, new_pt=0x%lx\n", level, new_pt);
     rec_free_pt(level, kvirt_to_phys((uint64_t)new_pt));
     return 0;
 }
@@ -487,14 +490,16 @@ void pt_test_map(void) {
 void pt_test_copying(void) {
     uint64_t new_pml4;
     int i;
-
     debug("Starting page tage copying test...\n");
-    for(i = 0; i < 100; i++) {
+    freemem_report();
+    for(i = 0; i < 10; i++) {
         new_pml4 = copy_current_pml4();
-        if(new_pml4)
+        if(new_pml4) {
             free_pml4(new_pml4);
-        else
+        } else {
             debug("copy_current_pml4: ENOMEM!!\n");
+        }
     }
+    freemem_report();
     debug("End page tage copying test\n");
 }
