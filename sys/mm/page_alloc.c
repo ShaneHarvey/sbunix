@@ -91,3 +91,8 @@ void freepagehd_push(struct freepage* newhd) {
     freepagehd.freepages = newhd;
     freepagehd.nfree++;
 }
+
+void freemem_report(void) {
+    ulong percent = freepagehd.nfree * 100 / freepagehd.maxfree;
+    printk("Free pages: %lu/%lu  ~%lu%%\n", freepagehd.nfree, freepagehd.maxfree, percent);
+}
