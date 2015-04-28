@@ -23,6 +23,9 @@
 
 /* Get the physical address field of any page entry, stored in 47-12 (36-bits) */
 #define PE_PHYS_ADDR(pe) ((uint64_t *)((pe) & 0x0000FFFFFFFFF000UL))
+/* Get the flags of the pte, stored in bit 63 and bits 11-0 */
+#define PE_FLAGS(pe) ((pe) & 0x8000000000000FFFUL)
+
 /* Get the physical address of the 1GB page frame, stored in 47-30 (18-bits) */
 #define PE_PAGE_FRAME_1GB(pe) ((uint64_t *)((pe) & 0x0000FFFFC0000000UL))
 /* Get the physical address of the 2MB page frame, stored in 47-21 (27-bits) */
@@ -41,6 +44,7 @@
 #define PFLAG_PS  (1UL<<7) /* page size */
 #define PFLAG_PAT (1UL<<7) /* type of memory to access this page (4KB (PTE's) pages only) */
 #define PFLAG_G   (1UL<<8) /* translation is global */
+#define PFLAG_NXE (1UL<<63)/* page is not executable */
 
 /* Page Map Level 4 (value of cr3) macros */
 #define PML4_WRITE_THROUGH(ptr)  ((ptr) & PFLAG_PWT ) /* True if the PML4 is write-through, false means write-back */
@@ -109,10 +113,15 @@ int map_page(uint64_t virt_addr, uint64_t phy_addr, uint64_t pte_flags);
 
 void init_kernel_pt(uint64_t phys_free_page);
 
-uint64_t copy_kernel_pt(void);
+void free_pml4(uint64_t pml4);
 
-void pt_test_map(void);
+uint64_t copy_pml4(uint64_t pml4);
+uint64_t copy_current_pml4(void);
+uint64_t copy_kernel_pml4(void);
 
 void print_pml4e(void);
+
+void pt_test_map(void);
+void pt_test_copying(void);
 
 #endif //_SBUNIX_PT_H_
