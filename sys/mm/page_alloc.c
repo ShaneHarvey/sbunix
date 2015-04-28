@@ -33,6 +33,8 @@ uint64_t get_free_page(uint32_t gpf_flags) {
 uint64_t get_zero_page(void) {
     uint64_t pgaddr;
     pgaddr = get_free_page(0);
+    if(!pgaddr)
+        return 0;
 
     memset((void*) pgaddr, 0, PAGE_SIZE);
     return kvirt_to_phys(pgaddr);
