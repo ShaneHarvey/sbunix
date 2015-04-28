@@ -1,6 +1,7 @@
 #include <sbunix/sbunix.h>
 #include <sbunix/mm/align.h>
 #include <sbunix/mm/pt.h>
+#include <sbunix/string.h>
 
 #define PAGE_SIZE   4096
 /* Construct virtual addresses which point to the PTE of a given virtual address */
@@ -318,13 +319,119 @@ void init_kernel_pt(uint64_t phys_free_page) {
     debug("NEW PAGE TABLE! at 0x%lx and 0x%lx\n", pml4, pdpt);
 }
 
+/**
+ * Recursively free the page table pointed to by pte
+ *
+ * @level: page table level of pte, 4:PML4, 3:PDPT, 2:PD
+ * @pte: page table entry pointing to the table to free
+ */
+static void rec_free_pt(int level, uint64_t pte) {
+    uint64_t *current_pt;  /* The page table pointed to by pte */
+    int i;
+    if(level > 4 || level < 2)
+        kpanic("Invalid call: level cannot be %d\n", level);
+
+    current_pt = (uint64_t *)kphys_to_virt((uint64_t)PE_PHYS_ADDR(pte));
+
+    for(i = 0; i < PAGE_ENTRIES; i++) {
+        uint64_t next_pte = current_pt[i];
+        /* PML4: skip kernel entry and self-entry */
+        if (PTE_PRESENT(next_pte) && !(level == 4 && (i == pml4_self_index || i == PML4_INDEX(virt_base)))) {
+            if(level == 2){
+                /* Level2:PD, means next_pte is a Page Table so just free it */
+                free_page(kphys_to_virt((uint64_t)PE_PHYS_ADDR(next_pte)));
+            } else {
+                /* Level 3 or 4: recursively go down and free */
+                rec_free_pt(level - 1, next_pte);
+            }
+        }
+    }
+    /* Finally free the current page table */
+    free_page((uint64_t)current_pt);
+}
 
 /**
- * Create a copy of the kernel page table
+ * Free the given PML4 table
+ *
+ * @pml4: physical address of the PML4 table to free
+ */
+void free_pml4(uint64_t pml4) {
+    rec_free_pt(4, pml4);
+}
+
+/**
+ * Recursively copy the page table pointed to by pte
+ *
+ * @level: page table level of pte, 4:PML4, 3:PDPT, 2:PD, 1:PT
+ * @pte: page table entry pointing to the table to free
+ */
+static uint64_t rec_copy_pt(int level, uint64_t pte) {
+    uint64_t *new_pt;
+    uint64_t *current_pt;  /* page table pointed to by pte */
+    int i;
+    if(level > 4 || level < 1)
+        kpanic("Invalid call: level cannot be %d\n", level);
+
+    new_pt = (uint64_t *)get_free_page(0);
+    if(!new_pt)
+        return 0;
+    memset(new_pt, 0, PAGE_SIZE);
+
+    current_pt = (uint64_t *)kphys_to_virt((uint64_t)PE_PHYS_ADDR(pte));
+
+    for(i = 0; i < PAGE_ENTRIES; i++) {
+        uint64_t other_pte = current_pt[i];
+
+        /* PML4: skip kernel entry and self-entry */
+        if (PTE_PRESENT(other_pte)) {
+            if(level == 1 || (level == 4 && i == PML4_INDEX(virt_base)) ) {
+                /* Add it to Page Table level 1 */
+                new_pt[i] = other_pte;
+            } else if (level == 4 && i == pml4_self_index) {
+                new_pt[i] = kvirt_to_phys((uint64_t)new_pt)|PFLAG_RW|PFLAG_P; /* add self index */
+            } else {
+                /* Level 2, 3 or 4: recursively go down and copy */
+                uint64_t new_pte = rec_copy_pt(level - 1, other_pte);
+                if(!new_pte)
+                    goto error_copy;
+                new_pt[i] = new_pte;
+            }
+        } else {
+            /* Mark as not present */
+            new_pt[i] = 0;
+        }
+    }
+
+    /* Keep the same flags */
+    return kvirt_to_phys((uint64_t)new_pt) | PE_FLAGS(pte);
+error_copy:
+    /* free all the pages we allocated for the current page */
+    rec_free_pt(level, kvirt_to_phys((uint64_t)new_pt));
+    return 0;
+}
+
+/**
+ * Copy the given PML4 table
+ *
+ * @pml4: physical address of the PML4 table to copy
+ */
+uint64_t copy_pml4(uint64_t pml4) {
+    return rec_copy_pt(4, pml4);
+}
+
+/**
+ * Copy the currently used PML4 table
+ */
+uint64_t copy_current_pml4(void) {
+    return rec_copy_pt(4, read_cr3());
+}
+
+/**
+ * Create a copy of the kernel page table entries
  *
  * @return: physical address of a new PML4 table with the kernel page table entries
  */
-uint64_t copy_kernel_pt(void) {
+uint64_t copy_kernel_pml4(void) {
     uint64_t *pml4;
     uint64_t *virt_kern_pt;
     int i;
@@ -341,8 +448,9 @@ uint64_t copy_kernel_pt(void) {
     /* Add PLM4E entry to self */
     pml4[pml4_self_index] = kvirt_to_phys((uint64_t)pml4)|PFLAG_RW|PFLAG_P;
 
-    return kvirt_to_phys((uint64_t)pml4);
+    return kvirt_to_phys((uint64_t)pml4) | PE_FLAGS(kernel_pt);
 }
+
 
 /**
  * Prints the current page table's PML4 entries
@@ -358,6 +466,9 @@ void print_pml4e(void) {
     }
 }
 
+/**
+ * Small test of mapping a page into the current address space
+ */
 void pt_test_map(void) {
     /* Quick test of map_page */
     uint64_t phys_page = get_zero_page();
@@ -368,4 +479,22 @@ void pt_test_map(void) {
     } else {
         kpanic("Failed to map!\n");
     }
+}
+
+/**
+ * Test copying/freeing page tables
+ */
+void pt_test_copying(void) {
+    uint64_t new_pml4;
+    int i;
+
+    debug("Starting page tage copying test...\n");
+    for(i = 0; i < 100; i++) {
+        new_pml4 = copy_current_pml4();
+        if(new_pml4)
+            free_pml4(new_pml4);
+        else
+            debug("copy_current_pml4: ENOMEM!!\n");
+    }
+    debug("End page tage copying test\n");
 }
