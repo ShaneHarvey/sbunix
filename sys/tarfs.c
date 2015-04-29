@@ -14,13 +14,14 @@ struct file_ops tarfs_file_ops = {
 
 /**
  * Ascii Octal To 64-bit unsigned Integer
- * @octal
+ * @optr: octal string to parse
+ * @length: length of the string to parse
  */
-uint64_t aotoi(char *optr) {
+uint64_t aotoi(char *optr, int length) {
     uint64_t val = 0;
     if(optr == NULL)
         return 0;
-    while(*optr >= '0' && *optr <= '7') {
+    while(length-- > 0 && *optr >= '0' && *optr <= '7') {
         val <<= 3; /* multiply by 8 (the base) */
         val += *optr++ - '0';
     }
@@ -36,8 +37,8 @@ void test_aotoi(void) {
     int i;
 
     for(i = 0; i < 5; i++) {
-        if (ints[i] != aotoi(octals[i])) {
-            kpanic("octal %s != decimal %lu!!\n", octals[i], aotoi(octals[i]));
+        if (ints[i] != aotoi(octals[i], 12)) {
+            kpanic("octal %s != decimal %lu!!\n", octals[i], aotoi(octals[i], 12));
         }
     }
 }
@@ -54,7 +55,7 @@ void tarfs_print(struct posix_header_ustar *hd) {
         case '5': type = "directory";break;
         default:  type = "unsupported";break;
     }
-    size = aotoi(hd->size);
+    size = aotoi(hd->size, sizeof(hd->size));
     printk("%s%s: %s, %lu bytes\n", hd->prefix, hd->name, type, size);
 }
 
@@ -64,18 +65,28 @@ void tarfs_print(struct posix_header_ustar *hd) {
 void test_read_tarfs(void) {
     struct posix_header_ustar *hd;
 
-    printk("Test reading tarfs\n");
-    hd = (struct posix_header_ustar *)&_binary_tarfs_start;
-    while(hd->name[0] != '\0') {
-        uint64_t size = aotoi(hd->size);
+    printk("Test reading tarfs:\n");
+    for(hd = tarfs_first(); hd != NULL; hd = tarfs_next(hd)) {
         tarfs_print(hd);
-        /* Increment header to next ustar header */
-        hd += 1 + size/512 + (size % 512 != 0);
     }
+    printk("Done reading tarfs\n");
 }
 
 /**
  * Update the file pointer to the given offset.
+ *
+ * Upon successful completion, lseek() returns the resulting offset location
+ * as  measured  in bytes from the beginning of the file.
+ *
+ * ERRORS Returns
+ *  EBADF  fd is not an open file descriptor.
+ *
+ *  EINVAL whence  is  not  valid.   Or: the resulting file offset would be
+ *         negative, or beyond the end of a seekable device.
+ *
+ *  EOVERFLOW The resulting file offset cannot be represented in an off_t.
+ *
+ *  ESPIPE fd is associated with a pipe, socket, or FIFO.
  */
 off_t tarfs_lseek(struct file *fp, off_t offset, int origin) {
     return 0;
@@ -95,7 +106,7 @@ ssize_t tarfs_read(struct file *fp, char *buf, size_t count, off_t *offset) {
 ssize_t tarfs_write(struct file *fp, const char *buf, size_t count,
                     off_t *offset) {
     /* TODO: Do some error notification thing */
-    return -1;
+    return -EINVAL;
 }
 
 /**
@@ -116,6 +127,7 @@ int tarfs_mmap(struct file *fp, struct vm_area *vma) {
  * Creates a new file object for the given path
  */
 int tarfs_open(const char *path, struct file *fp) {
+
     return 0;
 }
 

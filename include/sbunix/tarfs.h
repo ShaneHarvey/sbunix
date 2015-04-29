@@ -3,6 +3,7 @@
 
 #include <sbunix/sbunix.h>
 #include <sbunix/vfs/vfs.h>
+#include <errno.h>
 
 /**
  * TARFS Functional Requirements:
@@ -51,8 +52,39 @@ struct posix_header_ustar {
     char pad[12];
 };
 
-uint64_t aotoi(char *optr);
+uint64_t aotoi(char *optr, int length);
 void test_aotoi(void);
+
+/**
+ * Return the first tarfs header in the file system
+ */
+static inline struct posix_header_ustar *tarfs_first(void) {
+    if(&_binary_tarfs_end - &_binary_tarfs_start < 512){
+        return NULL;
+    } else {
+        return (struct posix_header_ustar *)&_binary_tarfs_start;
+    }
+}
+
+/**
+ * Return the next tarfs header in the file system
+ *
+ * @cur_hdr: the current ustar header
+ */
+static inline struct posix_header_ustar *tarfs_next(struct posix_header_ustar *cur_hdr) {
+    /* The last header will have a null name field */
+    if(!cur_hdr || cur_hdr->name[0] == '\0'){
+        return NULL;
+    } else {
+        uint64_t size = aotoi(cur_hdr->size, sizeof(cur_hdr->size));
+        cur_hdr += 1 + size/512 + (size % 512 != 0);
+        if(cur_hdr->name[0] == '\0')
+            return NULL;
+        else
+            return cur_hdr;
+    }
+}
+
 void test_read_tarfs(void);
 
 /* Tarfs file operations */
