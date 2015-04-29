@@ -13,12 +13,14 @@ struct mm_struct *mm_create(uint64_t start_code,
                             uint64_t end_code,
                             uint64_t start_data,
                             uint64_t end_data);
-void mm_destroy(struct mm_struct *mm);
+void              mm_destroy(struct mm_struct *mm);
 
 
 /* vm_area functions */
 
 struct vm_area *vma_create(uint64_t vm_start, uint64_t vm_end, ulong vm_prot);
-void vma_destroy(struct vm_area *vma);
+void            vma_destroy(struct vm_area *vma);
+struct vm_area *vma_find(struct vm_area *vma, uint64_t addr);
+
 
 #endif
