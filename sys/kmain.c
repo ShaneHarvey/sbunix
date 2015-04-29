@@ -5,6 +5,7 @@
 #include <sbunix/writec.h>
 #include <sbunix/interrupt/pit.h>
 #include <sbunix/time.h>
+#include <sbunix/tarfs.h>
 
 void printA(void) {
     int a = 1, b = 2, c = 3, d = 4, e = 5, f = 6, g = 7, h = 8;
@@ -41,7 +42,6 @@ void kmain(void) {
         printk("Main Task\n");
         schedule();
     }
-    printk("Sleeping for 10 seconds\n");
-    timer_sleep(10);
+    test_read_tarfs();
     kpanic("\nReturned to kmain!!!\n");
 }

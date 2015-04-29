@@ -18,12 +18,12 @@ struct file_ops {
 };
 
 struct file {
-    struct file_ops        f_op;          /* file ops table */
-    unsigned long          f_count;       /* file object's usage count */
-    unsigned int           f_flags;       /* flags specified on open */
-    off_t                  f_pos;         /* file offset (file pointer) */
-    int                    f_error;       /* error code */
-    void                   *private_data; /* tty driver hook */
+    struct file_ops *f_op; /* file ops table */
+    unsigned long f_count; /* file object's usage count */
+    unsigned int f_flags;  /* flags specified on open */
+    off_t f_pos;           /* file offset (file pointer) */
+    int f_error;           /* error code */
+    void *private_data;    /* tty driver hook, for TARFS it points to file's ustar header */
 };
 
 #endif //_SBUNIX_VFS_VFS_H

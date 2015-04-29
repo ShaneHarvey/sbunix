@@ -2,6 +2,8 @@
 #define _SBUNIX_TARFS_H
 
 #include <sbunix/sbunix.h>
+#include <sbunix/vfs/vfs.h>
+
 /**
  * TARFS Functional Requirements:
  * open, read, close, opendir, readdir, closedir
@@ -27,6 +29,8 @@
 extern char _binary_tarfs_start; /* Starting label of tarfs in kernel memory */
 extern char _binary_tarfs_end;   /* Ending label of tarfs in kernel memory */
 
+extern struct file_ops tarfs_file_ops; /* File hooks implemented by Tarfs */
+
 struct posix_header_ustar {
     char name[100];
     char mode[8];
@@ -35,7 +39,7 @@ struct posix_header_ustar {
     char size[12];
     char mtime[12];
     char checksum[8];
-    char typeflag[1];
+    char typeflag;
     char linkname[100];
     char magic[6];
     char version[2];
@@ -49,7 +53,19 @@ struct posix_header_ustar {
 
 uint64_t aotoi(char *optr);
 void test_aotoi(void);
+void test_read_tarfs(void);
 
-
+/* Tarfs file operations */
+off_t tarfs_lseek(struct file *fp, off_t offset, int origin);
+ssize_t tarfs_read(struct file *fp, char *buf, size_t count, off_t *offset);
+ssize_t tarfs_write(struct file *fp, const char *buf, size_t count,
+                    off_t *offset);
+//int tarfs_readdir(struct file *fp, void *dirent, filldir_t filldir);
+int tarfs_mmap(struct file *fp, struct vm_area *vma);
+int tarfs_open(const char *path, struct file *fp);
+unsigned long tarfs_get_unmapped_area(struct file *fp, unsigned long addr,
+                                unsigned long len, unsigned long offset,
+                                unsigned long flags);
+int tarfs_check_flags(int flags);
 
 #endif
