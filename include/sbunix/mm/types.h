@@ -26,43 +26,40 @@ typedef enum {
  * space that has a special rule for the page-fault handlers (ie a shared
  * library, the executable area etc).
  */
-struct vm_area_struct {
-    vm_type_t                    vm_type;      /* VM_STACK, etc... */
-    struct mm_struct             *vm_mm;        /* associated mm_struct */
-    unsigned long                vm_start;      /* VMA start, inclusive */
-    unsigned long                vm_end;        /* VMA end , exclusive */
-    struct vm_area_struct        *vm_next;      /* list of VMA's */
-    unsigned long                vm_prot;        /* access permissions */
-    struct vm_operations_struct  *vm_ops;           /* associated ops */
-    unsigned long                vm_pgoff;          /* offset within file */
-    struct file                  *vm_file;          /* mapped file, if any */
-    void                         *vm_private_data;  /* private data */
+struct vm_area {
+    vm_type_t             vm_type;  /* VM_STACK, etc... */
+    struct mm_struct      *vm_mm;   /* associated mm_struct */
+    uint64_t              vm_start; /* VMA start, inclusive */
+    uint64_t              vm_end;   /* VMA end , exclusive */
+    struct vm_area        *vm_next; /* list of VMA's */
+    ulong                 vm_prot;  /* access permissions */
+    /* called by the page fault handler */
+    struct page *         (*nopage) (struct vm_area *, uint64_t);
+    unsigned long         vm_pgoff; /* offset within file */
+    struct file           *vm_file; /* mapped file, if any */
 };
 
 /* Fixme: work in progress */
 struct mm_struct {
-    struct vm_area_struct  *vmas;               /* list of memory areas */
-    pgd_t                  *pgd;                /* page global directory */
-    /*atomic_t               mm_users;*/            /* address space users */
-    int                    mm_count;            /* primary usage counter */
-    int                    vma_count;           /* number of memory areas */
-    /* struct rw_semaphore    mmap_sem; */            /* memory area semaphore */
-    /* spinlock_t             page_table_lock; */     /* page table lock */
-    struct mm_struct       *mm_prev;             /* list of all mm_structs */
-    struct mm_struct       *mm_next;              /* list of all mm_structs */
-    unsigned long          start_code;          /* start address of code */
-    unsigned long          end_code;            /* final address of code */
-    unsigned long          start_data;          /* start address of data */
-    unsigned long          end_data;            /* final address of data */
-    unsigned long          start_brk;           /* start address of heap */
-    unsigned long          brk;                 /* final address of heap */
-    unsigned long          start_stack;         /* start address of stack */
-    unsigned long          arg_start;           /* start of arguments */
-    unsigned long          arg_end;             /* end of arguments */
-    unsigned long          env_start;           /* start of environment */
-    unsigned long          env_end;             /* end of environment */
-    unsigned long          rss;                 /* pages allocated */
-    unsigned long          total_vm;            /* total number of pages */
+    struct vm_area   *vmas;        /* list of memory areas */
+    pgd_t            *pgd;         /* page global directory */
+    int              mm_count;     /* primary usage counter */
+    int              vma_count;    /* number of memory areas */
+    struct mm_struct *mm_prev;     /* list of all mm_structs */
+    struct mm_struct *mm_next;     /* list of all mm_structs */
+    uint64_t         start_code;   /* start address of code */
+    uint64_t         end_code;     /* final address of code */
+    uint64_t         start_data;   /* start address of data */
+    uint64_t         end_data;     /* final address of data */
+    uint64_t         start_brk;    /* start address of heap */
+    uint64_t         brk;          /* final address of heap */
+    uint64_t         start_stack;  /* start address of stack */
+    uint64_t         arg_start;    /* start of arguments */
+    uint64_t         arg_end;      /* end of arguments */
+    uint64_t         env_start;    /* start of environment */
+    uint64_t         env_end;      /* end of environment */
+    uint64_t         rss;          /* pages allocated */
+    uint64_t         total_vm;     /* total number of pages */
 };
 
 

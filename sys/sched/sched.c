@@ -83,7 +83,7 @@ out_stack:
  * Free the task.
  */
 void task_destroy(struct task_struct *task) {
-    mm_struct_destroy(task->mm);
+    mm_destroy(task->mm);
 
     if(task->next_task)
         task->next_task->prev_task = task->prev_task;

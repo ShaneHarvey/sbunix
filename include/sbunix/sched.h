@@ -4,6 +4,9 @@
 #include <sys/defs.h>
 #include <sbunix/mm/types.h> /* mm_struct */
 
+extern struct rq            run_queue;
+extern struct mm_struct     kernel_mm;
+extern struct task_struct   kernel_task;
 
 /* Kernel thread or user process */
 struct task_struct {
@@ -37,7 +40,6 @@ struct rq {
     ulong num_switches; /* num context switches */
     struct task_struct *tasks; /* task queue */
 };
-extern struct rq run_queue;
 
 void schedule(void);
 void scheduler_init(void);
