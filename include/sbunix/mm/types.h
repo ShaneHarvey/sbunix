@@ -34,7 +34,7 @@ struct vm_area {
     struct vm_area        *vm_next; /* list of VMA's */
     ulong                 vm_prot;  /* access permissions */
     /* called by the page fault handler */
-    struct page *         (*nopage) (struct vm_area *, uint64_t);
+    int                   (*onfault) (struct vm_area *, uint64_t);
     unsigned long         vm_pgoff; /* offset within file */
     struct file           *vm_file; /* mapped file, if any */
 };
