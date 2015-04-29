@@ -22,6 +22,7 @@ struct file {
     unsigned long f_count; /* file object's usage count */
     unsigned int f_flags;  /* flags specified on open */
     off_t f_pos;           /* file offset (file pointer) */
+    unsigned long f_size;  /* file size */
     int f_error;           /* error code */
     void *private_data;    /* tty driver hook, for TARFS it points to file's ustar header */
 };
