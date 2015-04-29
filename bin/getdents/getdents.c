@@ -12,13 +12,6 @@
 #define handle_error(msg) \
          do { printf(msg": %s\n", strerror(errno)); exit(EXIT_FAILURE); } while (0)
 
-struct linux_dirent {
-    unsigned long  d_ino;
-    off_t          d_off;
-    unsigned short d_reclen;
-    char           d_name[];
-};
-
 #define BUF_SIZE 1024
 
 int

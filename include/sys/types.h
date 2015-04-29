@@ -3,6 +3,7 @@
 
 #include <sys/defs.h>
 
+typedef int64_t ssize_t;
 typedef unsigned long int size_t;
 typedef unsigned int uint;
 typedef uint32_t pid_t;
