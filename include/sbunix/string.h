@@ -5,33 +5,39 @@
 
 #define NULL ((void*)0)
 
-int      memcmp(const void *, const void *, size_t);
-void    *memcpy(void *restrict dest, const void *restrict src, size_t n);
-void    *memmove(void *dest, const void *src, size_t count);
-void    *memcpy(void *restrict, const void *restrict, size_t);
-void    *memset(void *s, int c, size_t count);
-char    *strcat(char *restrict, const char *restrict);
-char    *strchr(const char *, int);
-int      strcmp(const char *, const char *);
-int      strcoll(const char *, const char *);
-char    *strcpy(char *restrict, const char *restrict);
-size_t   strcspn(const char *, const char *);
-
-char    *strdup(const char *);
-
-char    *strerror(int);
-
-size_t   strlen(const char *);
-char    *strncat(char *restrict, const char *restrict, size_t);
-int      strncmp(const char *, const char *, size_t);
-char    *strncpy(char *restrict, const char *restrict, size_t);
-char    *strpbrk(const char *, const char *);
-char    *strrchr(const char *, int);
-size_t   strspn(const char *, const char *);
-char    *strstr(const char *, const char *);
-char    *strtok(char *restrict, const char *restrict);
-char    *strrev(char *str);
-char    *itoa(long long val, int base, char *str, size_t len);
-char    *uitoa(unsigned long long val, int base, char *str, size_t len);
+int strncasecmp(const char *s1, const char *s2, size_t len);
+int strnicmp(const char *s1, const char *s2, size_t len);
+int strcasecmp(const char *s1, const char *s2);
+char *strcpy(char *dest, const char *src);
+char *strncpy(char *dest, const char *src, size_t count);
+size_t strlcpy(char *dest, const char *src, size_t size);
+char *strcat(char *dest, const char *src);
+char *strncat(char *dest, const char *src, size_t count);
+int strcmp(const char *cs, const char *ct);
+int strncmp(const char *cs, const char *ct, size_t count);
+char *strchr(const char *s, int c);
+char *strchrnul(const char *s, int c);
+char *strrchr(const char *s, int c);
+char *strnchr(const char *s, size_t count, int c);
+char *skip_spaces(const char *str);
+char *strim(char *s);
+size_t strlen(const char *s);
+size_t strnlen(const char *s, size_t count);
+size_t strspn(const char *s, const char *accept);
+size_t strcspn(const char *s, const char *reject);
+char *strpbrk(const char *cs, const char *ct);
+char *strsep(char **s, const char *ct);
+void *memset(void *s, int c, size_t count);
+void *memcpy(void *dest, const void *src, size_t count);
+void *memmove(void *dest, const void *src, size_t count);
+int memcmp(const void *cs, const void *ct, size_t count);
+void *memscan(void *addr, int c, size_t size);
+char *strstr(const char *s1, const char *s2);
+char *strnstr(const char *s1, const char *s2, size_t len);
+void *memchr(const void *s, int c, size_t n);
+char *strrev(char *str);
+char *itoa(long long val, int base, char *str, size_t len);
+char *uitoa(unsigned long long val, int base, char *str, size_t len);
+char *strerror(int err);
 
 #endif /* _SBUNIX_STRING_H */

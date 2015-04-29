@@ -34,8 +34,8 @@ void kmain(void) {
     clear_console();
     printk("*** Welcome to SBUnix ***\n");
     printk("Starting task test...\n");
-    ktask_create(printA);
-    ktask_create(printB);
+    ktask_create(printA, "KernelPrintA");
+    ktask_create(printB, "KernelPrintB");
     printk("Created the threads\n");
 
     for(i = 0; i < 5; i++) {

@@ -35,7 +35,7 @@ struct vm_area {
     ulong                 vm_prot;  /* access permissions */
     /* called by the page fault handler */
     int                   (*onfault) (struct vm_area *, uint64_t);
-    unsigned long         vm_pgoff; /* offset within file */
+    /*unsigned long         vm_pgoff;*/ /* offset within file */
     struct file           *vm_file; /* mapped file, if any */
 };
 

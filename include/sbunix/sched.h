@@ -8,6 +8,8 @@ extern struct rq            run_queue;
 extern struct mm_struct     kernel_mm;
 extern struct task_struct   kernel_task;
 
+# define TASK_CMDLINE_MAX 67
+
 /* Kernel thread or user process */
 struct task_struct {
     int type;
@@ -17,6 +19,7 @@ struct task_struct {
     struct mm_struct *mm;  /* virtual memory info, kernel tasks use a global */
     struct task_struct *next_task, *prev_task;  /* for traversing all tasks */
     struct task_struct *next_rq,  *prev_rq;  /* for traversing a run queue */
+    char cmdline[TASK_CMDLINE_MAX + 1];
 };
 
 enum task_flags {
@@ -43,7 +46,8 @@ struct rq {
 
 void schedule(void);
 void scheduler_init(void);
-struct task_struct *ktask_create(void (*start)(void));
+struct task_struct *ktask_create(void (*start)(void), char *name);
+void task_set_cmdline(struct task_struct *task, char *cmdline);
 
 #ifdef WE_ARE_LINUX
 struct task_struct {
