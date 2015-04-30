@@ -1,6 +1,8 @@
 #ifndef SBUNIX_MM_TYPES_H
 #define SBUNIX_MM_TYPES_H
 
+#include <sys/types.h>
+
 /* An address of a top level page table */
 typedef uint64_t pgd_t;
 
@@ -34,9 +36,9 @@ struct vm_area {
     struct vm_area        *vm_next; /* list of VMA's */
     ulong                 vm_prot;  /* access permissions */
     /* called by the page fault handler */
-    int                   (*onfault) (struct vm_area *, uint64_t);
-    /*unsigned long         vm_pgoff;*/ /* offset within file */
+    uint64_t              (*onfault) (struct vm_area *, uint64_t);
     struct file           *vm_file; /* mapped file, if any */
+    off_t                 vm_fstart;/* starting offset into the file */
 };
 
 /* Fixme: work in progress */

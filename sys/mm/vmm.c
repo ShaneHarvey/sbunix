@@ -1,6 +1,7 @@
 #include <sbunix/mm/vmm.h>
 #include <sbunix/sched.h>
 #include <sbunix/string.h>
+#include <sbunix/vfs/vfs.h>
 
 /*
  * Virtual Memory for user processes, should be mostly operations on
@@ -20,7 +21,7 @@
 /* Private functions */
 int mm_add_vma(struct mm_struct *mm, struct vm_area *vma);
 void mm_list_add(struct mm_struct *mm);
-int vma_overlaps(struct vm_area *vma, struct vm_area *other);
+int vma_intersects(struct vm_area *vma, struct vm_area *other);
 int vma_contains(struct vm_area *vma, uint64_t addr);
 int vma_contains_region(struct vm_area *vma, uint64_t addr, size_t size);
 int vma_grow_up(struct vm_area *vma, uint64_t new_end);
@@ -80,6 +81,43 @@ struct mm_struct *mm_create_user(uint64_t start_code, uint64_t end_code,
 out_vma:
     mm_destroy(mm);  /* also destroys all vma's */
     return NULL;
+}
+
+/**
+ * Add a new vma into the mm struct. It is either a mmapped area
+ * with a file backing, or an anon mmapped region.
+ * @filep: NULL in anon mmap
+ * @fstart: starting offset in the file, ignored if filep == NULL
+ * @prot: e.g. VM_READ, VM_EXEC, ...
+ * @type: e.g. VM_HEAP, VM_STACK, ...
+ * @vm_start: start of vma
+ * @vm_end: end of vma
+ * @onfault: called on a page fault within the region
+ *
+ * @return: 0 on error, 1 on success
+ */
+int mmap_area(struct mm_struct *mm, struct file *filep,
+              off_t fstart, ulong prot, vm_type_t type,
+              uint64_t vm_start, uint64_t vm_end,
+              uint64_t (*onfault) (struct vm_area *, uint64_t)) {
+
+    struct vm_area *vma;
+    if(!mm)
+        return 0;
+
+    vma = vma_create(vm_start, vm_end, type, prot);
+    if(!vma)
+        return 0;
+    if(!mm_add_vma(mm, vma)) {
+        vma_destroy(vma);
+        return 0;
+    }
+    vma->vm_file = filep;
+    if(filep)
+        filep->f_count++;
+    vma->vm_fstart = fstart;
+    vma->onfault = onfault;
+    return 1;
 }
 
 /**
@@ -168,23 +206,26 @@ void mm_list_add(struct mm_struct *mm) {
 
 /**
  * Add a vma into the vma list of mm.
- * fixme: Must add lowest address area first (text vm_area)
+ * @return: 1 if added, 0 if not added
  */
 int mm_add_vma(struct mm_struct *mm, struct vm_area *vma) {
     struct vm_area *curr;
     if(!mm || !vma || vma->vm_start >= vma->vm_end)
         return -1;
 
-    if(!mm->vmas) {
-        mm->vmas = vma;
-        mm->vma_count++;
-        return 0;
-    }
     curr = mm->vmas;
+    /* Insert before the first? */
+    if(!mm->vmas || vma->vm_end <= curr->vm_end) {
+        vma->vm_next = mm->vmas;
+        mm->vmas = vma;
+        vma->vm_mm = mm;
+        mm->vma_count++;
+        return 1;
+    }
     for(; curr != NULL; curr = curr->vm_next) {
         /* overlapping is bad */
-        if(vma_overlaps(vma, curr))
-            return -1;
+        if(vma_intersects(vma, curr))
+            return 0;
 
         /* After curr? */
         if (curr->vm_end <= vma->vm_start) {
@@ -193,11 +234,13 @@ int mm_add_vma(struct mm_struct *mm, struct vm_area *vma) {
                 /* insert here! */
                 vma->vm_next = curr->vm_next;
                 curr->vm_next = vma;
-                return 0;
+                vma->vm_mm = mm;
+                mm->vma_count++;
+                return 1;
             }
         }
     }
-    return -1;
+    return 0;
 }
 
 /**
@@ -252,12 +295,13 @@ struct vm_area *vma_create(uint64_t vm_start, uint64_t vm_end,
 void vma_destroy(struct vm_area *vma) {
     if(!vma)
         return;
+    if(vma->vm_mm)
+        vma->vm_mm->vma_count--;
+    if(vma->vm_file)
+        vma->vm_file->f_op->close(vma->vm_file); /* fixme: kfree? */
+    /* fixme: free all pages in vm_area. CALL free_pagetbl_range_and_pages */
 
-    if(vma->vm_file) {
-        /* fixme: JUST CALL free_pagetbl_range */
-    } else {
-        /* fixme: free all pages in vm_area. CALL free_pagetbl_range_and_pages */
-    }
+    /* fixme: CAN I FREE vma->vm_file ?? */
     kfree(vma);
 }
 
@@ -320,7 +364,7 @@ struct vm_area *vma_find_type(struct vm_area *vma, vm_type_t type) {
 /**
  * Return 1 if overlapping, 0 if not
  */
-int vma_overlaps(struct vm_area *vma, struct vm_area *other) {
+int vma_intersects(struct vm_area *vma, struct vm_area *other) {
     /* testing if vma intersects with other */
     int whole, middle, clip_left, clip_right;
     whole = vma->vm_start <= other->vm_start
@@ -341,7 +385,7 @@ int vma_overlaps(struct vm_area *vma, struct vm_area *other) {
  * Test vm_area.onfault function.
  * A real onfault will take appropriate actions (map_page(), kill user, etc...)
  */
-int test_onfault(struct vm_area *vma, uint64_t addr) {
+uint64_t onfault_test(struct vm_area *vma, uint64_t addr) {
     char *msg[] = {
         "NOT",
         ""
@@ -349,6 +393,41 @@ int test_onfault(struct vm_area *vma, uint64_t addr) {
     debug("0x%lx is %s in the vm_area\n", addr, msg[vma_contains(vma, addr)]);
     //map_page(....)
     return 0;
+}
+
+/**
+ * Onfault handler for a region with a memory mapped file.
+ * @return: 0 on error,
+ *          otherwise a kernel virt addr to map to the page table
+ */
+uint64_t onfault_mmap_file(struct vm_area *vma, uint64_t addr) {
+    uint64_t page, aligned, toread;
+    off_t offset;
+    ssize_t bytes;
+    if(!vma)
+        kpanic("Null VMA in a page fault!\n");
+    if(!vma_contains(vma, addr))
+        kpanic("VMA doesn't contain addr %p\n", (void*)addr);
+    if(!vma->vm_file)
+        kpanic("onfault_mmap_file called, but VMA has no file\n");
+
+    aligned = ALIGN_DOWN(addr, PAGE_SIZE);
+
+    page = get_free_page(0);
+    if(!page)
+        return 0;
+
+    toread = vma->vm_end - aligned;
+    if(toread > PAGE_SIZE)
+        toread = PAGE_SIZE;
+
+    offset = vma->vm_fstart + (off_t)(aligned - vma->vm_start);
+    bytes = vma->vm_file->f_op->read(vma->vm_file, (char*)page, toread, &offset);
+    if(bytes <= 0)
+        kpanic("Read error on VMA mmapped file during PF!");
+    /* zero extra data, if any */
+    memset((void*)(page + bytes), 0, (size_t)PAGE_SIZE - bytes);
+    return page;
 }
 
 
