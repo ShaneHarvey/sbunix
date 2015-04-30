@@ -1,5 +1,8 @@
 #include <sbunix/tarfs.h>
 #include <sbunix/string.h>
+#include <sbunix/sbunix.h>
+#include <errno.h>
+
 
 #define MIN(a, b) (((a)<(b))?(a):(b))
 

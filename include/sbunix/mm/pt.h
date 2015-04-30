@@ -19,7 +19,7 @@
 #define PT_INDEX(va)   GET_BITS(va, 12, 21)
 
 /* Align down to one page */
-#define PAGE_ALIGN(ptr) ALIGN_DOWN(ptr, 4096)
+#define PAGE_ALIGN(ptr) ALIGN_DOWN(ptr, PAGE_SIZE)
 
 /* Get the physical address field of any page entry, stored in 47-12 (36-bits) */
 #define PE_PHYS_ADDR(pe) ((uint64_t *)((pe) & 0x0000FFFFFFFFF000UL))

@@ -4,6 +4,19 @@
 #include <sys/types.h>
 #include <sbunix/mm/types.h>
 
+struct file {
+    struct file_ops *f_op; /* file ops table */
+    unsigned long f_count; /* file object's usage count */
+    unsigned int f_flags;  /* flags specified on open */
+    off_t f_pos;           /* file offset (file pointer) */
+    unsigned long f_size;  /* file size */
+    int f_error;           /* error code */
+    void *private_data;    /* tty driver hook, for TARFS it points to file's ustar header */
+};
+
+/* for lseek */
+enum { SEEK_SET = 0, SEEK_CUR = 1, SEEK_END = 2 };
+
 struct file_ops {
     off_t (*lseek) (struct file *, off_t, int);
     ssize_t (*read) (struct file *, char *, size_t, off_t *);
@@ -17,19 +30,5 @@ struct file_ops {
                                         unsigned long);
     int (*check_flags) (int flags);
 };
-
-struct file {
-    struct file_ops *f_op; /* file ops table */
-    unsigned long f_count; /* file object's usage count */
-    unsigned int f_flags;  /* flags specified on open */
-    off_t f_pos;           /* file offset (file pointer) */
-    unsigned long f_size;  /* file size */
-    int f_error;           /* error code */
-    void *private_data;    /* tty driver hook, for TARFS it points to file's ustar header */
-};
-
-
-/* for lseek */
-enum { SEEK_SET = 0, SEEK_CUR = 1, SEEK_END = 2 };
 
 #endif //_SBUNIX_VFS_VFS_H
