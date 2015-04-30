@@ -2,6 +2,7 @@
 #include <sbunix/sched.h>
 #include <sbunix/mm/vmm.h>
 #include <sbunix/mm/align.h>
+#include <sbunix/string.h>
 
 /* All kernel tasks use this mm_struct */
 struct mm_struct kernel_mm = {0};
@@ -49,7 +50,7 @@ void scheduler_start(void) {
  * the type will be TASK_KERN.
  * @start: function the task will start at, no arguments and returns void
  */
-struct task_struct *ktask_create(void (*start)(void)) {
+struct task_struct *ktask_create(void (*start)(void), char *name) {
     struct task_struct *task;
     uint64_t *stack;
 
@@ -70,6 +71,7 @@ struct task_struct *ktask_create(void (*start)(void)) {
     task->mm = &kernel_mm;
     kernel_mm.mm_count++;
     task->mm = NULL;
+    task_set_cmdline(task, name);
 
     task_add_new(task); /* add to run queue and task list */
     return task;
@@ -91,6 +93,16 @@ void task_destroy(struct task_struct *task) {
         task->prev_task->next_task = task->next_task;
 
     free_page(ALIGN_DOWN(task->kernel_rsp, PAGE_SIZE));
+}
+
+/**
+ * Set the task cmdline to the string cmdline
+ */
+void task_set_cmdline(struct task_struct *task, char *cmdline) {
+    if(!task)
+        return;
+    strncpy(task->cmdline, cmdline, TASK_CMDLINE_MAX);
+    task->cmdline[TASK_CMDLINE_MAX] = 0;
 }
 
 /**
