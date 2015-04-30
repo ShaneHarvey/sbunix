@@ -8,52 +8,108 @@
  *
  * In page fault handler:
  *      1. Use curr_task to retrieve mm_struct
- *      2. Call vma_find(mm->vmas, fault_addr)
+ *      2. Call vma_find_region(mm->vmas, fault_addr, 0)
  *      3. Call vma->onfault(vma, fault_addr)
  *          * onfault will take appropriate action (map_page(), kill user, etc...)
+ *
+ * In syscalls:
+ *      1. Call validate_userptr()
  */
 
 
 /* Private functions */
+int mm_add_vma(struct mm_struct *mm, struct vm_area *vma);
+void mm_list_add(struct mm_struct *mm);
 int vma_overlaps(struct vm_area *vma, struct vm_area *other);
 int vma_contains(struct vm_area *vma, uint64_t addr);
-void mm_list_add(struct mm_struct *mm);
+int vma_contains_region(struct vm_area *vma, uint64_t addr, size_t size);
+int vma_grow_up(struct vm_area *vma, uint64_t new_end);
+
 
 /**
- * Create an mm_struct
+ * Create an mm_struct for a user.
  */
-struct mm_struct *mm_create(uint64_t start_code,
-                            uint64_t end_code,
-                            uint64_t start_data,
-                            uint64_t end_data) {
+struct mm_struct *mm_create_user(uint64_t start_code, uint64_t end_code,
+                                 uint64_t start_rodata, uint64_t end_rodata,
+                                 uint64_t start_data, uint64_t end_data) {
     struct mm_struct *mm;
+    struct vm_area *vma;
+    mm = mm_create();
+    if(!mm)
+        return NULL;
+    mm->start_code = start_code;
+    mm->end_code = end_code;
+    mm->start_rodata = start_rodata;
+    mm->end_rodata = end_rodata;
+    mm->start_data = start_data;
+    mm->end_data = end_data;
+    mm->brk = mm->start_brk = ALIGN_UP(end_data, PAGE_SIZE);
+    mm->start_stack = USER_STACK_START;
 
+    /* Code vma */
+    vma = vma_create(start_code, end_code, VM_CODE, VM_READ | VM_EXEC);
+    if(!vma)
+        goto out_vma;
+    /* fixme: file? when is code mapped? */
+    mm_add_vma(mm, vma);
+
+    vma = vma_create(start_rodata, end_rodata, VM_RODATA, VM_READ);
+    if(!vma)
+        goto out_vma;
+    /* fixme: when is rodata mapped? */
+    mm_add_vma(mm, vma);
+
+    vma = vma_create(start_data, end_data, VM_DATA, VM_READ | VM_WRITE);
+    if(!vma)
+        goto out_vma;
+    /* fixme: when is data mapped? */
+    mm_add_vma(mm, vma);
+
+    vma = vma_create(mm->start_brk, mm->brk, VM_HEAP, VM_READ | VM_WRITE);
+    if(!vma)
+        goto out_vma;
+    /* fixme: when is heap mapped? */
+    mm_add_vma(mm, vma);
+
+    vma = vma_create(USER_STACK_END, mm->start_stack, VM_STACK, VM_READ | VM_WRITE);
+    if(!vma)
+        goto out_vma;
+    /* fixme: map the stack! */
+    mm_add_vma(mm, vma);
+
+out_vma:
+    mm_destroy(mm);  /* also destroys all vma's */
+    return NULL;
+}
+
+/**
+ * Create an mm_struct.
+ */
+struct mm_struct *mm_create(void) {
+    struct mm_struct *mm;
     mm = kmalloc(sizeof(*mm));
     if(!mm)
         return NULL;
 
-    mm->vmas = NULL;
-    mm->pgd = NULL; /* todo: when do we copy pt's ??? */
+    memset(mm, 0, sizeof(*mm));
+    /* todo: when do we copy pt's ??? */
     mm->mm_count = 1;
-    mm->vma_count = 0;
     mm_list_add(mm);
-    mm->start_code = start_code;
-    mm->end_code = end_code;
-    mm->start_data = start_data;
-    mm->end_data = end_data;
-
-    mm->brk = mm->start_brk = ALIGN_UP(end_data, PAGE_SIZE);
-    mm->start_stack = USER_START_STACK;
     return mm;
 }
 
-
+/**
+ * Decrement the reference count of the mm, if mm_count goes to 0:
+ *      * Free all the vma's and then mm struct itself.
+ * Does NOT destroy the page tables!!
+ */
 void mm_destroy(struct mm_struct *mm) {
     if(!mm)
         return;
 
     if(--mm->mm_count <= 0) {
-        /* fixme: free all vma's, free page tables */
+        vma_destroy_all(mm);
+
         if(mm->mm_next) {
             mm->mm_next->mm_prev = mm->mm_prev;
         }
@@ -64,6 +120,29 @@ void mm_destroy(struct mm_struct *mm) {
         kfree(mm);
     }
 }
+
+
+/**
+ * Real work for srbk()
+ *    new break     -- on success
+ *    current break -- on failure
+ */
+uint64_t mm_do_sys_sbrk(struct mm_struct *mm, uint64_t newbrk) {
+    if(!mm)
+        return (uint64_t)-1;
+    if(newbrk <= mm->brk)
+        return mm->brk;
+    else {
+        struct vm_area *vma = vma_find_type(mm->vmas, VM_HEAP);
+        if(!vma)
+            kpanic("No heap vm area found!\n");
+        if(-1 == vma_grow_up(vma, ALIGN_UP(newbrk, PAGE_SIZE)))
+            return mm->brk;
+        else
+            return newbrk;
+    }
+}
+
 
 /**
  * Add the mm to the list of ALL mm_structs in the system.
@@ -89,7 +168,7 @@ void mm_list_add(struct mm_struct *mm) {
 
 /**
  * Add a vma into the vma list of mm.
- * NOTE: Must add lowest address area first (text vm_area)
+ * fixme: Must add lowest address area first (text vm_area)
  */
 int mm_add_vma(struct mm_struct *mm, struct vm_area *vma) {
     struct vm_area *curr;
@@ -121,6 +200,31 @@ int mm_add_vma(struct mm_struct *mm, struct vm_area *vma) {
     return -1;
 }
 
+/**
+ * Checks if the user pointer is within a valid virtual memory area.
+ * If it is, map the corresponding page if it is not present in the
+ * page table.
+ * @return:  0 if userp is valid and is safe to use (mapped), or
+ *          -1 if not valid,
+ *          -2 if mapping failed (example: no memory)
+ */
+int validate_userptr(struct mm_struct *mm, userptr_t userp, size_t size) {
+    struct vm_area *vma;
+    int present = 0;
+
+    vma = vma_find_region(mm->vmas, (uint64_t)userp, size);
+    if(!vma)
+        return -1;  /* not valid */
+
+    /* fixme!!!! magic test if page present */
+    if(present) {
+        return 0; /* valid and present, won't page fault */
+    }
+
+    return -1;
+}
+
+
 /******************/
 /* VMA operations */
 /******************/
@@ -128,12 +232,14 @@ int mm_add_vma(struct mm_struct *mm, struct vm_area *vma) {
 /**
  * Allocate and fill a vm_area.
  */
-struct vm_area *vma_create(uint64_t vm_start, uint64_t vm_end, ulong vm_prot) {
+struct vm_area *vma_create(uint64_t vm_start, uint64_t vm_end,
+                           vm_type_t type, ulong vm_prot) {
     struct vm_area *vma;
     vma = kmalloc(sizeof(*vma));
     if(!vma)
         return NULL;
     memset(vma, 0, sizeof(*vma));
+    vma->vm_type = type;
     vma->vm_start = vm_start;
     vma->vm_end = vm_end;
     vma->vm_prot = vm_prot;
@@ -144,12 +250,34 @@ struct vm_area *vma_create(uint64_t vm_start, uint64_t vm_end, ulong vm_prot) {
  * Free a vm_area.
  */
 void vma_destroy(struct vm_area *vma) {
-    /* todo: free all pages in vm_area */
+    if(!vma)
+        return;
+
+    if(vma->vm_file) {
+        /* fixme: JUST CALL free_pagetbl_range */
+    } else {
+        /* fixme: free all pages in vm_area. CALL free_pagetbl_range_and_pages */
+    }
     kfree(vma);
 }
 
 /**
- * Return 1 if vma contains the address addr, 0 otherwise.
+ * Free all the vma's in a mm_struct
+ */
+void vma_destroy_all(struct mm_struct *mm) {
+    struct vm_area *prev, *next;
+    if(!mm)
+        return;
+
+    for(prev = mm->vmas; prev != NULL; prev = next) {
+        next = prev->vm_next;
+        vma_destroy(prev);
+    }
+}
+
+/**
+ * @return: 1 if vma contains the address addr,
+ *          0 otherwise.
  */
 int vma_contains(struct vm_area *vma, uint64_t addr) {
     if(!vma)
@@ -158,12 +286,33 @@ int vma_contains(struct vm_area *vma, uint64_t addr) {
 }
 
 /**
- * Find a vma containing the user virtual address addr.
- * Return NULL if not found.
+ * @return: 1 if vma contains the full region [addr, addr+size)
+ *          0 otherwise
  */
-struct vm_area *vma_find(struct vm_area *vma, uint64_t addr) {
+int vma_contains_region(struct vm_area *vma, uint64_t addr, size_t size) {
+    if(!vma)
+        return 0;
+    return (vma->vm_start <= addr && (addr+size) < vma->vm_end);
+}
+
+/**
+ * Find a vma containing the user virtual address addr.
+ * @return: NULL if not found.
+ */
+struct vm_area *vma_find_region(struct vm_area *vma, uint64_t addr, size_t size) {
     for(; vma != NULL; vma = vma->vm_next)
-        if(vma_contains(vma, addr))
+        if(vma_contains_region(vma, addr, size))
+            break;
+    return vma;
+}
+
+/**
+ * Find the first vma of type type
+ * @return: NULL if not found.
+ */
+struct vm_area *vma_find_type(struct vm_area *vma, vm_type_t type) {
+    for(; vma != NULL; vma = vma->vm_next)
+        if(vma->vm_type == type)
             break;
     return vma;
 }
@@ -194,11 +343,29 @@ int vma_overlaps(struct vm_area *vma, struct vm_area *other) {
  */
 int test_onfault(struct vm_area *vma, uint64_t addr) {
     char *msg[] = {
-        "is not in",
-        "is in"
+        "NOT",
+        ""
     };
-    debug("0x%lx %s the vm_area\n", addr, msg[vma_contains(vma, addr)]);
+    debug("0x%lx is %s in the vm_area\n", addr, msg[vma_contains(vma, addr)]);
     //map_page(....)
     return 0;
 }
 
+
+/**
+ * Set the vma's vm_end to the page aligned new_end.
+ * @new_end: MUST be page aligned!!
+ * @return: 0 if extended
+ *          -1 if new_end is less than the current or it hits the next vm area
+ */
+int vma_grow_up(struct vm_area *vma, uint64_t new_end) {
+    if(!vma)
+        return -1;
+    if(new_end < vma->vm_end)
+        return -1;
+    if(vma->vm_next && new_end <= vma->vm_next->vm_start) {
+        vma->vm_end = new_end;
+        return 0;
+    }
+    return -1;  /* new_end would overlap next vm area */
+}

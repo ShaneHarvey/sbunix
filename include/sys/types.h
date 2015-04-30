@@ -14,4 +14,6 @@ typedef unsigned long ino_t;
 typedef long int time_t;
 typedef long int suseconds_t;
 
+typedef void * userptr_t;
+
 #endif

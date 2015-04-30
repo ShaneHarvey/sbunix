@@ -6,9 +6,9 @@ typedef uint64_t pgd_t;
 
 /* Maybe don't use this and just add vm_ops inside vma struct */
 typedef enum {
-    VM_TEXT,
+    VM_CODE,
     VM_RODATA,
-    VM_RWDATA,
+    VM_DATA,
     VM_HEAP,
     VM_MMAP_ANON,
     VM_MMAP_FILE,
@@ -49,6 +49,8 @@ struct mm_struct {
     struct mm_struct *mm_next;     /* list of all mm_structs */
     uint64_t         start_code;   /* start address of code */
     uint64_t         end_code;     /* final address of code */
+    uint64_t         start_rodata; /* start address of read only data */
+    uint64_t         end_rodata;   /* final address of read only data */
     uint64_t         start_data;   /* start address of data */
     uint64_t         end_data;     /* final address of data */
     uint64_t         start_brk;    /* start address of heap */
