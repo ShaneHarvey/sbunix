@@ -43,5 +43,8 @@ void kmain(void) {
         schedule();
     }
     test_read_tarfs();
+    test_all_tarfs("/bin/sbush");
+    test_all_tarfs("/bin/sbus");
+    test_all_tarfs("/bin/");
     kpanic("\nReturned to kmain!!!\n");
 }

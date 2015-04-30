@@ -32,6 +32,14 @@ extern char _binary_tarfs_end;   /* Ending label of tarfs in kernel memory */
 
 extern struct file_ops tarfs_file_ops; /* File hooks implemented by Tarfs */
 
+#define TARFS_NORMAL_FILE_1   '0'
+#define TARFS_NORMAL_FILE_2   '\0'
+#define TARFS_HARD_LINK       '1'
+#define TARFS_SYMBOLIC_LINK   '2'
+#define TARFS_CHARACTER       '3'
+#define TARFS_BLOCK           '4'
+#define TARFS_DIRECTORY       '5'
+
 struct posix_header_ustar {
     char name[100];
     char mode[8];
@@ -54,6 +62,17 @@ struct posix_header_ustar {
 
 uint64_t aotoi(char *optr, int length);
 void test_aotoi(void);
+
+/**
+ * Return the first tarfs header in the file system
+ */
+static inline int tarfs_isfile(struct posix_header_ustar *hd) {
+    if(!hd)
+        return 0;
+    else
+        return hd->typeflag == TARFS_NORMAL_FILE_1 ||
+                hd->typeflag == TARFS_NORMAL_FILE_2;
+}
 
 /**
  * Return the first tarfs header in the file system
@@ -86,6 +105,7 @@ static inline struct posix_header_ustar *tarfs_next(struct posix_header_ustar *c
 }
 
 void test_read_tarfs(void);
+void test_all_tarfs(const char *path);
 
 /* Tarfs file operations */
 off_t tarfs_lseek(struct file *fp, off_t offset, int origin);
@@ -95,6 +115,7 @@ ssize_t tarfs_write(struct file *fp, const char *buf, size_t count,
 //int tarfs_readdir(struct file *fp, void *dirent, filldir_t filldir);
 int tarfs_mmap(struct file *fp, struct vm_area *vma);
 int tarfs_open(const char *path, struct file *fp);
+int tarfs_close(struct file *fp);
 unsigned long tarfs_get_unmapped_area(struct file *fp, unsigned long addr,
                                 unsigned long len, unsigned long offset,
                                 unsigned long flags);

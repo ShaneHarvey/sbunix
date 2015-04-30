@@ -11,6 +11,7 @@ struct file_ops {
 //    int (*readdir) (struct file *, void *, filldir_t);
     int (*mmap) (struct file *, struct vm_area *);
     int (*open) (const char *, struct file *);
+    int (*close) (struct file *);
     unsigned long (*get_unmapped_area) (struct file *, unsigned long,
                                         unsigned long, unsigned long,
                                         unsigned long);
@@ -26,5 +27,9 @@ struct file {
     int f_error;           /* error code */
     void *private_data;    /* tty driver hook, for TARFS it points to file's ustar header */
 };
+
+
+/* for lseek */
+enum { SEEK_SET = 0, SEEK_CUR = 1, SEEK_END = 2 };
 
 #endif //_SBUNIX_VFS_VFS_H
