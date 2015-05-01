@@ -3,6 +3,7 @@
 #include <sbunix/string.h>
 #include <sbunix/vfs/vfs.h>
 #include <errno.h>
+#include <sbunix/mm/pt.h>
 
 /*
  * Virtual Memory for user processes, should be mostly operations on
@@ -29,65 +30,44 @@ int vma_grow_up(struct vm_area *vma, uint64_t new_end);
 
 
 /**
- * Create an mm_struct for a user.
- */
-struct mm_struct *mm_create_user(uint64_t start_code, uint64_t end_code,
-                                 uint64_t start_data, uint64_t end_data) {
-    struct mm_struct *mm;
-    struct vm_area *vma;
-    mm = mm_create();
-    if(!mm)
-        return NULL;
-    mm->brk = mm->start_brk = ALIGN_UP(end_data, PAGE_SIZE);
-    mm->start_stack = USER_STACK_START;
-
-    /* Code vma */
-    vma = vma_create(start_code, end_code, VM_CODE, VM_READ | VM_EXEC);
-    if(!vma)
-        goto out_vma;
-    /* fixme: file? when is code mapped? */
-    mm_add_vma(mm, vma);
-
-    vma = vma_create(start_data, end_data, VM_DATA, VM_READ | VM_WRITE);
-    if(!vma)
-        goto out_vma;
-    /* fixme: when is data mapped? */
-    mm_add_vma(mm, vma);
-
-    vma = vma_create(mm->start_brk, mm->brk, VM_HEAP, VM_READ | VM_WRITE);
-    if(!vma)
-        goto out_vma;
-    /* fixme: when is heap mapped? */
-    mm_add_vma(mm, vma);
-
-    vma = vma_create(USER_STACK_END, mm->start_stack, VM_STACK, VM_READ | VM_WRITE);
-    if(!vma)
-        goto out_vma;
-    /* fixme: map the stack! */
-    mm_add_vma(mm, vma);
-
-out_vma:
-    mm_destroy(mm);  /* also destroys all vma's */
-    return NULL;
-}
-
-/**
  * Adds a heap vm area above the last currently in user_mm's vm areas.
  * Called after loading loadable segments from the ELF file.
- * @return: 1 on success, 0 on error
+ * @return: 0 on success, -errno on failure
  */
 int add_heap(struct mm_struct *user) {
     struct vm_area *vma, *heap;
     if(!user || !user->vmas)
-        return 0;
+        return -EINVAL;
     for(vma = user->vmas; vma->vm_next != NULL; vma = vma->vm_next) {
     }
     /* Heap starts after the other sections */
     user->start_brk = user->brk = ALIGN_UP(vma->vm_end + 1, PAGE_SIZE);
     /* Initially size is 0 */
-    heap = vma_create(user->start_brk, user->brk, VM_HEAP, VM_READ | VM_WRITE);
-    vma->onfault = onfault_mmap_anon;
-    /* fixme: finish */
+    heap = vma_create(user->start_brk, user->brk, VM_HEAP, PFLAG_RW);
+    heap->onfault = onfault_mmap_anon;
+    heap->vm_mm = user;
+    user->vma_count++;
+    vma->vm_next = heap;
+    return 0;
+}
+
+/**
+ * Add the stack vm area.
+ */
+int add_stack(struct mm_struct *user, char *envp[], char *args[]) {
+    struct vm_area *stack;
+    user->start_stack = USER_STACK_START;
+    stack = vma_create(USER_STACK_END, USER_STACK_START, VM_STACK, PFLAG_RW);
+    if(!stack)
+        return -ENOMEM;
+    if(mm_add_vma(user, stack)) {
+        vma_destroy(stack);
+        return -EINVAL;
+    }
+    stack->onfault = onfault_mmap_anon;
+    /* TODO: copy envp and args to new stack */
+    user->user_rsp = USER_STACK_START - 32;
+    return 0;
 }
 
 /**
@@ -103,7 +83,7 @@ int add_heap(struct mm_struct *user) {
  * @return: 0 on error, 1 on success
  */
 int mmap_area(struct mm_struct *mm, struct file *filep,
-              off_t fstart, size_t fsize, ulong prot,
+              off_t fstart, size_t fsize, uint64_t prot,
               uint64_t vm_start, uint64_t vm_end) {
 
     struct vm_area *vma;
@@ -216,7 +196,7 @@ void mm_list_add(struct mm_struct *mm) {
 
 /**
  * Add a vma into the vma list of mm.
- * @return: 1 if added, 0 if not added
+ * @return: 0 if added, -1 on error.
  */
 int mm_add_vma(struct mm_struct *mm, struct vm_area *vma) {
     struct vm_area *curr;
@@ -230,12 +210,12 @@ int mm_add_vma(struct mm_struct *mm, struct vm_area *vma) {
         mm->vmas = vma;
         vma->vm_mm = mm;
         mm->vma_count++;
-        return 1;
+        return 0;
     }
     for(; curr != NULL; curr = curr->vm_next) {
         /* overlapping is bad */
         if(vma_intersects(vma, curr))
-            return 0;
+            return -1;
 
         /* After curr? */
         if (curr->vm_end <= vma->vm_start) {
@@ -246,11 +226,11 @@ int mm_add_vma(struct mm_struct *mm, struct vm_area *vma) {
                 curr->vm_next = vma;
                 vma->vm_mm = mm;
                 mm->vma_count++;
-                return 1;
+                return 0;
             }
         }
     }
-    return 0;
+    return -1;
 }
 
 /**
@@ -295,7 +275,7 @@ struct vm_area *vma_create(uint64_t vm_start, uint64_t vm_end,
     vma->vm_type = type;
     vma->vm_start = vm_start;
     vma->vm_end = vm_end;
-    vma->vm_prot = vm_prot;
+    vma->vm_prot = vm_prot | PFLAG_US;
     return vma;
 }
 
@@ -399,7 +379,7 @@ uint64_t onfault_test(struct vm_area *vma, uint64_t addr) {
  * @return: 0 on error,
  *          otherwise a kernel virt addr to map to the page table
  */
-uint64_t onfault_mmap_file(struct vm_area *vma, uint64_t addr) {
+int onfault_mmap_file(struct vm_area *vma, uint64_t addr) {
     uint64_t page, aligned, toread;
     off_t offset;
     ssize_t bytes;
@@ -410,38 +390,48 @@ uint64_t onfault_mmap_file(struct vm_area *vma, uint64_t addr) {
     if(!vma->vm_file)
         kpanic("onfault_mmap_file called, but VMA has no file\n");
 
-    aligned = ALIGN_DOWN(addr, PAGE_SIZE);
-
     page = get_free_page(0);
     if(!page)
-        return 0;
+        return -ENOMEM;
 
-    toread = vma->vm_end - aligned;
-    if(toread > PAGE_SIZE)
-        toread = PAGE_SIZE;
+    aligned = ALIGN_DOWN(addr, PAGE_SIZE);
+    if(aligned > vma->vm_start + vma->vm_fsize) {
+        /* ANON */
+        memset((void*)page, 0, PAGE_SIZE);
+    } else {
+        /* read from file (still account for boundary being within this page) */
+        toread = (vma->vm_start + vma->vm_fsize) - aligned;
+        if(toread > PAGE_SIZE)
+            toread = PAGE_SIZE;
 
-    offset = vma->vm_fstart + (off_t)(aligned - vma->vm_start);
-    bytes = vma->vm_file->f_op->read(vma->vm_file, (char*)page, toread, &offset);
-    if(bytes <= 0)
-        kpanic("Read error on VMA mmapped file during PF!");
-    /* zero extra data, if any */
-    memset((void*)(page + bytes), 0, (size_t)PAGE_SIZE - bytes);
-    return page;
+        offset = vma->vm_fstart + (off_t)(aligned - vma->vm_start);
+        bytes = vma->vm_file->f_op->read(vma->vm_file, (char*)page, toread, &offset);
+        if(bytes <= 0)
+            kpanic("Read error on VMA mmapped file during PF!");
+        /* zero extra data, if any */
+        memset((void*)(page + bytes), 0, (size_t)PAGE_SIZE - bytes);
+    }
+
+    return map_page(aligned, kvirt_to_phys(page), vma->vm_prot);
 }
 
 /**
  * Onfault handler for a region with a memory mapped file.
- * @return: 0 on error,
- *          otherwise a kernel virt addr to map to the page table
+ * @return:
  */
-uint64_t onfault_mmap_anon(struct vm_area *vma, uint64_t addr) {
-    uint64_t page;
+int onfault_mmap_anon(struct vm_area *vma, uint64_t addr) {
+    uint64_t physpage, aligned;
     if(!vma)
         kpanic("Null VMA in a page fault!\n");
     if(!vma_contains(vma, addr))
         kpanic("VMA doesn't contain addr %p\n", (void*)addr);
 
-    return 0;
+    physpage = get_zero_page();
+    if(!physpage)
+        return -ENOMEM;
+    aligned = ALIGN_DOWN(addr, PAGE_SIZE);
+
+    return map_page(aligned, physpage, vma->vm_prot);
 }
 
 

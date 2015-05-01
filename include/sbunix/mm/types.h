@@ -18,11 +18,6 @@ typedef enum {
     VM_STACK
 } vm_type_t;
 
-/* Bit flags for vm_prot */
-#define VM_READ     1
-#define VM_WRITE    2
-#define VM_EXEC     4
-
 /*
  * This struct defines a memory VMM memory area. There is one of these
  * per VM-area/task.  A VM area is any part of the process virtual memory
@@ -35,9 +30,9 @@ struct vm_area {
     uint64_t              vm_start; /* VMA start, inclusive */
     uint64_t              vm_end;   /* VMA end , exclusive */
     struct vm_area        *vm_next; /* list of VMA's */
-    ulong                 vm_prot;  /* access permissions */
+    uint64_t               vm_prot;  /* page tbl entry flags, pt.h */
     /* called by the page fault handler */
-    uint64_t              (*onfault) (struct vm_area *, uint64_t);
+    int                  (*onfault) (struct vm_area *, uint64_t);
     struct file           *vm_file; /* mapped file, if any */
     off_t                 vm_fstart;/* starting offset into the file */
     size_t                vm_fsize; /* size of the file */
@@ -60,6 +55,7 @@ struct mm_struct {
     uint64_t         start_brk;    /* start address of heap */
     uint64_t         brk;          /* final address of heap */
     uint64_t         start_stack;  /* start address of stack */
+    uint64_t         user_rsp;     /* entry user stack pointer */
     uint64_t         arg_start;    /* start of arguments */
     uint64_t         arg_end;      /* end of arguments */
     uint64_t         env_start;    /* start of environment */
