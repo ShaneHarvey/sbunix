@@ -2,6 +2,7 @@
 #include <sbunix/sched.h>
 #include <sbunix/string.h>
 #include <sbunix/vfs/vfs.h>
+#include <errno.h>
 
 /*
  * Virtual Memory for user processes, should be mostly operations on
@@ -31,19 +32,12 @@ int vma_grow_up(struct vm_area *vma, uint64_t new_end);
  * Create an mm_struct for a user.
  */
 struct mm_struct *mm_create_user(uint64_t start_code, uint64_t end_code,
-                                 uint64_t start_rodata, uint64_t end_rodata,
                                  uint64_t start_data, uint64_t end_data) {
     struct mm_struct *mm;
     struct vm_area *vma;
     mm = mm_create();
     if(!mm)
         return NULL;
-    mm->start_code = start_code;
-    mm->end_code = end_code;
-    mm->start_rodata = start_rodata;
-    mm->end_rodata = end_rodata;
-    mm->start_data = start_data;
-    mm->end_data = end_data;
     mm->brk = mm->start_brk = ALIGN_UP(end_data, PAGE_SIZE);
     mm->start_stack = USER_STACK_START;
 
@@ -52,12 +46,6 @@ struct mm_struct *mm_create_user(uint64_t start_code, uint64_t end_code,
     if(!vma)
         goto out_vma;
     /* fixme: file? when is code mapped? */
-    mm_add_vma(mm, vma);
-
-    vma = vma_create(start_rodata, end_rodata, VM_RODATA, VM_READ);
-    if(!vma)
-        goto out_vma;
-    /* fixme: when is rodata mapped? */
     mm_add_vma(mm, vma);
 
     vma = vma_create(start_data, end_data, VM_DATA, VM_READ | VM_WRITE);
@@ -84,40 +72,61 @@ out_vma:
 }
 
 /**
+ * Adds a heap vm area above the last currently in user_mm's vm areas.
+ * Called after loading loadable segments from the ELF file.
+ * @return: 1 on success, 0 on error
+ */
+int add_heap(struct mm_struct *user) {
+    struct vm_area *vma, *heap;
+    if(!user || !user->vmas)
+        return 0;
+    for(vma = user->vmas; vma->vm_next != NULL; vma = vma->vm_next) {
+    }
+    /* Heap starts after the other sections */
+    user->start_brk = user->brk = ALIGN_UP(vma->vm_end + 1, PAGE_SIZE);
+    /* Initially size is 0 */
+    heap = vma_create(user->start_brk, user->brk, VM_HEAP, VM_READ | VM_WRITE);
+    vma->onfault = onfault_mmap_anon;
+    /* fixme: finish */
+}
+
+/**
  * Add a new vma into the mm struct. It is either a mmapped area
  * with a file backing, or an anon mmapped region.
  * @filep: NULL in anon mmap
  * @fstart: starting offset in the file, ignored if filep == NULL
+ * @fsize: portion of the file being mapped
  * @prot: e.g. VM_READ, VM_EXEC, ...
- * @type: e.g. VM_HEAP, VM_STACK, ...
  * @vm_start: start of vma
  * @vm_end: end of vma
- * @onfault: called on a page fault within the region
  *
  * @return: 0 on error, 1 on success
  */
 int mmap_area(struct mm_struct *mm, struct file *filep,
-              off_t fstart, ulong prot, vm_type_t type,
-              uint64_t vm_start, uint64_t vm_end,
-              uint64_t (*onfault) (struct vm_area *, uint64_t)) {
+              off_t fstart, size_t fsize, ulong prot,
+              uint64_t vm_start, uint64_t vm_end) {
 
     struct vm_area *vma;
     if(!mm)
-        return 0;
+        return -EINVAL;
 
-    vma = vma_create(vm_start, vm_end, type, prot);
+    vma = vma_create(vm_start, vm_end, VM_MMAP, prot);
     if(!vma)
-        return 0;
+        return -ENOMEM;
     if(!mm_add_vma(mm, vma)) {
         vma_destroy(vma);
-        return 0;
+        return -EINVAL;
     }
-    vma->vm_file = filep;
-    if(filep)
+    if(filep) {
         filep->f_count++;
-    vma->vm_fstart = fstart;
-    vma->onfault = onfault;
-    return 1;
+        vma->vm_file = filep;
+        vma->vm_fstart = fstart;
+        vma->vm_fsize = fsize;
+        vma->onfault = onfault_mmap_file;
+    } else {
+        vma->onfault = onfault_mmap_anon;
+    }
+    return 0;
 }
 
 /**
@@ -171,10 +180,11 @@ uint64_t mm_do_sys_sbrk(struct mm_struct *mm, uint64_t newbrk) {
     if(newbrk <= mm->brk)
         return mm->brk;
     else {
-        struct vm_area *vma = vma_find_type(mm->vmas, VM_HEAP);
-        if(!vma)
+        /* find the heap vma */
+        struct vm_area *heap = vma_find_region(mm->vmas, mm->start_brk, 0);
+        if(!heap)
             kpanic("No heap vm area found!\n");
-        if(-1 == vma_grow_up(vma, ALIGN_UP(newbrk, PAGE_SIZE)))
+        if(-1 == vma_grow_up(heap, ALIGN_UP(newbrk, PAGE_SIZE)))
             return mm->brk;
         else
             return newbrk;
@@ -351,17 +361,6 @@ struct vm_area *vma_find_region(struct vm_area *vma, uint64_t addr, size_t size)
 }
 
 /**
- * Find the first vma of type type
- * @return: NULL if not found.
- */
-struct vm_area *vma_find_type(struct vm_area *vma, vm_type_t type) {
-    for(; vma != NULL; vma = vma->vm_next)
-        if(vma->vm_type == type)
-            break;
-    return vma;
-}
-
-/**
  * Return 1 if overlapping, 0 if not
  */
 int vma_intersects(struct vm_area *vma, struct vm_area *other) {
@@ -428,6 +427,21 @@ uint64_t onfault_mmap_file(struct vm_area *vma, uint64_t addr) {
     /* zero extra data, if any */
     memset((void*)(page + bytes), 0, (size_t)PAGE_SIZE - bytes);
     return page;
+}
+
+/**
+ * Onfault handler for a region with a memory mapped file.
+ * @return: 0 on error,
+ *          otherwise a kernel virt addr to map to the page table
+ */
+uint64_t onfault_mmap_anon(struct vm_area *vma, uint64_t addr) {
+    uint64_t page;
+    if(!vma)
+        kpanic("Null VMA in a page fault!\n");
+    if(!vma_contains(vma, addr))
+        kpanic("VMA doesn't contain addr %p\n", (void*)addr);
+
+    return 0;
 }
 
 

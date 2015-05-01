@@ -12,6 +12,7 @@ typedef enum {
     VM_RODATA,
     VM_DATA,
     VM_HEAP,
+    VM_MMAP,
     VM_MMAP_ANON,
     VM_MMAP_FILE,
     VM_STACK
@@ -39,6 +40,7 @@ struct vm_area {
     uint64_t              (*onfault) (struct vm_area *, uint64_t);
     struct file           *vm_file; /* mapped file, if any */
     off_t                 vm_fstart;/* starting offset into the file */
+    size_t                vm_fsize; /* size of the file */
 };
 
 /* Fixme: work in progress */

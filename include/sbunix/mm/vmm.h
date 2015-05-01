@@ -11,14 +11,12 @@
 /* mm_struct functions */
 
 struct mm_struct *mm_create_user(uint64_t start_code, uint64_t end_code,
-                                 uint64_t start_rodata, uint64_t end_rodata,
                                  uint64_t start_data, uint64_t end_data);
 struct mm_struct *mm_create(void);
 void              mm_destroy(struct mm_struct *mm);
 int               mmap_area(struct mm_struct *mm, struct file *filep,
-                            off_t fstart, ulong prot, vm_type_t type,
-                            uint64_t vm_start, uint64_t vm_end,
-                            uint64_t (*onfault) (struct vm_area *, uint64_t));
+                            off_t fstart, size_t fsize, ulong prot,
+                            uint64_t vm_start, uint64_t vm_end);
 uint64_t          mm_do_sys_sbrk(struct mm_struct *mm, uint64_t newbrk);
 
 
@@ -29,7 +27,9 @@ struct vm_area *vma_create(uint64_t vm_start, uint64_t vm_end,
 void            vma_destroy(struct vm_area *vma);
 void            vma_destroy_all(struct mm_struct *mm);
 struct vm_area *vma_find_region(struct vm_area *vma, uint64_t addr, size_t size);
-struct vm_area *vma_find_type(struct vm_area *vma, vm_type_t type);
 
+/* onfault's */
+uint64_t onfault_mmap_file(struct vm_area *vma, uint64_t addr);
+uint64_t onfault_mmap_anon(struct vm_area *vma, uint64_t addr);
 
 #endif
