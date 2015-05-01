@@ -376,5 +376,7 @@ int validate_elf64_hdr(Elf64_Ehdr *hdr);
 int elf_validiate_exec(struct file *fp);
 void elf_test_load(char *filename);
 void elf_print_phdr(Elf64_Phdr *phdr);
+int elf_load(struct file *fp, struct mm_struct *mm);
+
 
 #endif //_SBUNIX_ELF64_H

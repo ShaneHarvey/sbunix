@@ -54,7 +54,7 @@ int add_heap(struct mm_struct *user) {
 /**
  * Add the stack vm area.
  */
-int add_stack(struct mm_struct *user, char *envp[], char *args[]) {
+int add_stack(struct mm_struct *user, char *argv[], char *envp[]) {
     struct vm_area *stack;
     user->start_stack = USER_STACK_START;
     stack = vma_create(USER_STACK_END, USER_STACK_START, VM_STACK, PFLAG_RW);
@@ -119,7 +119,12 @@ struct mm_struct *mm_create(void) {
         return NULL;
 
     memset(mm, 0, sizeof(*mm));
-    /* todo: when do we copy pt's ??? */
+    /* Create a copy of the kernel page tables */
+    mm->pml4 = copy_kernel_pml4();
+    if(mm->pml4 == 0) {
+        kfree(mm);
+        return NULL;
+    }
     mm->mm_count = 1;
     mm_list_add(mm);
     return mm;

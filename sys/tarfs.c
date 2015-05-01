@@ -237,6 +237,7 @@ int tarfs_open(const char *path, struct file *fp) {
             fp->f_error = 0;
             fp->f_op = &tarfs_file_ops;
             fp->f_flags = 0;
+            fp->f_count = 1;
             return 0;
         }
     }
@@ -251,9 +252,12 @@ int tarfs_open(const char *path, struct file *fp) {
 int tarfs_close(struct file *fp) {
     if(!fp)
         kpanic("file is NULL!!!\n");
-    if(fp->f_count > 1)
-        kpanic("file reference count=%d\n", fp->f_count);
-    memset(fp, 0, sizeof(struct file));
+    if(fp->f_count > 1) {
+        fp->f_count--;
+    } else {
+        memset(fp, 0, sizeof(struct file));
+        kfree(fp);
+    }
     return 0;
 }
 

@@ -1,6 +1,7 @@
 #include <sbunix/sbunix.h>
 #include <sbunix/sched.h>
 #include <sbunix/mm/vmm.h>
+#include <sbunix/mm/pt.h>
 #include <sbunix/mm/align.h>
 #include <sbunix/string.h>
 
@@ -36,8 +37,7 @@ void task_add_new(struct task_struct *task);
 
 void scheduler_init(void) {
     /* set the kernel's page table to the initial pagetable */
-    /* fixme: use kernel_pt not read_cr3() */
-    kernel_mm.pgd = (pgd_t*)read_cr3();
+    kernel_mm.pml4 = kernel_pt;
     kernel_mm.mm_count++; /* plus 1 for the kernel itself? */
 }
 
@@ -199,7 +199,7 @@ struct task_struct *pick_next_task(void) {
  */
 void switch_mm(struct mm_struct *prev, struct mm_struct *next) {
     if(prev != next) {
-        write_cr3((uint64_t)next->pgd);
+        write_cr3(next->pml4);
     }
 }
 

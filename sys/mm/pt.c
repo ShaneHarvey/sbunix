@@ -2,6 +2,7 @@
 #include <sbunix/mm/align.h>
 #include <sbunix/mm/pt.h>
 #include <sbunix/string.h>
+#include <errno.h>
 
 #define PAGE_SIZE   4096
 /* Construct virtual addresses which point to the PTE of a given virtual address */
@@ -257,21 +258,19 @@ int map_page(uint64_t virt_addr, uint64_t phy_addr, uint64_t pte_flags) {
     if(!_ensure_present_pml4e(virt_addr) ||
        !_ensure_present_pdpte(virt_addr) ||
        !_ensure_present_pde(virt_addr)) {
-        return 0;
+        return -ENOMEM;
     }
     /* "Magic" address points to the pte we want to overwrite */
     magic = VA_PTE(virt_addr);
     old_pte = *magic;
-    if(PTE_PRESENT(old_pte)) {
+    if(PTE_PRESENT(old_pte))
         kpanic("Error: tried to remap present pte 0x%lx\n", old_pte);
-        return 0;
-    } else {
-        uint64_t new_pte = phy_addr | pte_flags | PFLAG_P;
-        debug("Adding PML4[%ld]->PDPT[%ld]->PD[%ld]->PT[%ld]=0x%lx\n",
-              PML4_INDEX(virt_addr), PDPT_INDEX(virt_addr), PD_INDEX(virt_addr), PT_INDEX(virt_addr), new_pte);
-        *magic = new_pte;
-    }
-    return 1;
+
+    uint64_t new_pte = phy_addr | pte_flags | PFLAG_P;
+    debug("Adding PML4[%ld]->PDPT[%ld]->PD[%ld]->PT[%ld]=0x%lx\n",
+          PML4_INDEX(virt_addr), PDPT_INDEX(virt_addr), PD_INDEX(virt_addr), PT_INDEX(virt_addr), new_pte);
+    *magic = new_pte;
+    return 0;
 }
 
 
@@ -477,7 +476,7 @@ void pt_test_map(void) {
     uint64_t phys_page = get_zero_page();
     uint64_t va = 0x000000001000;
     debug("Attempting to map physa 0x%lx to va 0x%lx\n", phys_page, va);
-    if(map_page(va, phys_page, PFLAG_RW)) {
+    if(!map_page(va, phys_page, PFLAG_RW)) {
         debug("Mapped virtual 0x%lx to physical 0x%lx, data 0x%lx\n", va, phys_page, *(uint64_t *)va);
     } else {
         kpanic("Failed to map!\n");

@@ -3,9 +3,6 @@
 
 #include <sys/types.h>
 
-/* An address of a top level page table */
-typedef uint64_t pgd_t;
-
 /* Maybe don't use this and just add vm_ops inside vma struct */
 typedef enum {
     VM_CODE,
@@ -41,7 +38,7 @@ struct vm_area {
 /* Fixme: work in progress */
 struct mm_struct {
     struct vm_area   *vmas;        /* list of memory areas */
-    pgd_t            *pgd;         /* page global directory */
+    uint64_t         pml4;         /* page global directory */
     int              mm_count;     /* primary usage counter */
     int              vma_count;    /* number of memory areas */
     struct mm_struct *mm_prev;     /* list of all mm_structs */
