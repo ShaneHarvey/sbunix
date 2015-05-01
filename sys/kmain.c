@@ -6,6 +6,7 @@
 #include <sbunix/interrupt/pit.h>
 #include <sbunix/time.h>
 #include <sbunix/tarfs.h>
+#include <sbunix/elf64.h>
 
 void printA(void) {
     int a = 1, b = 2, c = 3, d = 4, e = 5, f = 6, g = 7, h = 8;
@@ -46,5 +47,6 @@ void kmain(void) {
     test_all_tarfs("/bin/sbush");
     test_all_tarfs("/bin/sbus");
     test_all_tarfs("/bin/");
+    elf_test_load("/bin/sbush");
     kpanic("\nReturned to kmain!!!\n");
 }

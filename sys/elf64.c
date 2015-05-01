@@ -1,5 +1,4 @@
 #include <sbunix/elf64.h>
-#include <sbunix/vfs/vfs.h>
 #include <sbunix/tarfs.h>
 #include <sbunix/sbunix.h>
 #include <errno.h>
@@ -10,8 +9,8 @@
  * .text
  * .rodata
  * .got  and .got.plt
- * .bss
  * .data
+ * .bss
  */
 
 int validate_elf64_hdr(Elf64_Ehdr *hdr) {
@@ -51,6 +50,9 @@ int validate_elf64_hdr(Elf64_Ehdr *hdr) {
  */
 int elf_validiate_exec(struct file *fp) {
     Elf64_Ehdr *hdr;
+    Elf64_Shdr *shdr;
+    Elf64_Phdr *phdr;
+    Elf64_Half i;
     int err;
     if(!fp)
         kpanic("file is NULL!");
@@ -63,5 +65,67 @@ int elf_validiate_exec(struct file *fp) {
     err = validate_elf64_hdr(hdr);
     if(err)
         return err;
-    return -ENOEXEC;
+    /* Valid, try searching for .text, .rodata, .got, .got.plt, .data, and .bss */
+    printk("ELF virtual entry point: %p\n", hdr->e_entry);
+    /* First entry is NULL */
+    printk("Section headers:\n");
+    for(i = 0; i < hdr->e_shnum; i++) {
+        char *name;
+        shdr = elf_sheader(hdr, i);
+        if(shdr->sh_name == SHN_UNDEF) {
+            name = "NO_NAME";
+        } else {
+            name = elf_lookup_string(hdr, shdr->sh_name);
+        }
+        printk("%s, ", name);
+    }
+    printk("\nProgram headers:\nType   Offset   VirtAddr   PhysAddr   FileSiz   MemSiz   Flag\n");
+    for(i = 0; i < hdr->e_phnum; i++) {
+        phdr = elf_pheader(hdr, i);
+        elf_print_phdr(phdr);
+    }
+    return 0;
+}
+
+/* Type   Offset   VirtAddr   PhysAddr   FileSiz   MemSiz   Flag */
+void elf_print_phdr(Elf64_Phdr *phdr) {
+    char *type;
+    switch(phdr->p_type) {
+        case PT_NULL: type = "NULL"; break;
+        case PT_LOAD: type = "LOAD"; break;
+        case PT_DYNAMIC: type = "DYNAMIC"; break;
+        case PT_INTERP: type = "INTERP"; break;
+        case PT_NOTE: type = "NOTE"; break;
+        case PT_SHLIB: type = "SHLIB"; break;
+        case PT_PHDR: type = "PHDR"; break;
+        case PT_TLS: type = "TLS"; break;
+        case PT_LOOS: type = "LOOS"; break;
+        case PT_HIOS: type = "HIOS"; break;
+        case PT_LOPROC: type = "LOPROC"; break;
+        case PT_HIPROC: type = "HIPROC"; break;
+        case PT_GNU_EH_FRAME: type = "GNU_EH_FRAME"; break;
+        case PT_GNU_STACK: type = "GNU_STACK"; break;
+        default: type = "UNKOWN";
+    }
+    printk("%s, %p, %p, %p, %p, %p, %p\n", type, phdr->p_filesz, phdr->p_offset,
+           phdr->p_vaddr, phdr->p_paddr, phdr->p_memsz, (uint64_t)phdr->p_flags);
+}
+
+void elf_test_load(char *filename) {
+    struct file f, *fp = &f;
+    int err;
+
+    fp->f_op = &tarfs_file_ops;
+    fp->f_count = 1;
+    err = fp->f_op->open(filename, fp);
+    if(err) {
+        printk("Error open: %s\n", strerror(-err));
+        return;
+    }
+    elf_validiate_exec(fp);
+    err = fp->f_op->close(fp);
+    if(err) {
+        printk("Error close: %s\n", strerror(-err));
+        return;
+    }
 }

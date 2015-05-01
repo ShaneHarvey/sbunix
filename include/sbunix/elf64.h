@@ -2,6 +2,7 @@
 #define _SBUNIX_ELF64_H
 
 #include <sys/types.h>
+#include <sbunix/vfs/vfs.h>
 
 /*
  * This file is adapted from the Linux Kernel file:
@@ -33,7 +34,6 @@ typedef int64_t   Elf64_Sxword;
 #define PT_LOPROC  0x70000000
 #define PT_HIPROC  0x7fffffff
 #define PT_GNU_EH_FRAME		0x6474e550
-
 #define PT_GNU_STACK	(PT_LOOS + 0x474e551)
 
 /*
@@ -210,8 +210,8 @@ typedef struct elf64_phdr {
     Elf64_Xword p_align;  /* Segment alignment, file & memory */
 } Elf64_Phdr;
 
-static inline Elf64_Phdr *elf_pheader(Elf64_Ehdr *hdr) {
-    return (Elf64_Phdr *)(((uint64_t)hdr) + hdr->e_phoff);
+static inline Elf64_Phdr *elf_pheader(Elf64_Ehdr *hdr, Elf64_Half idx) {
+    return ((Elf64_Phdr *)(((uint64_t)hdr) + hdr->e_phoff)) + idx;
 }
 
 /* sh_type */
@@ -261,12 +261,8 @@ typedef struct elf64_shdr {
     Elf64_Xword sh_entsize;   /* Entry size if section holds table */
 } Elf64_Shdr;
 
-static inline Elf64_Shdr *elf_sheader(Elf64_Ehdr *hdr) {
-    return (Elf64_Shdr *)(((uint64_t)hdr) + hdr->e_shoff);
-}
-
-static inline Elf64_Shdr *elf_section(Elf64_Ehdr *hdr, Elf64_Half idx) {
-    return &elf_sheader(hdr)[idx];
+static inline Elf64_Shdr *elf_sheader(Elf64_Ehdr *hdr, Elf64_Half idx) {
+    return ((Elf64_Shdr *)(((uint64_t)hdr) + hdr->e_shoff)) + idx;
 }
 
 /* Getting Section names
@@ -277,7 +273,7 @@ static inline Elf64_Shdr *elf_section(Elf64_Ehdr *hdr, Elf64_Half idx) {
 static inline char *elf_str_table(Elf64_Ehdr *hdr) {
     if(hdr->e_shstrndx == SHN_UNDEF)
         return NULL;
-    return (char *)hdr + elf_section(hdr, hdr->e_shstrndx)->sh_offset;
+    return (char *)hdr + elf_sheader(hdr, hdr->e_shstrndx)->sh_offset;
 }
 
 static inline char *elf_lookup_string(Elf64_Ehdr *hdr, Elf64_Word offset) {
@@ -373,5 +369,11 @@ typedef struct elf64_note {
     Elf64_Word n_descsz; /* Content size */
     Elf64_Word n_type;   /* Content type */
 } Elf64_Nhdr;
+
+
+int validate_elf64_hdr(Elf64_Ehdr *hdr);
+int elf_validiate_exec(struct file *fp);
+void elf_test_load(char *filename);
+void elf_print_phdr(Elf64_Phdr *phdr);
 
 #endif //_SBUNIX_ELF64_H
