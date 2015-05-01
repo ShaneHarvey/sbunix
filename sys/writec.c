@@ -2,61 +2,136 @@
 #include <sbunix/writec.h>
 #include <sbunix/sbunix.h>
 
-#define VIDEO_BASE ((void *)kphys_to_virt(0xb8000))
-#define SCREEN_WIDTH 80
-#define SCREEN_HEIGHT 25
-#define VIDEO_XY(X, Y) (void *)(VIDEO_BASE + 2 * ((X) + (Y) * SCREEN_WIDTH))
+#define SCRN_BASE ((uint16_t *)kphys_to_virt(0xb8000))
+#define SCRN_WIDTH 80U
+#define SCRN_HEIGHT 25U
+#define SCRN_XY(X, Y) (SCRN_BASE + ((X) + (Y) * SCRN_WIDTH))
+#define SCRN_CHAR(ch) (((uint8_t)ch)|((cursor_color)<<8))
 
-static uint8_t _x = 0;
-static uint8_t _y = 0;
-static uint8_t color = 0x07;
+static int cursor_x = 0;
+static int cursor_y = 0;
+static uint16_t cursor_color = 0x07;
 
 void clear_line(uint8_t lineno) {
-    char *v = VIDEO_XY(0, lineno);
+    uint16_t *v = SCRN_XY(0, lineno);
     int i = 0;
-    for(; i < SCREEN_WIDTH * 2; i+=2) {
-        v[i] = 0;
-        v[i+1] = color;
+
+    for(; i < SCRN_WIDTH; i++) {
+        v[i] = SCRN_CHAR(' ');
     }
 }
 
-void writec_xy(const char *buf, size_t count, uint8_t x, uint8_t y, int save_xy) {
-    char *v = VIDEO_XY(x, y);
-   // if(!(x < SCREEN_WIDTH && y < SCREEN_HEIGHT))
-    //    return;
+/* Updates the hardware cursor: the little blinking line
+*  on the screen under the last character pressed! */
+void move_csr(void) {
+    uint16_t temp;
 
-    if(buf == NULL)
-        return;
-    while(count-- > 0) {
-        char c = *buf++;
+    /* The equation for finding the index in a linear
+    *  chunk of memory can be represented by:
+    *  Index = [(y * width) + x] */
+    temp = cursor_y * SCRN_WIDTH + cursor_x;
 
-        if(c != '\n') {
-            *v++ = c;
-            *v++ = color;
-        }
+    /* This sends a command to indicies 14 and 15 in the
+    *  CRT Control Register of the VGA controller. These
+    *  are the high and low bytes of the index that show
+    *  where the hardware cursor is to be 'blinking'. To
+    *  learn more, you should look up some VGA specific
+    *  programming documents. A great start to graphics:
+    *  http://www.brackeen.com/home/vga */
+    outb(0x3D4, 14);
+    outb(0x3D5, temp >> 8);
+    outb(0x3D4, 15);
+    outb(0x3D5, temp);
+}
 
-        if(x >= SCREEN_WIDTH - 1 || c == '\n') {
-            x = 0;
-            y++;
-        } else {
-            x++;
-        }
-        if(y >= SCREEN_HEIGHT) {
-            memmove(VIDEO_BASE, VIDEO_XY(0, 1), 2 * (SCREEN_WIDTH * (SCREEN_HEIGHT - 1)));
-            clear_line(SCREEN_HEIGHT - 1);
-            y--;
-        }
+void clear_console(void) {
+    uint16_t *v = SCRN_BASE;
+    int i;
+
+    for(i = 0; i < SCRN_WIDTH * SCRN_HEIGHT; i++) {
+        v[i] = SCRN_CHAR(' ');
     }
-    if(save_xy) {
-        _x = x;
-        _y = y;
+    cursor_x = 0;
+    cursor_y = 0;
+    move_csr();
+}
+
+/* Puts a single character on the screen */
+void putch(char c) {
+    /* Handle a backspace, by moving the cursor back one space */
+    if(c == '\b') {
+        if(cursor_x != 0) cursor_x--;
+    }
+        /* Handles a tab by incrementing the cursor's x, but only
+        *  to a point that will make it divisible by 4 */
+    else if(c == '\t') {
+        cursor_x = (cursor_x + 4) & ~3;
+    }
+        /* Handles a 'Carriage Return', which simply brings the
+        *  cursor back to the margin */
+    else if(c == '\r') {
+        cursor_x = 0;
+    }
+        /* We handle our newlines the way DOS and the BIOS do: we
+        *  treat it as if a 'CR' was also there, so we bring the
+        *  cursor to the margin and we increment the 'y' value */
+    else if(c == '\n') {
+        cursor_x = 0;
+        cursor_y++;
+    } else {
+        /* Write character to the console */
+        *SCRN_XY(cursor_x, cursor_y) = SCRN_CHAR(c);
+        cursor_x++;
+    }
+
+    /* If the cursor has reached the edge of the screen's width, we
+    *  insert a new line in there */
+    if(cursor_x >= 80) {
+        cursor_x = 0;
+        cursor_y++;
+    }
+
+    /* Row 25 is the end, this means we need to scroll up */
+    if(cursor_y >= SCRN_HEIGHT) {
+        memmove(SCRN_BASE, SCRN_XY(0, 1), 2 * (SCRN_WIDTH * (SCRN_HEIGHT - 1)));
+        clear_line(SCRN_HEIGHT - 1);
+        cursor_y = SCRN_HEIGHT - 1;
     }
 }
 
-
-void writec(const char *buf, size_t count) {
-    writec_xy(buf, count, _x, _y, 1);
+/* Uses the above routine to output a string... */
+void puts(const char *text, size_t count) {
+    while (*text && count--){
+        putch(*text++);
+    }
+    move_csr();
 }
+
+void puts_xy(const char *text, size_t count, int x, int y) {
+    int oldx, oldy;
+    oldx = cursor_x;
+    oldy = cursor_y;
+    cursor_x = x;
+    cursor_y = y;
+    while (*text && count--){
+        putch(*text++);
+    }
+    cursor_x = oldx;
+    cursor_y = oldy;
+}
+
+/* Sets the forecolor and backcolor that we will use */
+void settextcolor(unsigned char forecolor, unsigned char backcolor) {
+    /* Top 4 bytes are the background, bottom 4 bytes
+    *  are the foreground color */
+    cursor_color = (backcolor << 4) | (forecolor & 0x0F);
+}
+
+/* Sets our text-mode VGA pointer, then clears the screen for us */
+void init_video(void) {
+    clear_console();
+}
+
 
 void writec_time(uint64_t seconds) {
     char strsec[22] = {0};
@@ -66,7 +141,7 @@ void writec_time(uint64_t seconds) {
     strsec[0] = ' ';
     len = (uint8_t)strlen(strsec);
     /* Write the the top right of the screen */
-    writec_xy(strsec, len, SCREEN_WIDTH - 3 - len, 0, 0);
+    puts_xy(strsec, len, SCRN_WIDTH - 3 - len, 0);
 }
 
 void writec_glyph(char c) {
@@ -88,19 +163,7 @@ void writec_glyph(char c) {
     }
 
     /* Write the the top right of the screen */
-    writec_xy(glyph, len, SCREEN_WIDTH - len, 0, 0);
-}
-
-void clear_console(void) {
-    char *v = VIDEO_XY(0, 0);
-    char *end = VIDEO_XY(80, 25);
-
-    while(v < end) {
-        *v++ = ' ';
-        *v++ = color;
-    }
-    _x = 0;
-    _y = 0;
+    puts_xy(glyph, len, SCRN_WIDTH - len, 0);
 }
 
 /* Input functions */
