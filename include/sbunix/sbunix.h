@@ -25,6 +25,6 @@ static __inline__ uint64_t kphys_to_virt(uint64_t phys_addr) {
     return phys_addr + virt_base;
 }
 
-void printk(const char *fmt, ...);
+void printk(const char *fmt, ...);//TODO: __attribute__((format(printf,1,2)));
 
 #endif

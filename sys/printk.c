@@ -111,9 +111,9 @@ void printk(const char *fmt, ...) {
                     towrite = (char*) fmt;
             }
             fmt += 2;
-            writec(towrite, len);
+            puts(towrite, len);
         } else {
-            writec(fmt, 1);
+            puts(fmt, 1);
             ++fmt;
         }
     }

@@ -3,8 +3,7 @@
 
 #include <sys/types.h>
 
-void writec_xy(const char *buf, size_t count, uint8_t x, uint8_t y, int save_xy);
-void writec(const char *buf, size_t count);
+void puts(const char *text, size_t count);
 void writec_time(uint64_t seconds);
 void writec_glyph(char c);
 void clear_console(void);

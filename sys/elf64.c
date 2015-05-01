@@ -87,9 +87,10 @@ int elf_validiate_exec(struct file *fp) {
     return 0;
 }
 
-/* Type   Offset   VirtAddr   PhysAddr   FileSiz   MemSiz   Flag */
+/* Type   FileOffset   FileSiz   MemSiz   VirtAddr   PhysAddr   Flag */
 void elf_print_phdr(Elf64_Phdr *phdr) {
     char *type;
+    Elf64_Word flags = phdr->p_flags;
     switch(phdr->p_type) {
         case PT_NULL: type = "NULL"; break;
         case PT_LOAD: type = "LOAD"; break;
@@ -105,10 +106,12 @@ void elf_print_phdr(Elf64_Phdr *phdr) {
         case PT_HIPROC: type = "HIPROC"; break;
         case PT_GNU_EH_FRAME: type = "GNU_EH_FRAME"; break;
         case PT_GNU_STACK: type = "GNU_STACK"; break;
+        case PT_GNU_RELRO: type = "GNU_RELRO"; break;
         default: type = "UNKOWN";
     }
-    printk("%s, %p, %p, %p, %p, %p, %p\n", type, phdr->p_filesz, phdr->p_offset,
-           phdr->p_vaddr, phdr->p_paddr, phdr->p_memsz, (uint64_t)phdr->p_flags);
+    printk("%s, %p, %p, %p, %p, %p, %s%s%s\n", type, phdr->p_offset, phdr->p_filesz,
+           phdr->p_memsz, phdr->p_vaddr, phdr->p_paddr, (flags & PF_R)?"R":"",
+           (flags & PF_W)?"W":"", (flags & PF_X)?"X":"");
 }
 
 void elf_test_load(char *filename) {
