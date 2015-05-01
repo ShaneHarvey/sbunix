@@ -53,9 +53,9 @@ struct linux_dirent {
     */
 };
 
-DIR *opendir(const char *name);
-struct dirent *readdir(DIR *dirp);
-int closedir(DIR *dirp);
+void *opendir(const char *name);
+struct dirent *readdir(void *dir);
+int closedir(void *dirp);
 int getdents(unsigned int fd, struct dirent *dirp, unsigned int count);
 
 #endif

@@ -9,9 +9,9 @@
 * returns a pointer to the directory stream.  The stream is positioned at the first  entry
 * in the directory.
 */
-DIR *opendir(const char *name) {
+void *opendir(const char *name) {
     int fd;
-    DIR *dirp;
+    struct dirstream *dirp;
     if(!name || name[0] == '\0') {
         errno = ENOENT;
         return NULL;
@@ -42,28 +42,29 @@ DIR *opendir(const char *name) {
 * directory entry in the directory stream pointed to by dirp.  It returns NULL on reaching
 * the end of the directory stream or if an error occurred.
 */
-struct dirent *readdir(DIR *dirp) {
+struct dirent *readdir(void *dirp) {
     struct linux_dirent *ldp = NULL;
     struct dirent *dp = NULL;
+    struct dirstream *dir = dirp;
     unsigned char d_type;
     int bytesread = 0;
 
     do {
-        if(dirp->offset >= dirp->size) {
+        if(dir->offset >= dir->size) {
             /* Must call getdents */
-            bytesread = getdents((uint)dirp->fd, (struct dirent*)dirp->buf, (uint)dirp->space);
+            bytesread = getdents((uint) dir->fd, (struct dirent*) dir->buf, (uint) dir->space);
             if(bytesread <= 0) {
                 return NULL; /* End of dir, or error (errno set) */
             }
-            dirp->size = (size_t)bytesread;
-            dirp->offset = 0;
+            dir->size = (size_t)bytesread;
+            dir->offset = 0;
         }
-        ldp = (struct linux_dirent*)(dirp->buf + dirp->offset);
-        dirp->offset += ldp->d_reclen;
+        ldp = (struct linux_dirent*)(dir->buf + dir->offset);
+        dir->offset += ldp->d_reclen;
 
     } while(ldp->d_ino == 0); /* Means file dirent was deleted */
 
-    dirp->filepos = (off_t)ldp->d_off;
+    dir->filepos = (off_t)ldp->d_off;
     dp = (struct dirent *)ldp;
 
     /* convert linux_dirent to dirent */
@@ -79,14 +80,15 @@ struct dirent *readdir(DIR *dirp) {
 * call to closedir() also closes the underlying file descriptor associated with dirp.  The
 * directory stream descriptor dirp is not available after this call.
 */
-int closedir(DIR *dirp) {
+int closedir(void *dirp) {
     int fd;
-    if(!dirp || !dirp->buf) {
+    struct dirstream *dir = dirp;
+    if(!dirp || !dir->buf) {
         errno = EINVAL;
         return -1;
     }
-    fd = dirp->fd;
-    free(dirp->buf);
-    free(dirp);
+    fd = dir->fd;
+    free(dir->buf);
+    free(dir);
     return close(fd);
 }
