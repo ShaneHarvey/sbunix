@@ -12,22 +12,18 @@ void _init(int argc, char **argv, char **envp) {
 
 void _start(void) {
     __asm__ volatile (
-        /* Set up the stack? */
-        "movq %%rsp, %%rbp;"
-        /* Load argc */
-        "movq 0(%%rsp), %%rdi;"
-        /* Load argv */
-        "movq %%rsp, %%rsi;"
-        "addq $8, %%rsi;"
-        /* Set envp = argv + 8 * argc + 8 */
-        "leaq 8(%%rsi,%%rdi,8), %%rdx;"
-        /* Call initialization routines */
+        "xorq %%rbp, %%rbp;"            /* ABI: zero rbp */
+        "popq %%rdi;"                   /* set argc */
+        "movq %%rsp, %%rsi;"            /* set argv */
+        "leaq 8(%%rsi,%%rdi,8), %%rdx;" /* Set envp = argv + 8 * argc + 8 */
+        "pushq %%rbp;"
+        "pushq %%rbp;"
+        "andq $-16, %%rsp;"             /* ABI: align stack to 16 bytes */
         "call _init_sblibc;"
         "call _init;"
-        /* Run program */
-        "call main;"
-        /* Exit with return code */
-        "movq %%rax, %%rdi;"
-        "call exit;":::
+        "call main;"                    /* run main program */
+        "movq %%rax, %%rdi;"            /* exit with return code */
+        "call exit;"
+        "hlt;":::
     );
 }
