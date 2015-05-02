@@ -25,6 +25,21 @@ void enter_usermode(uint64_t user_rsp, uint64_t user_rip) {
         "pushq %%rax;"
         "pushq $0x1B;"         /* ring3 cs, should be _USER_CS|RPL = 0x1B */
         "pushq %1;"            /* ring3 rip */
+        "xorq %%rax, %%rax;"   /* zero the user registers */
+        "xorq %%rbx, %%rbx;"
+        "xorq %%rcx, %%rcx;"
+        "xorq %%rdx, %%rdx;"
+        "xorq %%rbp, %%rbp;"
+        "xorq %%rsi, %%rsi;"
+        "xorq %%rdi, %%rdi;"
+        "xorq %%r8, %%r8;"
+        "xorq %%r9, %%r9;"
+        "xorq %%r10, %%r10;"
+        "xorq %%r11, %%r11;"
+        "xorq %%r12, %%r12;"
+        "xorq %%r13, %%r13;"
+        "xorq %%r14, %%r14;"
+        "xorq %%r15, %%r15;"
         "iretq;"
         : /* No output */
         : "r"(user_rsp), "r"(user_rip)

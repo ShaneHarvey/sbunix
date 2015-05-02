@@ -68,8 +68,9 @@ void ISR_HANDLER(12) {
 /**
  * General Protection
  */
-void _isr_handler_13(uint64_t errorcode) {
-    kpanic("!! General Protection Exception (#GP) errorcode 0x%lx !!\n",  errorcode);
+void _isr_handler_13(uint64_t errorcode, uint64_t fault_rip) {
+    kpanic("General Protection (#GP) at RIP %p, errorcode %p!\n",
+           (void*)fault_rip, (void*)errorcode);
 }
 
 /**
@@ -78,7 +79,7 @@ void _isr_handler_13(uint64_t errorcode) {
 * @address:     The faulting address.
 * @errorcode:   Placed on stack by processor.
 */
-void _isr_handler_14(uint64_t addr, uint64_t errorcode) {
+void _isr_handler_14(uint64_t addr, uint64_t errorcode, uint64_t fault_rip) {
     static char *pf_who[] = { "Kernel ", "User "};
     static char *pf_read[] = { "read ", "write "};
     static char *pf_prot[] = { "non-present", "protection"};
@@ -90,7 +91,7 @@ void _isr_handler_14(uint64_t addr, uint64_t errorcode) {
            pf_read[(errorcode & PF_WRITE) == PF_WRITE],
            pf_inst[(errorcode & PF_INSTR) == PF_INSTR],
            pf_prot[(errorcode & PF_PROT) == PF_PROT]);
-    debug("!! Page-Fault (#PF) at %p, errorcode 0x%lx !!\n", (void*)addr, errorcode);
+    debug("Page-Fault (#PF) at RIP %p, on ADDR %p!\n", (void*)fault_rip, (void*)addr);
     if((errorcode & PF_USER) || 1) {
         /* page fault in USER mode */
         struct vm_area *vma;
