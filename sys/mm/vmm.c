@@ -73,13 +73,14 @@ int add_stack(struct mm_struct *user, char *argv[], char *envp[]) {
         vma_destroy(stack);
         return -ENOMEM;
     }
+    user->user_rsp = USER_STACK_START - 32; /* - 32 for argc, argv, envp */
     /* Must map at least user_rsp page for now */
-    err = map_page_into(USER_STACK_START, phys_page,stack->vm_prot,user->pml4);
+    err = map_page_into(ALIGN_DOWN(user->user_rsp, PAGE_SIZE), phys_page,
+                        stack->vm_prot, user->pml4);
     if(err) {
         vma_destroy(stack);
         return err;
     }
-    user->user_rsp = USER_STACK_START - 32; /* - 32 for argc, argv, envp */
     return 0;
 }
 

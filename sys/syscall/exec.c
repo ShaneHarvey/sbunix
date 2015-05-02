@@ -12,6 +12,7 @@ int do_execve(char *filename, char *argv[], char *envp[]) {
     struct file *fp;
     struct mm_struct *mm;
     int err;
+    uint64_t user_rsp, user_rip;
     /* TODO: validate user pointers */
     /* TODO: resolve filename to absolute path */
     fp = kmalloc(sizeof(struct file));
@@ -52,48 +53,37 @@ int do_execve(char *filename, char *argv[], char *envp[]) {
     /* Update curr_task->cmdline  */
     strncpy(curr_task->cmdline, filename, TASK_CMDLINE_MAX);
     /* TODO: Copy on write stuff????? */
-    debug("new mm->usr_rsp=%p, mm->user_rip=%p\n", mm->user_rsp, mm->user_rip);
+    user_rsp = mm->user_rsp;
+    user_rip = mm->user_rip;
+    debug("new mm->usr_rsp=%p, mm->user_rip=%p\n", user_rsp, user_rip);
 //    __asm__ __volatile__(
 //        "movq %0, %%rsp;"
 //        "movq %1, %%rcx;"
 //        "sysret;"
 //        :  /* No output */
-//        : "r"(mm->user_rsp), "r"(mm->user_rip)
+//        : "r"(user_rsp), "r"(user_rip)
 //        :"memory"
 //    );
     __asm__ __volatile__(
-        "movq %%rsp, %%rbx;"
-        "pushq $0x10;"       /* ss */
-        "pushq %%rbx;"       /* rsp */
-        "pushfq;"            /* rflags */
-        "pushq $0x08;"       /* cs */
-        "pushq %1;"     /* rip */
+        "cli;"
+        "movq $0x10, %%rax;"
+        "movq %%rax, %%ds;"
+        "movq %%rax, %%es;"
+        "movq %%rax, %%fs;"
+        "movq %%rax, %%gs;"
+        "pushq %%rax;"         /* ring3 ss, should be _USER_DS|RPL = 0x23 */
+        "pushq %0;"            /* ring3 rsp */
+        "pushfq;"              /* ring3 rflags */
+        "popq %%rax;"
+        "or $0x200, %%rax;"    /* Set the IF flag, for interrupts in ring3 */
+        "pushq %%rax;"
+        "pushq $0x08;"         /* ring3 cs, should be _USER_CS|RPL = 0x1B */
+        "pushq %1;"            /* ring3 rip */
         "iretq;"
         : /* No output */
-        : "r"(mm->user_rsp), "r"(mm->user_rip)
-        :"memory"
+        : "r"(user_rsp), "r"(user_rip)
+        :"memory", "rax"
     );
-//    __asm__ __volatile__(
-//        "cli;"
-//        "mov $0x23, %%ax;"
-//        "mov %%ax, %%ds;"
-//        "mov %%ax, %%es;"
-//        "mov %%ax, %%fs;"
-//        "mov %%ax, %%gs;"
-//        "pushq $0x23;"
-//        "pushq %0;"    /* Push user stack pointer */
-//        "pushfq;"
-////        "popq %%rax;"       // Get EFLAGS back into EAX. The only way to read EFLAGS is to pushf then pop.
-////        "or $0x200, %%rax;" // Set the IF flag.
-////        "pushq %%rax;"      // Push the new EFLAGS value back onto the stack.
-//        "pushq $0x1B;"
-//        "pushq %1;"    /* Push user instruction pointer */
-//        "swapgs;"
-//        "iretq;"
-//        : /* No output */
-//        : "r"(mm->user_rsp), "r"(mm->user_rip)
-//        :"memory"
-//    );
 
     return 0;
 cleanup_mm:
