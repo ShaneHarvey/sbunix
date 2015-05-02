@@ -101,6 +101,7 @@ int mmap_area(struct mm_struct *mm, struct file *filep,
 
     struct vm_area *vma;
     int err;
+    uint64_t curr_pml4;
     if(!mm)
         return -EINVAL;
 
@@ -120,7 +121,11 @@ int mmap_area(struct mm_struct *mm, struct file *filep,
     } else {
         vma->onfault = onfault_mmap_anon;
     }
+    /* pre-fault the first page */
+    curr_pml4 = read_cr3();
+    write_cr3(mm->pml4);
     err = vma->onfault(vma, vm_start);
+    write_cr3(curr_pml4);
     if(err){
         goto out_vma;
     }
