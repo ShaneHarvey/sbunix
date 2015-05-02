@@ -58,7 +58,25 @@ ISR_WRAPPER(9);
 ISR_WRAPPER(10);
 ISR_WRAPPER(11);
 ISR_WRAPPER(12);
-ISR_WRAPPER(13);
+
+/** Special General Protection Fault wrapper
+* After PUSHQALL,
+* cr2 holds faulting address
+* 120(%rsp)  is  error code
+*/
+__asm__ (
+".global _isr_wrapper_13\n"
+        "_isr_wrapper_13:\n"
+        PUSHQALL
+
+        "movq %cr2, %rdi;"      /* 1st arg: Faulting address into %rdi */
+        "movq 120(%rsp), %rsi;" /* 2nd arg: Error code into %rsi. */
+
+        "call _isr_handler_13;"
+
+        POPQALL
+        "iretq;"
+);
 
 /** Special Page Fault wrapper
 * After PUSHQALL,

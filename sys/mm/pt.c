@@ -34,7 +34,7 @@ int get_paging_mode(void) {
     if(!((cr4 >> 5) & 1)){
         return pm_32_bit;
     }
-    ia32_efer = rdmsr(0xC0000080);
+    ia32_efer = rdmsr(MSR_EFER);
     /* Check LME (IA-32e Mode Enabled) (bit 8) of IA32_EFER (MSR C0000080H) */
     if(!((ia32_efer >> 8) & 1)){
         return pm_pae;

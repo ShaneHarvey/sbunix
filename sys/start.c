@@ -8,6 +8,7 @@
 #include <sbunix/mm/pt.h>
 #include <sbunix/sched.h>
 #include "kmain.h"
+#include "syscall_dispatch.h"
 
 
 /*
@@ -52,6 +53,8 @@ void start(uint32_t* modulep, uint64_t physbase, uint64_t physfree)
 	physmem_report();
 
 	scheduler_init();
+
+	enable_syscalls();
 	/* Start the kernel */
 	kmain();
 	halt_loop("Halting in start(), time and key presses should update...\n");

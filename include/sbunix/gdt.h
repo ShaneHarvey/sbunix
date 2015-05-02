@@ -3,6 +3,11 @@
 
 #include <sys/defs.h>
 
+#define _KERNEL_CS	0x8
+#define _KERNEL_DS	0x10
+#define _USER_CS	0x18
+#define _USER_DS	0x20
+
 /* See http://forum.osdev.org/viewtopic.php?t=13678 for explanation */
 struct tss_t {
 	uint32_t reserved;

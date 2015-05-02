@@ -1,4 +1,5 @@
 #include <sbunix/gdt.h>
+#include <sbunix/asm.h>
 
 /* adapted from Chris Stones, shovelos */
 

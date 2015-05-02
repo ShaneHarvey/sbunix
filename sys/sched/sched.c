@@ -3,6 +3,7 @@
 #include <sbunix/mm/vmm.h>
 #include <sbunix/mm/align.h>
 #include <sbunix/string.h>
+#include <sbunix/gdt.h>
 
 /* All kernel tasks use this mm_struct */
 struct mm_struct kernel_mm = {0};
@@ -237,6 +238,9 @@ void schedule(void) {
         last_task = prev; /* the last_task to run is the "prev" */
 
         context_switch(prev, next);
+
+        /* change the kernel stack in the tss */
+        tss.rsp0 = curr_task->kernel_rsp;
 
         if(last_task->state == TASK_DEAD) {
             task_destroy(last_task);

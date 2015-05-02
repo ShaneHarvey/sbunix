@@ -140,4 +140,13 @@ static inline void write_cr3(uint64_t pml4e_ptr) {
     __asm__ __volatile__ ("movq %0, %%cr3;"::"r"(pml4e_ptr));
 }
 
+/* Intel/AMD Machine Specific Registers (MSR's) */
+#define MSR_EFER    0xC0000080
+#define MSR_STAR    0xC0000081
+#define MSR_LSTAR   0xC0000082
+#define MSR_CSTAR   0xC0000083
+#define MSR_SFMASK  0xC0000084
+
+#define MSR_EFER_SCE    0x1
+
 #endif
