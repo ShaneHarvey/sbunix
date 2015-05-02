@@ -8,7 +8,7 @@
 #include <sbunix/mm/pt.h>
 #include <sbunix/sched.h>
 #include "kmain.h"
-#include "syscall_dispatch.h"
+#include "syscall/syscall_dispatch.h"
 
 
 /*

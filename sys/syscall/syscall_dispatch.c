@@ -3,9 +3,16 @@
 #include <sbunix/asm.h>
 #include <errno.h>
 #include <sbunix/gdt.h>
+#include <sbunix/sbunix.h>
 
 /* 9th bit in the RFLAGS is the IF bit */
 #define RFLAGS_IF   1<<9
+
+/* From syscall_entry.s */
+extern int64_t (*syscall_entry)(void);
+
+uint64_t syscall_user_rsp = 0;
+uint64_t syscall_kernel_rsp = 0;
 
 /**
  * Enable syscalls on Intel/AMD x86_64 architecture.
@@ -20,16 +27,18 @@ void enable_syscalls(void) {
     /* _KERNEL_CS for syscall, _USER_CS for sysret */
     wrmsr(MSR_STAR, (uint64_t)_KERNEL_CS <<48 | (uint64_t)_USER_CS << 32);
 
-    /* The function to dispatch system calls */
-    wrmsr(MSR_LSTAR, (uint64_t)syscall_dispatch);
+    /* The function to enter on system calls */
+    wrmsr(MSR_LSTAR, (uint64_t)syscall_entry);
 
     /* We want interrupts off in the kernel */
     wrmsr(MSR_SFMASK, RFLAGS_IF);
 }
 
 
-int64_t syscall_dispatch(int64_t syscall_n) {
-    switch(syscall_n) {
+int64_t syscall_dispatch(int64_t sysnum, int64_t a1, int64_t a2, int64_t a3,
+                         int64_t a4, int64_t a5, int64_t a6) {
+    debug("Doing a syscall: %d\n", sysnum);
+    switch(sysnum) {
         case SYS_read:
         case SYS_write:
         case SYS_open:
