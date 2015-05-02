@@ -62,7 +62,11 @@ void ISR_HANDLER(12) {
     kpanic("!! Stack Fault Exception (#SS) !!\n");
 }
 
-void ISR_HANDLER(13) {
+/**
+ * General Protection
+ */
+void _isr_handler_13(uint64_t addr, uint64_t errorcode) {
+    printk("!! General Protection Exception (#GP) at %p, errorcode 0x%lx !!\n", (void*)addr, errorcode);
     kpanic("!! General Protection Exception (#GP) !!\n");
 }
 
