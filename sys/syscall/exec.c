@@ -56,6 +56,7 @@ int do_execve(char *filename, char *argv[], char *envp[]) {
     user_rsp = mm->user_rsp;
     user_rip = mm->user_rip;
     debug("new mm->usr_rsp=%p, mm->user_rip=%p\n", user_rsp, user_rip);
+//    Trying to use sysret to enter user space, but the rsp gets truncated, WHY???
 //    __asm__ __volatile__(
 //        "movq %0, %%rsp;"
 //        "movq %1, %%rcx;"
