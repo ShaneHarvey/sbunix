@@ -66,7 +66,7 @@ int do_execve(char *filename, char *argv[], char *envp[]) {
 //    );
     __asm__ __volatile__(
         "cli;"
-        "movq $0x10, %%rax;"
+        "movq $0x23, %%rax;"
         "movq %%rax, %%ds;"
         "movq %%rax, %%es;"
         "movq %%rax, %%fs;"
@@ -77,7 +77,7 @@ int do_execve(char *filename, char *argv[], char *envp[]) {
         "popq %%rax;"
         "or $0x200, %%rax;"    /* Set the IF flag, for interrupts in ring3 */
         "pushq %%rax;"
-        "pushq $0x08;"         /* ring3 cs, should be _USER_CS|RPL = 0x1B */
+        "pushq $0x1B;"         /* ring3 cs, should be _USER_CS|RPL = 0x1B */
         "pushq %1;"            /* ring3 rip */
         "iretq;"
         : /* No output */
