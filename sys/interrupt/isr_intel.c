@@ -84,6 +84,7 @@ void _isr_handler_14(uint64_t addr, uint64_t errorcode) {
     static char *pf_prot[] = { "non-present", "protection"};
     static char *pf_rsvd[] = { "", "reserved "};
     static char *pf_inst[] = { "", ", instr fetch "};
+    debug("!! Page-Fault Exception (#PF) at %p, errorcode 0x%lx !!\n", (void*)addr, errorcode);
     if((errorcode & PF_USER) || 1) {
         /* page fault in USER mode */
         struct vm_area *vma;
@@ -95,7 +96,6 @@ void _isr_handler_14(uint64_t addr, uint64_t errorcode) {
         return;
     }
     pf_no_recover: /* todo: kill self, call schedule */
-    printk("!! Page-Fault Exception (#PF) at %p, errorcode 0x%lx !!\n", (void*)addr, errorcode);
     kpanic("!! %s%s%s%s%s !!\n",
            pf_who[(errorcode & PF_USER) == PF_USER],
            pf_rsvd[(errorcode & PF_RSVD) == PF_RSVD],
