@@ -3,9 +3,6 @@
 
 #include <sys/types.h>
 
-/* An address of a top level page table */
-typedef uint64_t pgd_t;
-
 /* Maybe don't use this and just add vm_ops inside vma struct */
 typedef enum {
     VM_CODE,
@@ -41,7 +38,7 @@ struct vm_area {
 /* Fixme: work in progress */
 struct mm_struct {
     struct vm_area   *vmas;        /* list of memory areas */
-    pgd_t            *pgd;         /* page global directory */
+    uint64_t         pml4;         /* page global directory */
     int              mm_count;     /* primary usage counter */
     int              vma_count;    /* number of memory areas */
     struct mm_struct *mm_prev;     /* list of all mm_structs */
@@ -56,6 +53,7 @@ struct mm_struct {
     uint64_t         brk;          /* final address of heap */
     uint64_t         start_stack;  /* start address of stack */
     uint64_t         user_rsp;     /* entry user stack pointer */
+    uint64_t         user_rip;     /* entry user instruction pointer */
     uint64_t         arg_start;    /* start of arguments */
     uint64_t         arg_end;      /* end of arguments */
     uint64_t         env_start;    /* start of environment */

@@ -1,8 +1,10 @@
 #include <sbunix/elf64.h>
 #include <sbunix/tarfs.h>
 #include <sbunix/sbunix.h>
-#include <errno.h>
+#include <sbunix/mm/vmm.h>
 #include <sbunix/string.h>
+#include <errno.h>
+#include <sbunix/mm/pt.h>
 
 /*
  * Simple ELF x86-64 file loader, probably need to support
@@ -83,6 +85,43 @@ int elf_validiate_exec(struct file *fp) {
     for(i = 0; i < hdr->e_phnum; i++) {
         phdr = elf_pheader(hdr, i);
         elf_print_phdr(phdr);
+    }
+    return 0;
+}
+
+/**
+ * Validate the given file is a supported ELF file
+ *
+ * @fp: opened valid ELF file
+ * @return: 0 on success, -ERRNO on error
+ */
+int elf_load(struct file *fp, struct mm_struct *mm) {
+    Elf64_Ehdr *hdr;
+    Elf64_Phdr *phdr;
+    Elf64_Half i;
+    int err;
+    if(!fp)
+        kpanic("file is NULL!");
+    if(!mm)
+        kpanic("mm is NULL!");
+
+    /* Hack: we know it's a tarfs file in memory, so just get the data pointer */
+    hdr = (Elf64_Ehdr *)(((char *)fp->private_data) + sizeof(struct posix_header_ustar));
+    mm->user_rip = hdr->e_entry; /* save virtual entry point */
+    for(i = 0; i < hdr->e_phnum; i++) {
+        phdr = elf_pheader(hdr, i);
+        if(phdr->p_type == PT_LOAD) {
+            ulong prot = (phdr->p_flags & PF_W)? PFLAG_RW: 0;
+            /* TODO: Enable NXE bit for page tables */
+//            prot |= (phdr->p_flags & PF_X)? 0: PFLAG_NXE;
+            debug("LOADING segement via mmap:");
+            elf_print_phdr(phdr);
+            err = mmap_area(mm, fp, phdr->p_offset, phdr->p_filesz, prot,
+                      phdr->p_vaddr, phdr->p_vaddr + phdr->p_memsz);
+            if(err) {
+                return err;
+            }
+        }
     }
     return 0;
 }
