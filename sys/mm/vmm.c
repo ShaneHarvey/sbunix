@@ -87,6 +87,7 @@ int mmap_area(struct mm_struct *mm, struct file *filep,
               uint64_t vm_start, uint64_t vm_end) {
 
     struct vm_area *vma;
+    int err;
     if(!mm)
         return -EINVAL;
 
@@ -94,8 +95,8 @@ int mmap_area(struct mm_struct *mm, struct file *filep,
     if(!vma)
         return -ENOMEM;
     if(mm_add_vma(mm, vma)) {
-        vma_destroy(vma);
-        return -EINVAL;
+        err = -EINVAL;
+        goto out_vma;
     }
     if(filep) {
         filep->f_count++;
@@ -106,7 +107,15 @@ int mmap_area(struct mm_struct *mm, struct file *filep,
     } else {
         vma->onfault = onfault_mmap_anon;
     }
+    err = vma->onfault(vma, vm_start);
+    if(err){
+        goto out_vma;
+    }
     return 0;
+
+out_vma:
+    vma_destroy(vma);
+    return err;
 }
 
 /**
