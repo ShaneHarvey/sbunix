@@ -53,6 +53,14 @@ int do_execve(char *filename, char *argv[], char *envp[]) {
     strncpy(curr_task->cmdline, filename, TASK_CMDLINE_MAX);
     /* TODO: Copy on write stuff????? */
     debug("new mm->usr_rsp=%p, mm->user_rip=%p\n", mm->user_rsp, mm->user_rip);
+//    __asm__ __volatile__(
+//        "movq %0, %%rsp;"
+//        "movq %1, %%rcx;"
+//        "sysret;"
+//        :  /* No output */
+//        : "r"(mm->user_rsp), "r"(mm->user_rip)
+//        :"memory"
+//    );
     __asm__ __volatile__(
         "movq %%rsp, %%rbx;"
         "pushq $0x10;"       /* ss */

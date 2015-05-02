@@ -241,6 +241,7 @@ void schedule(void) {
 
         /* change the kernel stack in the tss */
         tss.rsp0 = curr_task->kernel_rsp;
+        /* todo: ltr or ldtr to load the TSS again? */
 
         if(last_task->state == TASK_DEAD) {
             task_destroy(last_task);
