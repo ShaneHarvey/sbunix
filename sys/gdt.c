@@ -58,6 +58,16 @@ void reload_gdt() {
 	_x86_64_asm_lgdt(&gdtr, 8, 16);
 }
 
+/**
+ * Load the TSS into the Task Register(TR) with the ltr instruction.
+ */
+void load_tss(void) {
+	__asm__ __volatile__(
+		"mov $0x2b, %%ax;" /* 0x2b is 0x28 + 3 */
+		"ltr %%ax"
+		:::
+	);
+}
 
 /** From OS Dev:
 * The actual loading of the TSS must take place in protected mode and after
@@ -77,4 +87,7 @@ void setup_tss() {
 	sd->sd_hilimit = 0;
 	sd->sd_gran = 0;
 	sd->sd_hibase = ((uint64_t)&tss) >> 24;
+
+	load_tss();
 }
+
