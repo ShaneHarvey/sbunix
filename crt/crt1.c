@@ -1,15 +1,6 @@
 char **__environ = 0;
 __thread int errno;
 
-void _init_sblibc(int argc, char **argv, char **envp) {
-    /* initialize __environ which is used by getenv(3)/setenv(3) */
-    __environ = envp;
-}
-
-void _init(int argc, char **argv, char **envp) {
-    /* Run global constructors in the .ctors section */
-}
-
 void _start(void) {
     __asm__ volatile (
         "xorq %%rbp, %%rbp;"            /* ABI: zero rbp */
@@ -26,4 +17,13 @@ void _start(void) {
         "call exit;"
         "hlt;":::
     );
+}
+
+void _init_sblibc(int argc, char **argv, char **envp) {
+    /* initialize __environ which is used by getenv(3)/setenv(3) */
+    __environ = envp;
+}
+
+void _init(int argc, char **argv, char **envp) {
+    /* Run global constructors in the .ctors section */
 }
