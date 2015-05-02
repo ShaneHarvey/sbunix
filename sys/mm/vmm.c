@@ -430,6 +430,16 @@ int onfault_mmap_file(struct vm_area *vma, uint64_t addr) {
     if(aligned > vma->vm_start + vma->vm_fsize) {
         /* ANON */
         memset((void*)page, 0, PAGE_SIZE);
+    } else if(aligned < vma->vm_start) {
+        /* Mapping the first page, vm_start may not be page aligned */
+        uint64_t diff = vma->vm_start - aligned;
+        toread = MIN(PAGE_SIZE - diff, vma->vm_fsize);
+        offset = vma->vm_fstart;
+        bytes = vma->vm_file->f_op->read(vma->vm_file, (char*)page + diff, toread, &offset);
+        if(bytes <= 0)
+            kpanic("Read error on VMA mmapped file during PF!");
+        /* zero extra data, if any */
+        memset((void*)(page + bytes + diff), 0, (size_t)PAGE_SIZE - (bytes + diff));
     } else {
         /* read from file (still account for boundary being within this page) */
         toread = (vma->vm_start + vma->vm_fsize) - aligned;

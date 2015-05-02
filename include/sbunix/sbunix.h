@@ -14,6 +14,8 @@
 #else
 #   define debug(S, ...)
 #endif /* DEBUG */
+#define MIN(a, b) (((a)<(b))?(a):(b))
+#define MAX(a, b) (((a)>(b))?(a):(b))
 
 extern uint64_t virt_base;
 
