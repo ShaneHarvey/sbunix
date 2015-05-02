@@ -1,6 +1,9 @@
 #include <sbunix/sbunix.h>
 #include <sbunix/interrupt/idt.h>
 #include <sbunix/asm.h>
+#include <sbunix/mm/types.h>
+#include <sbunix/mm/vmm.h>
+#include <sbunix/sched.h>
 
 /**
 * This file is for Interrupt Service Routine Handlers for the Reserved
@@ -65,9 +68,8 @@ void ISR_HANDLER(12) {
 /**
  * General Protection
  */
-void _isr_handler_13(uint64_t addr, uint64_t errorcode) {
-    printk("!! General Protection Exception (#GP) at %p, errorcode 0x%lx !!\n", (void*)addr, errorcode);
-    kpanic("!! General Protection Exception (#GP) !!\n");
+void _isr_handler_13(uint64_t errorcode) {
+    kpanic("!! General Protection Exception (#GP) errorcode 0x%lx !!\n",  errorcode);
 }
 
 /**
@@ -82,7 +84,17 @@ void _isr_handler_14(uint64_t addr, uint64_t errorcode) {
     static char *pf_prot[] = { "non-present", "protection"};
     static char *pf_rsvd[] = { "", "reserved "};
     static char *pf_inst[] = { "", ", instr fetch "};
-
+    if((errorcode & PF_USER) || 1) {
+        /* page fault in USER mode */
+        struct vm_area *vma;
+        vma = vma_find_region(curr_task->mm->vmas, addr, 0);
+        if(!vma)
+            goto pf_no_recover;
+        if(vma->onfault(vma, addr))
+            goto pf_no_recover;
+        return;
+    }
+    pf_no_recover: /* todo: kill self, call schedule */
     printk("!! Page-Fault Exception (#PF) at %p, errorcode 0x%lx !!\n", (void*)addr, errorcode);
     kpanic("!! %s%s%s%s%s !!\n",
            pf_who[(errorcode & PF_USER) == PF_USER],

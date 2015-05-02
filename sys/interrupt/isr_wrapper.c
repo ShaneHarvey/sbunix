@@ -69,8 +69,7 @@ __asm__ (
         "_isr_wrapper_13:\n"
         PUSHQALL
 
-        "movq %cr2, %rdi;"      /* 1st arg: Faulting address into %rdi */
-        "movq 120(%rsp), %rsi;" /* 2nd arg: Error code into %rsi. */
+        "movq 120(%rsp), %rdi;" /* 1st arg: Error code into %rsi. */
 
         "call _isr_handler_13;"
 
