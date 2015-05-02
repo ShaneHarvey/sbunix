@@ -42,6 +42,8 @@ uint64_t gdt[MAX_GDT] = {
 	0, 0,                   /*** TSS ***/
 };
 
+struct tss_t tss = {0};
+
 struct gdtr_t {
 	uint16_t size;
 	uint64_t addr;

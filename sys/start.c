@@ -16,8 +16,6 @@
  * It is defined by kernmem - physbase (see /linker.script)
  */
 uint64_t virt_base;
-struct tss_t tss;
-
 
 void start(uint32_t* modulep, uint64_t physbase, uint64_t physfree)
 {
