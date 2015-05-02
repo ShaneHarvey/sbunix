@@ -110,7 +110,8 @@ void print_paging_mode(void);
 void walk_pages(void);
 
 int map_page(uint64_t virt_addr, uint64_t phy_addr, uint64_t pte_flags);
-
+int map_page_into(uint64_t virt_addr, uint64_t phy_addr, uint64_t pte_flags,
+                  uint64_t other_pml4);
 void init_kernel_pt(uint64_t phys_free_page);
 
 void free_pml4(uint64_t pml4);

@@ -52,7 +52,7 @@ void kmain(void) {
 //    elf_test_load("/bin/sbush");
     char *argv[] = {"-h", "hi", NULL};
     char *envp[] = {"PATH=/:", "HOME=/", NULL};
-    err = do_execve("/bin/hello", argv, envp);
+    err = do_execve("/bin/loop", argv, envp);
     if(err) {
         kpanic("do_execve failed: %s\n", strerror(-err));
     }

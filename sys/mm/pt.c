@@ -202,8 +202,8 @@ static inline int _ensure_present_pde(uint64_t virt_addr) {
         if(!pde)
             return 0;
         pde |= PFLAG_RW|PFLAG_US|PFLAG_P;
-        debug("Adding PML4[%ld]->PDPT[%ld]->PD[%ld]=0x%lx\n",
-              PML4_INDEX(virt_addr), PDPT_INDEX(virt_addr), PD_INDEX(virt_addr), pde);
+        //debug("Adding PML4[%ld]->PDPT[%ld]->PD[%ld]=0x%lx\n",
+        //      PML4_INDEX(virt_addr), PDPT_INDEX(virt_addr), PD_INDEX(virt_addr), pde);
         *magic = pde;
     }
     return 1;
@@ -216,8 +216,8 @@ static inline int _ensure_present_pdpte(uint64_t virt_addr) {
         if(!pdpte)
             return 0;
         pdpte |= PFLAG_RW|PFLAG_US|PFLAG_P;
-        debug("Adding PML4[%ld]->PDPT[%ld]=0x%lx\n", PML4_INDEX(virt_addr),
-              PDPT_INDEX(virt_addr), pdpte);
+        //debug("Adding PML4[%ld]->PDPT[%ld]=0x%lx\n", PML4_INDEX(virt_addr),
+        //      PDPT_INDEX(virt_addr), pdpte);
         *magic = pdpte;
     }
     return 1;
@@ -230,7 +230,7 @@ static inline int _ensure_present_pml4e(uint64_t virt_addr) {
         if(!pml4e)
             return 0;
         pml4e |= PFLAG_RW|PFLAG_US|PFLAG_P;
-        debug("Adding PML4[%ld]=0x%lx\n", PML4_INDEX(virt_addr), pml4e);
+        //debug("Adding PML4[%ld]=0x%lx\n", PML4_INDEX(virt_addr), pml4e);
         *magic = pml4e;
         write_cr3(read_cr3());
     }
@@ -268,11 +268,28 @@ int map_page(uint64_t virt_addr, uint64_t phy_addr, uint64_t pte_flags) {
 
     uint64_t new_pte = phy_addr | pte_flags | PFLAG_P;
     debug("Adding PML4[%ld]->PDPT[%ld]->PD[%ld]->PT[%ld]=0x%lx\n",
-          PML4_INDEX(virt_addr), PDPT_INDEX(virt_addr), PD_INDEX(virt_addr), PT_INDEX(virt_addr), new_pte);
+          PML4_INDEX(virt_addr), PDPT_INDEX(virt_addr), PD_INDEX(virt_addr),
+          PT_INDEX(virt_addr), new_pte);
     *magic = new_pte;
     return 0;
 }
 
+/**
+ * Map a 4KB virtual page to the given 4KB physical page.
+ * This maps a page into the current page table  table
+ * @virt_addr The virtual address we want to map
+ * @phy_addr
+ */
+int map_page_into(uint64_t virt_addr, uint64_t phy_addr, uint64_t pte_flags,
+                  uint64_t other_pml4) {
+    int err;
+    uint64_t curr_pml4 = read_cr3();
+    /* This is efficient, I measured with time -s */
+    write_cr3(other_pml4);
+    err = map_page(virt_addr, phy_addr, pte_flags);
+    write_cr3(curr_pml4);
+    return err;
+}
 
 /**
  * Sets up the page tables for the kernel in the space after the kernel code.

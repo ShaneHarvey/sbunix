@@ -56,6 +56,8 @@ int add_heap(struct mm_struct *user) {
  */
 int add_stack(struct mm_struct *user, char *argv[], char *envp[]) {
     struct vm_area *stack;
+    uint64_t phys_page;
+    int err;
     user->start_stack = USER_STACK_START;
     stack = vma_create(USER_STACK_END, USER_STACK_START, VM_STACK, PFLAG_RW);
     if(!stack)
@@ -66,7 +68,18 @@ int add_stack(struct mm_struct *user, char *argv[], char *envp[]) {
     }
     stack->onfault = onfault_mmap_anon;
     /* TODO: copy envp and args to new stack */
-    user->user_rsp = USER_STACK_START - 32;
+    phys_page = get_zero_page();
+    if(!phys_page) {
+        vma_destroy(stack);
+        return -ENOMEM;
+    }
+    /* Must map at least user_rsp page for now */
+    err = map_page_into(USER_STACK_START, phys_page,stack->vm_prot,user->pml4);
+    if(err) {
+        vma_destroy(stack);
+        return err;
+    }
+    user->user_rsp = USER_STACK_START - 32; /* - 32 for argc, argv, envp */
     return 0;
 }
 
