@@ -93,7 +93,7 @@ int mmap_area(struct mm_struct *mm, struct file *filep,
     vma = vma_create(vm_start, vm_end, VM_MMAP, prot);
     if(!vma)
         return -ENOMEM;
-    if(!mm_add_vma(mm, vma)) {
+    if(mm_add_vma(mm, vma)) {
         vma_destroy(vma);
         return -EINVAL;
     }

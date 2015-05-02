@@ -7,6 +7,7 @@
 extern struct rq            run_queue;
 extern struct mm_struct     kernel_mm;
 extern struct task_struct   kernel_task;
+extern struct task_struct   *curr_task;
 
 # define TASK_CMDLINE_MAX 67
 

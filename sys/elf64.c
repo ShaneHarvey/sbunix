@@ -107,6 +107,7 @@ int elf_load(struct file *fp, struct mm_struct *mm) {
 
     /* Hack: we know it's a tarfs file in memory, so just get the data pointer */
     hdr = (Elf64_Ehdr *)(((char *)fp->private_data) + sizeof(struct posix_header_ustar));
+    mm->user_rip = hdr->e_entry; /* save virtual entry point */
     for(i = 0; i < hdr->e_phnum; i++) {
         phdr = elf_pheader(hdr, i);
         if(phdr->p_type == PT_LOAD) {

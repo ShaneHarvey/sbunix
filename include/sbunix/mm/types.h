@@ -53,6 +53,7 @@ struct mm_struct {
     uint64_t         brk;          /* final address of heap */
     uint64_t         start_stack;  /* start address of stack */
     uint64_t         user_rsp;     /* entry user stack pointer */
+    uint64_t         user_rip;     /* entry user instruction pointer */
     uint64_t         arg_start;    /* start of arguments */
     uint64_t         arg_end;      /* end of arguments */
     uint64_t         env_start;    /* start of environment */
