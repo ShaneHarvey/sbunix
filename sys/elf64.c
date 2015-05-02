@@ -81,7 +81,7 @@ int elf_validiate_exec(struct file *fp) {
         }
         printk("%s, ", name);
     }
-    printk("\nProgram headers:\nType   Offset   VirtAddr   PhysAddr   FileSiz   MemSiz   Flag\n");
+    printk("\nProgram headers:\nType   FileOffset   FileSiz   MemSiz   VirtAddr   PhysAddr   Flag\n");
     for(i = 0; i < hdr->e_phnum; i++) {
         phdr = elf_pheader(hdr, i);
         elf_print_phdr(phdr);
