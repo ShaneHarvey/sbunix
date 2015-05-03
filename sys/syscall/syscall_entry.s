@@ -43,6 +43,5 @@ syscall_entry:
     # Prepare for sysret
     popq %rcx                       # pop user return addr off kern stack
     popq %r11                       # pop user RFLAGS
-    movq %rsp, syscall_kernel_rsp   # reset kernel stack
     movq syscall_user_rsp, %rsp     # restore user stack
     sysret
