@@ -93,17 +93,20 @@ static inline void sti(void) {
  * of registers EAX and EDX.
  */
 static inline uint64_t rdmsr(uint32_t msr_id) {
-    uint64_t msr_value;
-    __asm__ __volatile__ ( "rdmsr" : "=A" (msr_value) : "c" (msr_id) );
-    return msr_value;
+    uint32_t msr_lo, msr_hi;
+    __asm__ __volatile__ ( "rdmsr" : "=a" (msr_lo), "=d" (msr_hi) : "c" (msr_id));
+    return (uint64_t) msr_hi <<32 | (uint64_t) msr_lo;
 }
 
 /**
  * Write a 64-bit value to a MSR. The A constraint stands for concatenation
  * of registers EAX and EDX.
  */
-static inline void wrmsr(uint32_t msr_id, uint64_t msr_value) {
-    __asm__ __volatile__ ( "wrmsr" : : "c" (msr_id), "A" (msr_value) );
+static inline void wrmsr(uint32_t msr_id, uint64_t msr_val) {
+    uint32_t msr_lo, msr_hi;
+    msr_lo = (uint32_t)msr_val;
+    msr_hi = (uint32_t)(msr_val >> 32);
+    __asm__ __volatile__ ("wrmsr" : : "a"(msr_lo), "d"(msr_hi), "c"(msr_id));
 }
 
 static inline uint64_t read_cr0(void) {

@@ -9,7 +9,7 @@
 #define RFLAGS_IF   1<<9
 
 /* From syscall_entry.s */
-extern int64_t (*syscall_entry)(void);
+extern void syscall_entry(void);
 
 uint64_t syscall_user_rsp = 0;
 uint64_t syscall_kernel_rsp = 0;
@@ -25,9 +25,11 @@ void enable_syscalls(void) {
     wrmsr(MSR_EFER, efer);
 
     /* _KERNEL_CS for syscall, _USER_CS for sysret */
-    wrmsr(MSR_STAR, (uint64_t)_KERNEL_CS <<48 | (uint64_t)_USER_CS << 32);
+    //debug("Write STAR <-- 0x%lx\n", (uint64_t)_KERNEL_CS << 32 | (uint64_t)_USER_CS << 48);
+    wrmsr(MSR_STAR, (uint64_t)_KERNEL_CS << 32 | (uint64_t)_USER_CS << 48);
 
     /* The function to enter on system calls */
+    //debug("Write LSTAR <-- %lx\n", (uint64_t)syscall_entry);
     wrmsr(MSR_LSTAR, (uint64_t)syscall_entry);
 
     /* We want interrupts off in the kernel */
@@ -35,8 +37,9 @@ void enable_syscalls(void) {
 }
 
 
-int64_t syscall_dispatch(int64_t sysnum, int64_t a1, int64_t a2, int64_t a3,
-                         int64_t a4, int64_t a5, int64_t a6) {
+int64_t syscall_dispatch(int64_t a1, int64_t a2, int64_t a3,
+                         int64_t a4, int64_t a5, int64_t a6, int64_t sysnum) {
+    int64_t err;
     debug("Doing a syscall: %d\n", sysnum);
     switch(sysnum) {
         case SYS_read:
@@ -62,6 +65,8 @@ int64_t syscall_dispatch(int64_t sysnum, int64_t a1, int64_t a2, int64_t a3,
         case SYS_getcwd:
         case SYS_chdir:
         case SYS_getppid:
-        default: return -ENOSYS;
+        default: err = -ENOSYS;
     }
+    debug("Did a syscall: %d\n", sysnum);
+    return err;
 }
