@@ -78,7 +78,7 @@ void _isr_handler_13(uint64_t errorcode, uint64_t fault_rip) {
 *
 * @errorcode:   Placed on stack by processor.
 */
-void _isr_handler_14(uint64_t errorcode, uint64_t fault_rip, uint64_t cs, uint64_t rflags, uint64_t rsp, uint64_t ss) {
+void _isr_handler_14(uint64_t errorcode, uint64_t fault_rip) {
     static char *pf_who[] = { "Kernel ", "User "};
     static char *pf_read[] = { "read ", "write "};
     static char *pf_prot[] = { "non-present", "protection"};
@@ -92,11 +92,6 @@ void _isr_handler_14(uint64_t errorcode, uint64_t fault_rip, uint64_t cs, uint64
            pf_inst[(errorcode & PF_INSTR) == PF_INSTR],
            pf_prot[(errorcode & PF_PROT) == PF_PROT]);
     debug("Page-Fault (#PF) at RIP %p, on ADDR %p!\n", (void*)fault_rip, (void*)addr);
-    debug("SS:     %p\n", (void*)ss);
-    debug("RSP:    %p\n", (void*)rsp);
-    debug("RFLAGS: %p\n", (void*)rflags);
-    debug("CS:     %p\n", (void*)cs);
-    debug("RIP:    %p\n", (void*)fault_rip);
     if((errorcode & PF_USER) || 1) {
         /* page fault in USER mode */
         struct vm_area *vma;
