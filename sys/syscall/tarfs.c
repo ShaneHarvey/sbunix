@@ -169,7 +169,7 @@ off_t tarfs_lseek(struct file *fp, off_t offset, int whence) {
  */
 ssize_t tarfs_read(struct file *fp, char *buf, size_t count, off_t *offset) {
     struct posix_header_ustar *hd;
-    char *file_data;
+    char *file_data_start;
     size_t bytes_left, num_read;
 
     /* Error checking */
@@ -178,17 +178,17 @@ ssize_t tarfs_read(struct file *fp, char *buf, size_t count, off_t *offset) {
     hd = (struct posix_header_ustar *)fp->private_data;
     if(hd->typeflag == TARFS_DIRECTORY)
         return -EISDIR;
-    if(!tarfs_isfile(hd))
+    if(!tarfs_isfile(hd) || *offset >= fp->f_size)
         return -EINVAL;
     /* Do read */
-    if(count == 0 || *offset >= fp->f_size)
+    if(count == 0)
         return 0;
     bytes_left = fp->f_size - *offset;
     num_read = MIN(bytes_left, count);
-    file_data = (char *)(hd + 1);
+    file_data_start = (char *)(hd + 1);
 //    debug("bytes_left=%d, offset=%d, num_read=%d, count=%d\n",
 //          (int)bytes_left, (int)*offset, (int)num_read, (int)count);
-    memcpy(buf, file_data, num_read);
+    memcpy(buf, file_data_start + *offset, num_read);
     *offset += num_read;
     return num_read;
 }
