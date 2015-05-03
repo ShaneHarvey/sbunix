@@ -1,8 +1,7 @@
 #include <sbunix/sbunix.h>
 #include <sbunix/interrupt/idt.h>
 #include <sbunix/interrupt/pic8259.h>
-#include <sbunix/asm.h>
-#include <sbunix/writec.h>
+#include <sbunix/console.h>
 
 /* adapted from Chris Stones, shovelos */
 

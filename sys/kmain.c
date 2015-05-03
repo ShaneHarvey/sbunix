@@ -1,14 +1,9 @@
 #include "kmain.h"
 #include <sbunix/sbunix.h>
 #include <sbunix/sched.h>
-#include <sbunix/mm/pt.h>
-#include <sbunix/writec.h>
-#include <sbunix/interrupt/pit.h>
-#include <sbunix/time.h>
-#include <sbunix/tarfs.h>
-#include <sbunix/elf64.h>
 #include <sbunix/syscall.h>
 #include <sbunix/string.h>
+#include <sbunix/console.h>
 
 void printA(void) {
     int a = 1, b = 2, c = 3, d = 4, e = 5, f = 6, g = 7, h = 8;

@@ -1,9 +1,8 @@
+#include <sbunix/sbunix.h>
 #include <sbunix/interrupt/pit.h>
 #include <sbunix/interrupt/idt.h>
 #include <sbunix/interrupt/pic8259.h>
-#include <sbunix/writec.h>
-#include <sbunix/asm.h>
-#include <sbunix/sbunix.h>
+#include <sbunix/console.h>
 
 /* Programmable Interrupt Timer */
 struct timespec unix_time;         /* real (UNIX) time */

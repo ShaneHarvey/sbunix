@@ -1,7 +1,7 @@
 #include <sbunix/sbunix.h>
+#include <sbunix/console.h>
 #include <stdarg.h>
 #include <string.h>
-#include <sbunix/writec.h>
 
 void printk(const char *fmt, ...) {
     va_list ap;
