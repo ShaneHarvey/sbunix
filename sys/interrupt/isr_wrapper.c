@@ -1,6 +1,7 @@
 #include <sbunix/interrupt/idt.h>
+#include <sbunix/sbunix.h>
 
-#define PUSHQALL \
+#define SAVEALL \
         "pushq %rax;" \
         "pushq %rbx;" \
         "pushq %rcx;" \
@@ -18,7 +19,7 @@
         "pushq %rbp;"
 
 
-#define POPQALL \
+#define RESTOREALL \
         "popq %rbp;" \
         "popq %r15;" \
         "popq %r14;" \
@@ -35,14 +36,52 @@
         "popq %rbx;" \
         "popq %rax;"
 
-#define ISR_WRAPPER(vector) \
-    __asm__ ( \
-        ".global _isr_wrapper_" # vector "\n" \
-        "_isr_wrapper_" # vector ":\n" \
-            PUSHQALL \
-            "    call _isr_handler_" # vector ";" \
-            POPQALL \
-            "    iretq;" )
+#define DEBUG_IRETQ_NO_ERROR_CODE \
+    "movq 120(%rsp), %rdi;"  /* 1st arg: faulting instruction pointer */ \
+    "movq 128(%rsp), %rsi;"  /* 2nd arg: iretq CS */                     \
+    "movq 136(%rsp), %rdx;"  /* 3rd arg: iretq RFLAGS */                 \
+    "movq 144(%rsp), %rcx;"  /* 4th arg: iretq RIP */                    \
+    "movq 152(%rsp), %r8;"   /* 5th arg: iretq SS */                     \
+    "call debug_iretq;"
+
+#define DEBUG_IRETQ_WITH_ERROR_CODE \
+    "movq 128(%rsp), %rdi;"  /* 1st arg: faulting instruction pointer */ \
+    "movq 136(%rsp), %rsi;"  /* 2nd arg: iretq CS */                     \
+    "movq 144(%rsp), %rdx;"  /* 3rd arg: iretq RFLAGS */                 \
+    "movq 152(%rsp), %rcx;"  /* 4th arg: iretq RIP */                    \
+    "movq 160(%rsp), %r8;"   /* 5th arg: iretq SS */                     \
+    "call debug_iretq;"
+
+
+#define ISR_WRAPPER(vector)                                              \
+    __asm__ (                                                            \
+        ".global _isr_wrapper_" # vector "\n"                            \
+        "_isr_wrapper_" # vector ":\n"                                   \
+            SAVEALL                                                     \
+            /* DEBUG_IRETQ_NO_ERROR_CODE */                                 \
+            "call _isr_handler_" # vector ";"                            \
+            RESTOREALL                                                      \
+            "iretq;" )
+
+#define ISR_WRAPPER_ERROR_CODE(vector)                                   \
+    __asm__ (                                                            \
+        ".global _isr_wrapper_" # vector "\n"                            \
+        "_isr_wrapper_" # vector ":\n"                                   \
+            SAVEALL                                                     \
+            DEBUG_IRETQ_WITH_ERROR_CODE                                  \
+            "call _isr_handler_" # vector ";"                            \
+            RESTOREALL                                                      \
+            "iretq;" )
+
+
+void debug_iretq(uint64_t fault_rip, uint64_t cs, uint64_t rflags, uint64_t rsp, uint64_t ss) {
+    debug("INTERRUPT RSP: %p\n", read_rsp());
+    debug("SS:     %p\n", (void*)ss);
+    debug("RSP:    %p\n", (void*)rsp);
+    debug("RFLAGS: %p\n", (void*)rflags);
+    debug("CS:     %p\n", (void*)cs);
+    debug("RIP:    %p\n", (void*)fault_rip);
+}
 
 /* Intel Reserved 0-31 */
 ISR_WRAPPER(0);
@@ -53,34 +92,32 @@ ISR_WRAPPER(4);
 ISR_WRAPPER(5);
 ISR_WRAPPER(6);
 ISR_WRAPPER(7);
-ISR_WRAPPER(8);
+ISR_WRAPPER_ERROR_CODE(8);
 ISR_WRAPPER(9);
-ISR_WRAPPER(10);
-ISR_WRAPPER(11);
-ISR_WRAPPER(12);
+ISR_WRAPPER_ERROR_CODE(10);
+ISR_WRAPPER_ERROR_CODE(11);
+ISR_WRAPPER_ERROR_CODE(12);
 
 /** Special General Protection Fault wrapper
-* After PUSHQALL,
+* After SAVEALL,
 * 120(%rsp)  is  error code
 * 128(%rsp)  is  faulting instruction pointer
 */
 __asm__ (
 ".global _isr_wrapper_13\n"
         "_isr_wrapper_13:\n"
-        PUSHQALL
-
+        SAVEALL
+        DEBUG_IRETQ_WITH_ERROR_CODE
         "movq 120(%rsp), %rdi;" /* 1st arg: Error code into %rdi. */
         "movq 128(%rsp), %rsi;" /* 2nd arg: faulting instruction pointer %rsi. */
-
         "call _isr_handler_13;"
-
-        POPQALL
+        RESTOREALL
         "addq $0x8, %rsp;"      /* MUST POP errorcode */
         "iretq;"
 );
 
 /** Special Page Fault wrapper
-* After PUSHQALL,
+* After SAVEALL,
 * cr2 holds faulting address
 * 120(%rsp)  is  error code
 *
@@ -89,25 +126,19 @@ __asm__ (
 __asm__ (
     ".global _isr_wrapper_14\n"
     "_isr_wrapper_14:\n"
-        PUSHQALL
-
+        SAVEALL
+        DEBUG_IRETQ_WITH_ERROR_CODE
         "movq 120(%rsp), %rdi;"  /* 1st arg: Error code into %rsi. */
-        "movq 128(%rsp), %rsi;"  /* 2nd arg: faulting instruction pointer %rsi. */
-        "movq 136(%rsp), %rdx;"  /* 3rd arg: iretq CS */
-        "movq 144(%rsp), %rcx;"  /* 4th arg: iretq RFLAGS */
-        "movq 152(%rsp), %r8;"   /* 5th arg: iretq RIP */
-        "movq 160(%rsp), %r9;"   /* 6th arg: iretq SS */
-
+        "movq 128(%rsp), %rsi;"  /* 2nd arg: faulting instruction pointer */
         "call _isr_handler_14;"
-
-        POPQALL
+        RESTOREALL
         "addq $0x8, %rsp;"      /* MUST POP errorcode */
         "iretq;"
 );
 
 ISR_WRAPPER(15);
 ISR_WRAPPER(16);
-ISR_WRAPPER(17);
+ISR_WRAPPER_ERROR_CODE(17);
 ISR_WRAPPER(18);
 ISR_WRAPPER(19);
 ISR_WRAPPER(20);
@@ -120,7 +151,7 @@ ISR_WRAPPER(26);
 ISR_WRAPPER(27);
 ISR_WRAPPER(28);
 ISR_WRAPPER(29);
-ISR_WRAPPER(30);
+ISR_WRAPPER_ERROR_CODE(30);
 ISR_WRAPPER(31);
 
 /* The PIC IRQ's */
