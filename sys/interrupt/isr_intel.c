@@ -76,15 +76,15 @@ void _isr_handler_13(uint64_t errorcode, uint64_t fault_rip) {
 /**
 * Page fault handler.
 *
-* @address:     The faulting address.
 * @errorcode:   Placed on stack by processor.
 */
-void _isr_handler_14(uint64_t addr, uint64_t errorcode, uint64_t fault_rip) {
+void _isr_handler_14(uint64_t errorcode, uint64_t fault_rip, uint64_t cs, uint64_t rflags, uint64_t rsp, uint64_t ss) {
     static char *pf_who[] = { "Kernel ", "User "};
     static char *pf_read[] = { "read ", "write "};
     static char *pf_prot[] = { "non-present", "protection"};
     static char *pf_rsvd[] = { "", "reserved "};
     static char *pf_inst[] = { "", ", instr fetch "};
+    uint64_t addr = read_cr2(); /* read the faulting address */
     debug("!! %s%s%s%s%s !!\n",
            pf_who[(errorcode & PF_USER) == PF_USER],
            pf_rsvd[(errorcode & PF_RSVD) == PF_RSVD],
@@ -92,6 +92,11 @@ void _isr_handler_14(uint64_t addr, uint64_t errorcode, uint64_t fault_rip) {
            pf_inst[(errorcode & PF_INSTR) == PF_INSTR],
            pf_prot[(errorcode & PF_PROT) == PF_PROT]);
     debug("Page-Fault (#PF) at RIP %p, on ADDR %p!\n", (void*)fault_rip, (void*)addr);
+    debug("SS:     %p\n", (void*)ss);
+    debug("RSP:    %p\n", (void*)rsp);
+    debug("RFLAGS: %p\n", (void*)rflags);
+    debug("CS:     %p\n", (void*)cs);
+    debug("RIP:    %p\n", (void*)fault_rip);
     if((errorcode & PF_USER) || 1) {
         /* page fault in USER mode */
         struct vm_area *vma;
@@ -102,7 +107,8 @@ void _isr_handler_14(uint64_t addr, uint64_t errorcode, uint64_t fault_rip) {
             goto pf_no_recover;
         return;
     }
-    pf_no_recover: /* todo: kill self, call schedule */
+pf_no_recover:
+    /* todo: kill self, call schedule */
     kpanic("!! TODO: Page-Fault SUICIDE !!\n");
 }
 

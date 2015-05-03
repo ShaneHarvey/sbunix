@@ -75,6 +75,7 @@ __asm__ (
         "call _isr_handler_13;"
 
         POPQALL
+        "addq $0x8, %rsp;"      /* MUST POP errorcode */
         "iretq;"
 );
 
@@ -90,13 +91,17 @@ __asm__ (
     "_isr_wrapper_14:\n"
         PUSHQALL
 
-        "movq %cr2, %rdi;"      /* 1st arg: Faulting address into %rdi */
-        "movq 120(%rsp), %rsi;" /* 2nd arg: Error code into %rsi. */
-        "movq 128(%rsp), %rdx;" /* 3rd arg: faulting instruction pointer %rsi. */
+        "movq 120(%rsp), %rdi;"  /* 1st arg: Error code into %rsi. */
+        "movq 128(%rsp), %rsi;"  /* 2nd arg: faulting instruction pointer %rsi. */
+        "movq 136(%rsp), %rdx;"  /* 3rd arg: iretq CS */
+        "movq 144(%rsp), %rcx;"  /* 4th arg: iretq RFLAGS */
+        "movq 152(%rsp), %r8;"   /* 5th arg: iretq RIP */
+        "movq 160(%rsp), %r9;"   /* 6th arg: iretq SS */
 
         "call _isr_handler_14;"
 
         POPQALL
+        "addq $0x8, %rsp;"      /* MUST POP errorcode */
         "iretq;"
 );
 

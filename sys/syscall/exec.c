@@ -5,12 +5,14 @@
 #include <sbunix/mm/vmm.h>
 #include <errno.h>
 #include <sbunix/string.h>
+#include <sbunix/gdt.h>
 #include "syscall_dispatch.h"
 
 void enter_usermode(uint64_t user_rsp, uint64_t user_rip) {
     /* Set the kernel RSP to return to in syscall handler */
     cli();
     syscall_kernel_rsp = ALIGN_UP(read_rsp(), PAGE_SIZE) - 16;
+    tss.rsp0 = syscall_kernel_rsp;
     __asm__ __volatile__(
         "movq $0x23, %%rax;"
         "movq %%rax, %%ds;"

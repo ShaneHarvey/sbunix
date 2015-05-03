@@ -118,6 +118,12 @@ static inline uint64_t read_cr1(void) {
     return ret;
 }
 
+static inline uint64_t read_cr2(void) {
+    uint64_t ret;
+    __asm__ __volatile__ ("movq %%cr2, %0;":"=r"(ret));
+    return ret;
+}
+
 static inline uint64_t read_cr3(void) {
     uint64_t ret;
     __asm__ __volatile__ ("movq %%cr3, %0;":"=r"(ret));
