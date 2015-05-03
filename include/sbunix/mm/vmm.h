@@ -4,9 +4,9 @@
 #include <sbunix/sbunix.h>
 #include <sbunix/mm/types.h>
 
-/* Start stack for users, maps to top of pml4[479] */
-#define USER_STACK_START 0xffffeffffffff000ULL
-#define USER_STACK_END   (USER_STACK_START - (20 * PAGE_SIZE))
+/* Start stack for users, maps to pml4[255]->pdpt[511]->pd[511]->pt[511] */
+#define USER_STACK_START 0x00007fffffffffffULL
+#define USER_STACK_END   (USER_STACK_START - (20ULL * PAGE_SIZE))
 
 /* mm_struct functions */
 
