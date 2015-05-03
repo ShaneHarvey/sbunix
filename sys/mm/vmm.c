@@ -436,11 +436,10 @@ int onfault_mmap_file(struct vm_area *vma, uint64_t addr) {
         uint64_t diff = vma->vm_start - aligned;
         toread = MIN(PAGE_SIZE - diff, vma->vm_fsize);
         offset = vma->vm_fstart;
-        debug("Reading 0x%lx bytes from file off_t 0x%lx\n", toread, (uint64_t)offset);
         bytes = vma->vm_file->f_op->read(vma->vm_file, (char*)page + diff, toread, &offset);
         if(bytes <= 0)
             kpanic("Read error on VMA mmapped file during PF!");
-        debug("Read    0x%lx bytes,      new off_t 0x%lx\n", bytes, (uint64_t)offset);
+        debug("Read  0x%lx/0x%lx bytes, new off_t 0x%lx\n", bytes,toread, (uint64_t)offset);
         /* zero extra data, if any */
         memset((void*)(page + bytes + diff), 0, (size_t)PAGE_SIZE - (bytes + diff));
     } else {
@@ -450,11 +449,10 @@ int onfault_mmap_file(struct vm_area *vma, uint64_t addr) {
             toread = PAGE_SIZE;
 
         offset = vma->vm_fstart + (off_t)(aligned - vma->vm_start);
-        debug("Reading 0x%lx bytes from file off_t 0x%lx\n", toread, (uint64_t)offset);
         bytes = vma->vm_file->f_op->read(vma->vm_file, (char*)page, toread, &offset);
         if(bytes <= 0)
             kpanic("Read error on VMA mmapped file during PF!");
-        debug("Read    0x%lx bytes,      new off_t 0x%lx\n", bytes, (uint64_t)offset);
+        debug("Read  0x%lx/0x%lx bytes, new off_t 0x%lx\n", bytes,toread, (uint64_t)offset);
         /* zero extra data, if any */
         memset((void*)(page + bytes), 0, (size_t)PAGE_SIZE - bytes);
     }
