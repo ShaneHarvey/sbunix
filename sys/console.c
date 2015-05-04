@@ -241,6 +241,11 @@ unsigned char sc_to_ascii(uint8_t scan_code, int shift, int control) {
     return c;
 }
 
+/**
+ * Add a scan code to the scan code buffer
+ *
+ * NOTE: interrupts are disabled here
+ */
 void sc_buf_add(uint8_t scan_code) {
     int c;
     if(sb.full) {

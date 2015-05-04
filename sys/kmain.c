@@ -4,6 +4,7 @@
 #include <sbunix/syscall.h>
 #include <sbunix/string.h>
 #include <sbunix/console.h>
+#include <sbunix/terminal.h>
 
 void printA(void) {
     int a = 1, b = 2, c = 3, d = 4, e = 5, f = 6, g = 7, h = 8;
@@ -31,7 +32,12 @@ void kmain(void) {
     int i, err;
     clear_console();
     printk("*** Welcome to SBUnix ***\n");
-    halt_loop("halting");
+
+    ktask_create(test_terminal, "TerminalTest");
+    for(i = 0; i < 100000000; i++) {
+        schedule();
+    }
+    halt_loop("halting in kmain\n");
     printk("Starting task test...\n");
     ktask_create(printA, "KernelPrintA");
     ktask_create(printB, "KernelPrintB");

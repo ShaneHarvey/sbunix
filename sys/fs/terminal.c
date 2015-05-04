@@ -1,17 +1,17 @@
 #include <sbunix/sbunix.h>
 #include <sbunix/console.h>
 #include <sbunix/terminal.h>
-#include <errno.h>
 #include <sbunix/sched.h>
+#include <errno.h>
+#include <sbunix/string.h>
 
 /**
- * STDIN, STDOUT, STDERR are all going to be backed by the same terminal
- *
- * This could be easily changed to have a terminal buffer for each process.
+ * STDIN, STDOUT, STDERR are all going to be backed by the same terminal.
  */
 
 #define TERM_BUFSIZE 4096
 struct terminal_buf {
+    // TODO: controlling pid? for job control? tcsetpgrp(2)
     int start;                       /* Read head of the buffer  (first occupied cell) */
     int end;                         /* Write head of the buffer (next empty cell) */
     char full;                       /* If the buffer is full */
@@ -115,6 +115,7 @@ static int term_poplast(void) {
 
 /**
  * Append a character to the terminal input buffer
+ * NOTE: interrupts are disabled here
  *
  * @c:  Character to enqueue
  */
@@ -137,12 +138,13 @@ void term_putch(unsigned char c) {
         putch('\a');
         return;
     }
-    /* TODO: do different things based on c */
+
     if(c == EOT || c == '\n') {
-        /* TODO: Unblock the foreground task if it is blocking on input */
         term.delims++;
         term.backspace = 0;
+        task_unblock_foreground();
     } else {
+        /* TODO: handle other special characters here */
         term.backspace++;
     }
     /* Add c to the buffer */
@@ -196,9 +198,9 @@ ssize_t term_read(struct file *fp, char *buf, size_t count, off_t *offset) {
         /* Block as a line has not been buffered yet */
         task_block();
     }
-    if(tb->delims == 0) {
-        kpanic("Unblocked but still no input!!!\n");
-    }
+//    if(tb->delims == 0) {
+//        kpanic("Unblocked but still no input!!!\n");
+//    }
     /* Unblocked! We can read until delim or count bytes are consumed */
     num_read = 0;
     while(count--) {
@@ -260,18 +262,35 @@ int term_close(struct file *fp) {
 
 void test_terminal(void) {
     struct file *stdin, *stdout;
+    char buf[100] = {0};
+    ssize_t nread, nbytes;
     stdin = term_open();
     if(!stdin)
         return;
     stdout = term_open();
     if(!stdout)
         goto cleanup_stdin;
-    /* Read from stdin */
-
+    /* Read from stdin, this should block the current process */
+    nread = stdin->f_op->read(stdin, buf, 99, NULL);
+    if(nread < 0) {
+        printk("ERROR: %s\n", strerror(-(int)nread));
+        goto cleanup_stdout;
+    }
     /* Write to stdout */
-
+    nbytes = stdout->f_op->write(stdout, "ECHO: ", 6, NULL);
+    if(nbytes < 6) {
+        printk("ERROR: nbytes written = %d\n", (int)nread);
+        goto cleanup_stdout;
+    }
+    nbytes = stdout->f_op->write(stdout, buf, (size_t)nread, NULL);
+    if(nbytes < nread) {
+        printk("ERROR: nbytes written = %d\n", (int)nread);
+        goto cleanup_stdout;
+    }
     /* Close files */
+cleanup_stdout:
     stdout->f_op->close(stdout);
 cleanup_stdin:
     stdin->f_op->close(stdin);
+    kpanic("END TEST TERMINAL\n");
 }
