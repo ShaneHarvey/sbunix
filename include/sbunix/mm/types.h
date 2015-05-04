@@ -36,6 +36,9 @@ struct vm_area {
 };
 
 /* Fixme: work in progress */
+/*
+ * Describes the virtual memory information for a process.
+ */
 struct mm_struct {
     struct vm_area   *vmas;        /* list of memory areas */
     uint64_t         pml4;         /* page global directory */
