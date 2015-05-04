@@ -3,6 +3,7 @@
 
 #include <sbunix/fs/vfs.h>
 
+int pipe_open(struct file **read_end, struct file **write_end);
 
 off_t pipe_lseek(struct file *fp, off_t offset, int whence);
 
