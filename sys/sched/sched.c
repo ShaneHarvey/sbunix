@@ -40,9 +40,10 @@ struct rq block_queue = {
 static uint64_t next_pid = 1;
 
 /* Private functions */
-void run_queue_add(struct rq *queue, struct task_struct *task);
-void task_list_add(struct task_struct *task);
-void task_add_new(struct task_struct *task);
+static void run_queue_add(struct rq *queue, struct task_struct *task);
+static void task_list_add(struct task_struct *task);
+static void task_add_new(struct task_struct *task);
+static void add_child(struct task_struct *parent, struct task_struct *chld);
 
 
 void scheduler_init(void) {
@@ -97,7 +98,7 @@ out_stack:
 /**
  * Return a copy of the current task.
  */
-struct task_struct *copy_curr_task(void) {
+struct task_struct *fork_curr_task(void) {
     struct task_struct *task;
     uint64_t *kstack;
     kstack = (uint64_t *)get_free_page(0);
@@ -108,13 +109,22 @@ struct task_struct *copy_curr_task(void) {
     if(!task)
         goto out_stack;
 
-    memcpy(task, curr_task, sizeof(*task));
-    task->kernel_rsp = (uint64_t)&kstack[511]; /* new kernel stack */
-    task->pid = get_next_pid();
-    task->parent = curr_task;           /* setup the parent */
+    memcpy(task, curr_task, sizeof(*task));     /* Exact copy of parent */
+    task->kernel_rsp = (uint64_t)&kstack[511];  /* new kernel stack */
+    task->pid = get_next_pid();                 /* new pid */
+    task->parent = curr_task;                   /* new parent */
+    task->chld = task->sib = NULL;              /* no children/siblings yet */
 
-    /* TODO: add child to parent */
+    /* Add this new child to the parent */
+    add_child(curr_task, task);
 
+    curr_task->foreground = 0; /* We steal our parent's foreground status */
+
+    /* TODO: deep copy mm */
+
+    /* TODO: COW stuff */
+
+    return task;
 out_stack:
     free_page((uint64_t)kstack);
     return NULL;
@@ -199,13 +209,22 @@ void task_queue_add(struct task_struct *task) {
 }
 
 /**
- * Remove task from its queue.
+ * Remove task from the run queue. Can never be empty.
  */
-void task_queue_remove(struct task_struct *task) {
+void run_queue_remove(struct task_struct *task) {
     if(task->next_rq)
         task->next_rq->prev_rq = task->prev_rq;
     if(task->prev_rq)
         task->prev_rq->next_rq = task->next_rq;
+}
+
+/**
+ * Remove task from the block queue. Can be empty.
+ */
+void block_queue_remove(struct task_struct *task) {
+    run_queue_remove(task);
+    if(block_queue.tasks == task)
+        block_queue.tasks = task->next_rq;
 }
 
 /**
@@ -229,6 +248,57 @@ void task_block(void) {
 }
 
 /**
+ * Unblock the task which was waiting for the terminal.
+ */
+void task_unblock_foreground(void) {
+    struct task_struct *task = block_queue.tasks;
+    if(!task)
+        return;
+
+    for(;task != NULL; task = task->next_rq) {
+        if(task->foreground && !task_sleeping(task)) {
+            /* It is the foreground, and not just sleeping */
+            task->state = TASK_RUNNABLE;
+            block_queue_remove(task);
+            run_queue_add(&run_queue, task);
+        }
+    }
+}
+
+/**
+ * @return: 1 if sleeping, 0 if not sleeping
+ */
+int task_sleeping(struct task_struct *task) {
+    return task->sleepts.tv_nsec || task->sleepts.tv_sec;
+}
+
+/**
+ * Add chld to parent's list of children.
+ */
+void add_child(struct task_struct *parent, struct task_struct *chld) {
+    if(!parent || !chld)
+        return;
+
+    if(!parent->chld) {
+        /* First child */
+        parent->chld = chld;
+    } else {
+        /* Loop over all children (1st child, then the siblings) */
+        struct task_struct *prev = parent->chld;
+        for(;prev->sib != NULL; prev = prev->sib) {
+        }
+        prev->sib = chld;
+    }
+}
+
+/**
+ * Return the next PID to use.
+ */
+uint64_t get_next_pid(void) {
+    return next_pid++;
+}
+
+/**
  * Pick the highest priority task to run.
  */
 struct task_struct *pick_next_task(void) {
@@ -237,15 +307,8 @@ struct task_struct *pick_next_task(void) {
     if(!task)
         return curr_task;
     run_queue.tasks = run_queue.tasks->next_task;
-    task_queue_remove(task);
+    run_queue_remove(task);
     return task;
-}
-
-/**
- * Return the next PID to use.
- */
-uint64_t get_next_pid(void) {
-    return next_pid++;
 }
 
 /**

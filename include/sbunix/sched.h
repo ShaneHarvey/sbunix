@@ -3,6 +3,7 @@
 
 #include <sys/defs.h>
 #include <sbunix/mm/types.h> /* mm_struct */
+#include <sbunix/time.h>
 
 extern struct rq            run_queue;
 extern struct rq            block_queue;
@@ -17,10 +18,11 @@ struct task_struct {
     int type;
     int state;
     int flags;
-    int foreground;        /* True if this task controls the terminal */
+    int foreground;       /* True if this task controls the terminal */
+    struct timespec sleepts; /* time left to sleep */
     uint64_t kernel_rsp;
     uint64_t pid;         /* Process ID, monotonically increasing. 0 is not valid */
-    int exit_code;   /* Exit code of a process, returned by wait() */
+    int exit_code;        /* Exit code of a process, returned by wait() */
     struct mm_struct *mm; /* virtual memory info, kernel tasks all share a global */
     struct task_struct *next_task, *prev_task; /* for traversing all tasks */
     struct task_struct *next_rq,  *prev_rq;    /* for traversing a run queue */
@@ -51,6 +53,8 @@ struct rq {
 };
 
 void task_block(void);
+void task_unblock_foreground(void);
+int task_sleeping(struct task_struct *task);
 void schedule(void);
 void scheduler_init(void);
 struct task_struct *ktask_create(void (*start)(void), char *name);
