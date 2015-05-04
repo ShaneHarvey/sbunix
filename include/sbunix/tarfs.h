@@ -110,12 +110,7 @@ ssize_t tarfs_read(struct file *fp, char *buf, size_t count, off_t *offset);
 ssize_t tarfs_write(struct file *fp, const char *buf, size_t count,
                     off_t *offset);
 //int tarfs_readdir(struct file *fp, void *dirent, filldir_t filldir);
-int tarfs_mmap(struct file *fp, struct vm_area *vma);
-int tarfs_open(const char *path, struct file *fp);
+struct file *tarfs_open(const char *path, int flags, mode_t mod, int *err);
 int tarfs_close(struct file *fp);
-unsigned long tarfs_get_unmapped_area(struct file *fp, unsigned long addr,
-                                unsigned long len, unsigned long offset,
-                                unsigned long flags);
-int tarfs_check_flags(int flags);
 
 #endif

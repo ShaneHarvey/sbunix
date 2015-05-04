@@ -12,11 +12,7 @@ struct file_ops tarfs_file_ops = {
     .read = tarfs_read,
     .write = tarfs_write,
 //    .readdir = tarfs_readdir,
-    .mmap = tarfs_mmap,
-    .open = tarfs_open,
-    .close = tarfs_close,
-    .get_unmapped_area = tarfs_get_unmapped_area,
-    .check_flags = tarfs_check_flags
+    .close = tarfs_close
 };
 
 /**
@@ -83,15 +79,13 @@ void test_read_tarfs(void) {
  * Test open/read
  */
 void test_all_tarfs(const char *path) {
-    struct file f, *fp = &f;
+    struct file *fp;
     int err;
     ssize_t bytes;
     char buf[10];
 
-    fp->f_op = &tarfs_file_ops;
-    fp->f_count = 1;
     printk("Tarfs test: open/read/close on %s\n", path);
-    err = fp->f_op->open(path, fp);
+    fp = tarfs_open(path, 0, 0, &err);
     if(err) {
         printk("Error open: %s\n", strerror(-err));
         return;
@@ -165,7 +159,10 @@ off_t tarfs_lseek(struct file *fp, off_t offset, int whence) {
  * Reads count bytes from the given file at position offset into buf. The file
  * pointer is then updated.
  *
- * TODO: validate user pointer buf is USER and COUNT bytes
+ * @fp:  pointer to a file struct backed by a tarfs file
+ * @buf: user buffer to read into
+ * @count: maximum number of bytes to read
+ * @offset: offset from the beginning of the file to start reading
  */
 ssize_t tarfs_read(struct file *fp, char *buf, size_t count, off_t *offset) {
     struct posix_header_ustar *hd;
@@ -210,38 +207,40 @@ ssize_t tarfs_write(struct file *fp, const char *buf, size_t count,
 //}
 
 /**
- * Memory maps the given file onto the given address space
- */
-int tarfs_mmap(struct file *fp, struct vm_area *vma) {
-    return 0;
-}
-
-/**
  * Creates a new file object for the given path
- *
+ * TODO: flags and mode
  * @path: The absolute path of the file to open (MUST start with '/')
+ * @flags: user open flags
+ * @mode: user open mode
+ * @err: pointer to error indicator
  */
-int tarfs_open(const char *path, struct file *fp) {
+struct file *tarfs_open(const char *path, int flags, mode_t mode, int *err) {
     struct posix_header_ustar *hd;
+    struct file *fp;
 
     if(!path || *path != '/')
         kpanic("path must start with / !!!\n");
-    if(!fp)
-        kpanic("fp is NULL!!!\n");
 
     for(hd = tarfs_first(); hd != NULL; hd = tarfs_next(hd)) {
         if(strncmp(path+1, hd->name, sizeof(hd->name)) == 0) {
+            fp = kmalloc(sizeof(struct file));
+            if(!fp) {
+                *err = -ENOMEM;
+                return NULL;
+            }
             fp->private_data = hd;
             fp->f_size = aotoi(hd->size, sizeof(hd->size));
             fp->f_pos = 0;
             fp->f_error = 0;
             fp->f_op = &tarfs_file_ops;
-            fp->f_flags = 0;
+            fp->f_flags = flags;
             fp->f_count = 1;
-            return 0;
+            *err = 0;
+            return fp;
         }
     }
-    return -ENOENT;
+    *err = -ENOENT;
+    return NULL;
 }
 
 /**
@@ -258,23 +257,5 @@ int tarfs_close(struct file *fp) {
         memset(fp, 0, sizeof(struct file));
         kfree(fp);
     }
-    return 0;
-}
-
-/**
- * Return an unused address space to map the given file
- */
-unsigned long tarfs_get_unmapped_area(struct file *fp, unsigned long addr,
-                                unsigned long len, unsigned long offset,
-                                unsigned long flags) {
-    return 0;
-}
-
-/**
- * Check if tarfs supports the flags given to the open system call
- *
- * @flags: user open(2) flags
- */
-int tarfs_check_flags(int flags) {
     return 0;
 }

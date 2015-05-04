@@ -154,14 +154,12 @@ void elf_print_phdr(Elf64_Phdr *phdr) {
 }
 
 void elf_test_load(char *filename) {
-    struct file f, *fp = &f;
+    struct file *fp;
     int err;
 
-    fp->f_op = &tarfs_file_ops;
-    fp->f_count = 1;
-    err = fp->f_op->open(filename, fp);
+    fp = tarfs_open(filename, 0, 0, &err);
     if(err) {
-        printk("Error open: %s\n", strerror(-err));
+        printk("Error opening: %s: %s\n", filename, strerror(-err));
         return;
     }
     elf_validiate_exec(fp);

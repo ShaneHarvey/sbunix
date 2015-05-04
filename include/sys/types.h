@@ -16,4 +16,5 @@ typedef long int suseconds_t;
 
 typedef void * userptr_t;
 
+typedef uint32_t mode_t;
 #endif

@@ -1,6 +1,7 @@
 #include <string.h>
 #include <sbunix/sbunix.h>
 #include <sbunix/console.h>
+#include <sbunix/terminal.h>
 
 #define SCRN_BASE ((uint16_t *)kphys_to_virt(0xb8000))
 #define SCRN_WIDTH 80U
@@ -26,12 +27,9 @@ void clear_line(uint8_t lineno) {
 void move_csr(void) {
     uint16_t temp;
 
-    /* The equation for finding the index in a linear
-    *  chunk of memory can be represented by:
-    *  Index = [(y * width) + x] */
     temp = cursor_y * SCRN_WIDTH + cursor_x;
 
-    /* This sends a command to indicies 14 and 15 in the
+    /* This sends a command to indexes 14 and 15 in the
     *  CRT Control Register of the VGA controller. These
     *  are the high and low bytes of the index that show
     *  where the hardware cursor is to be 'blinking'. To
@@ -60,10 +58,16 @@ void clear_console(void) {
 void putch(char c) {
     /* Handle a backspace, by moving the cursor back one space */
     if(c == '\b') {
-        if(cursor_x != 0) cursor_x--;
+        if(!cursor_x && !cursor_y)
+            return;
+        cursor_x--;
+        if(cursor_x < 0) {
+            cursor_x = 79;
+            cursor_y--;
+        }
     }
-        /* Handles a tab by incrementing the cursor's x, but only
-        *  to a point that will make it divisible by 4 */
+    /* Handles a tab by incrementing the cursor's x, but only
+    *  to a point that will make it divisible by 4 */
     else if(c == '\t') {
         cursor_x = (cursor_x + 4) & ~3;
     }
@@ -120,19 +124,6 @@ void puts_xy(const char *text, size_t count, int x, int y) {
     cursor_y = oldy;
 }
 
-/* Sets the forecolor and backcolor that we will use */
-void settextcolor(unsigned char forecolor, unsigned char backcolor) {
-    /* Top 4 bytes are the background, bottom 4 bytes
-    *  are the foreground color */
-    cursor_color = (backcolor << 4) | (forecolor & 0x0F);
-}
-
-/* Sets our text-mode VGA pointer, then clears the screen for us */
-void init_video(void) {
-    clear_console();
-}
-
-
 void writec_time(uint64_t seconds) {
     char strsec[22] = {0};
     uint8_t len;
@@ -168,7 +159,7 @@ void writec_glyph(char c) {
 
 /* Input functions */
 
-#define SC_BUFSIZE 1024
+#define SC_BUFSIZE 4096
 struct sc_buf {
     int start;                /* Read head of the buffer  (first occupied cell) */
     int end;                  /* Write head of the buffer (next empty cell) */
@@ -180,8 +171,8 @@ struct sc_buf {
 
 struct sc_buf sb = {0, 0, 0, 0, 0, {0}};
 
-char sc_to_ascii(uint8_t scan_code, int shift, int control) {
-    char c;
+unsigned char sc_to_ascii(uint8_t scan_code, int shift, int control) {
+    unsigned char c;
     if (scan_code == SC_ESCAPE) {
         c = 0x05;
     } else if (scan_code <= SC_ENTER) {
@@ -251,7 +242,7 @@ char sc_to_ascii(uint8_t scan_code, int shift, int control) {
 }
 
 void sc_buf_add(uint8_t scan_code) {
-    char c;
+    int c;
     if(sb.full) {
         return;
     }
@@ -260,6 +251,26 @@ void sc_buf_add(uint8_t scan_code) {
     if(sb.end == sb.start) {
         sb.full = 1;
     }
+
+    /* Print last glyph pressed and add it to the terminal */
+    c = sc_buf_getch();
+    if(c > 0) {
+        writec_glyph((char)c);
+        term_putch((unsigned char)c);
+    }
+}
+
+
+/**
+ * Get the first char from the scan code buffer
+ */
+int sc_buf_getch(void) {
+    uint8_t scan_code;
+    char c;
+
+    /* check if the buffer is empty */
+    if(sb.start == sb.end && !sb.full)
+        return 0;
     /* Print last glyph pressed */
     scan_code = sb.buf[sb.start];
     if (scan_code == SC_LEFT_SHIFT || scan_code == SC_RIGHT_SHIFT)
@@ -273,6 +284,5 @@ void sc_buf_add(uint8_t scan_code) {
     c = sc_to_ascii(sb.buf[sb.start], sb.shift, sb.control);
     sb.start = (sb.start + 1) % SC_BUFSIZE;
     sb.full = 0;
-    if(c)
-        writec_glyph(c);
+    return c;
 }

@@ -3,13 +3,17 @@
 
 #include <sys/types.h>
 
+void move_csr(void);
+void putch(char c);
 void puts(const char *text, size_t count);
+void puts_xy(const char *text, size_t count, int x, int y);
 void writec_time(uint64_t seconds);
 void writec_glyph(char c);
 void clear_console(void);
 
 
 void sc_buf_add(uint8_t scan_code);
+int sc_buf_getch(void);
 
 /* Scan Code Set 1 */
 enum scan_codes {

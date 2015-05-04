@@ -31,6 +31,7 @@ void kmain(void) {
     int i, err;
     clear_console();
     printk("*** Welcome to SBUnix ***\n");
+    halt_loop("halting");
     printk("Starting task test...\n");
     ktask_create(printA, "KernelPrintA");
     ktask_create(printB, "KernelPrintB");

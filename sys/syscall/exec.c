@@ -56,10 +56,7 @@ int do_execve(char *filename, char *argv[], char *envp[]) {
     int err;
     /* TODO: validate user pointers */
     /* TODO: resolve filename to absolute path */
-    fp = kmalloc(sizeof(struct file));
-    if(!fp)
-        return -ENOMEM;
-    err = tarfs_open(filename, fp);
+    fp = tarfs_open(filename, 0, 0, &err);
     if(err)
         goto cleanup_kmalloc;
     err = elf_validiate_exec(fp);
