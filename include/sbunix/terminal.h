@@ -15,4 +15,6 @@ ssize_t term_write(struct file *fp, const char *buf, size_t count,
                    off_t *offset);
 int term_close(struct file *fp);
 
+void test_terminal(void);
+
 #endif //_SBUNIX_TERMINAL_H

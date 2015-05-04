@@ -2,9 +2,12 @@
 #include <sbunix/console.h>
 #include <sbunix/terminal.h>
 #include <errno.h>
+#include <sbunix/sched.h>
 
 /**
  * STDIN, STDOUT, STDERR are all going to be backed by the same terminal
+ *
+ * This could be easily changed to have a terminal buffer for each process.
  */
 
 #define TERM_BUFSIZE 4096
@@ -100,8 +103,7 @@ static int term_popfirst(struct terminal_buf *tb) {
  * Pop and return the last character to be added from terminal buffer
  */
 static int term_poplast(void) {
-    int term_empty = (term.start == term.end) && !term.full;
-    if(term_empty) {
+    if(term.backspace == 0) {
         return -1;
     }
     term.backspace--;
@@ -119,7 +121,7 @@ static int term_poplast(void) {
 void term_putch(unsigned char c) {
     /* handle backspace here */
     if(c == '\b') {
-        if(!term.backspace)
+        if(term.backspace == 0)
             return;
         term_poplast();
         if(term.echo) {
@@ -137,7 +139,7 @@ void term_putch(unsigned char c) {
     }
     /* TODO: do different things based on c */
     if(c == EOT || c == '\n') {
-        /* EOT (^D) */
+        /* TODO: Unblock the foreground task if it is blocking on input */
         term.delims++;
         term.backspace = 0;
     } else {
@@ -186,9 +188,13 @@ ssize_t term_read(struct file *fp, char *buf, size_t count, off_t *offset) {
     /* Do read */
     if(count == 0)
         return 0;
+    /* Is this task controlling the terminal */
+    if(!curr_task->foreground)
+        return -EIO; /* should send SIGTTIN as well, but don't have signals */
 
     if(tb->delims == 0) {
         /* Block as a line has not been buffered yet */
+        task_block();
     }
     if(tb->delims == 0) {
         kpanic("Unblocked but still no input!!!\n");
@@ -250,4 +256,22 @@ int term_close(struct file *fp) {
         kpanic("file is NULL!!!\n");
     fp->f_count--;
     return 0;
+}
+
+void test_terminal(void) {
+    struct file *stdin, *stdout;
+    stdin = term_open();
+    if(!stdin)
+        return;
+    stdout = term_open();
+    if(!stdout)
+        goto cleanup_stdin;
+    /* Read from stdin */
+
+    /* Write to stdout */
+
+    /* Close files */
+    stdout->f_op->close(stdout);
+cleanup_stdin:
+    stdin->f_op->close(stdin);
 }

@@ -5,6 +5,7 @@
 #include <sbunix/mm/types.h> /* mm_struct */
 
 extern struct rq            run_queue;
+extern struct rq            block_queue;
 extern struct mm_struct     kernel_mm;
 extern struct task_struct   kernel_task;
 extern struct task_struct   *curr_task;
@@ -16,6 +17,7 @@ struct task_struct {
     int type;
     int state;
     int flags;
+    int foreground;        /* True if this task controls the terminal */
     uint64_t kernel_rsp;
     struct mm_struct *mm;  /* virtual memory info, kernel tasks use a global */
     struct task_struct *next_task, *prev_task;  /* for traversing all tasks */
@@ -45,6 +47,7 @@ struct rq {
     struct task_struct *tasks; /* task queue */
 };
 
+void task_block(void);
 void schedule(void);
 void scheduler_init(void);
 struct task_struct *ktask_create(void (*start)(void), char *name);

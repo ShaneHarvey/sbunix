@@ -13,6 +13,7 @@ struct task_struct kernel_task = {
         .type = TASK_KERN,
         .state = TASK_RUNNABLE,
         .flags = 0,
+        .foreground = 1, /* can read from the terminal */
         .kernel_rsp = 0, /* Will be set on first call to schedule */
         .mm = &kernel_mm,
         .next_task = &kernel_task,
@@ -26,6 +27,11 @@ struct task_struct *curr_task = &kernel_task;
 struct task_struct *last_task = NULL;
 
 struct rq run_queue = {
+        .num_switches = 0,
+        .tasks = NULL,
+};
+
+struct rq block_queue = {
         .num_switches = 0,
         .tasks = NULL,
 };
@@ -67,6 +73,7 @@ struct task_struct *ktask_create(void (*start)(void), char *name) {
     task->state = TASK_RUNNABLE;
     /* Put the start function on the stack for switch_to  */
     task->flags = TASK_FIRST_SWITCH;
+    task->foreground = 1; /* all kernel threads can read input */
     stack[511] = (uint64_t)start;
     task->kernel_rsp = (uint64_t)&stack[511];
     task->mm = &kernel_mm;
@@ -155,6 +162,8 @@ void task_list_add(struct task_struct *task) {
 void task_queue_add(struct task_struct *task) {
     if(task->state == TASK_RUNNABLE) {
         run_queue_add(&run_queue, task);
+    } else if(task->state == TASK_BLOCKED) {
+        run_queue_add(&block_queue, task);
     }
 }
 
@@ -178,6 +187,14 @@ void task_add_new(struct task_struct *task) {
 
     task_list_add(task);
     task_queue_add(task);
+}
+
+/**
+ * Block the current task
+ */
+void task_block(void) {
+    curr_task->state = TASK_BLOCKED;
+    schedule();
 }
 
 /**
