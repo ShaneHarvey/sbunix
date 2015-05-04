@@ -19,9 +19,12 @@ struct task_struct {
     int flags;
     int foreground;        /* True if this task controls the terminal */
     uint64_t kernel_rsp;
-    struct mm_struct *mm;  /* virtual memory info, kernel tasks use a global */
-    struct task_struct *next_task, *prev_task;  /* for traversing all tasks */
-    struct task_struct *next_rq,  *prev_rq;  /* for traversing a run queue */
+    uint64_t pid;         /* Process ID, monotonically increasing. 0 is not valid */
+    int exit_code;   /* Exit code of a process, returned by wait() */
+    struct mm_struct *mm; /* virtual memory info, kernel tasks all share a global */
+    struct task_struct *next_task, *prev_task; /* for traversing all tasks */
+    struct task_struct *next_rq,  *prev_rq;    /* for traversing a run queue */
+    struct task_struct *parent, *chld, *sib;   /* parent/child/sibling pointers */
     char cmdline[TASK_CMDLINE_MAX + 1];
 };
 
@@ -52,6 +55,7 @@ void schedule(void);
 void scheduler_init(void);
 struct task_struct *ktask_create(void (*start)(void), char *name);
 void task_set_cmdline(struct task_struct *task, char *cmdline);
+uint64_t get_next_pid(void);
 
 #ifdef WE_ARE_LINUX
 struct task_struct {
