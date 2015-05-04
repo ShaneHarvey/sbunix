@@ -187,7 +187,7 @@ void mm_destroy(struct mm_struct *mm) {
  *    new break     -- on success
  *    current break -- on failure
  */
-uint64_t mm_do_sys_sbrk(struct mm_struct *mm, uint64_t newbrk) {
+uint64_t do_sbrk(struct mm_struct *mm, uint64_t newbrk) {
     if(!mm)
         return (uint64_t)-1;
     if(newbrk <= mm->brk)
@@ -268,26 +268,20 @@ int mm_add_vma(struct mm_struct *mm, struct vm_area *vma) {
 
 /**
  * Checks if the user pointer is within a valid virtual memory area.
- * If it is, map the corresponding page if it is not present in the
- * page table.
- * @return:  0 if userp is valid and is safe to use (mapped), or
- *          -1 if not valid,
- *          -2 if mapping failed (example: no memory)
+ * Syscalls set the global in a syscall flag used in the page fault
+ * handler.
+ * This does NOT map pages!
+ * @return:  0 if userp is valid and is safe to page fault in the kernel, or
+ *          -1 if not valid
  */
 int validate_userptr(struct mm_struct *mm, userptr_t userp, size_t size) {
     struct vm_area *vma;
-    int present = 0;
 
     vma = vma_find_region(mm->vmas, (uint64_t)userp, size);
     if(!vma)
         return -1;  /* not valid */
 
-    /* fixme!!!! magic test if page present */
-    if(present) {
-        return 0; /* valid and present, won't page fault */
-    }
-
-    return -1;
+    return 0;
 }
 
 
