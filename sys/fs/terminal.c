@@ -80,9 +80,11 @@ static void term_push(unsigned char c) {
  * Helper pops the first character from the buffer
  *
  * @tb:  a valid terminal_buf
+ * @save: address to put the character
+ *
  * @return the first character or -1 if there are none to read
  */
-static int term_popfirst(struct terminal_buf *tb) {
+static int term_popfirst(struct terminal_buf *tb, char *save) {
     int c;
     if(tb->delims == 0)
         return -1;
@@ -95,8 +97,12 @@ static int term_popfirst(struct terminal_buf *tb) {
         return -1;
     } else if(c == '\n') {
         tb->delims--;
+        *save = (char)c; /* save the char */
+        return -1;
+    } else {
+        *save = (char)c; /* save the char */
+        return c;
     }
-    return c;
 }
 
 /**
@@ -204,10 +210,9 @@ ssize_t term_read(struct file *fp, char *buf, size_t count, off_t *offset) {
     /* Unblocked! We can read until delim or count bytes are consumed */
     num_read = 0;
     while(count--) {
-        c = term_popfirst(tb);
+        c = term_popfirst(tb, &buf[num_read++]);
         if(c < 0)
             break;
-        buf[num_read++] = (char)c;
     }
     return num_read;
 }
@@ -260,6 +265,10 @@ int term_close(struct file *fp) {
     return 0;
 }
 
+
+/**
+ * Simple test of input/output on terminal file.
+ */
 void test_terminal(void) {
     struct file *stdin, *stdout;
     char buf[100] = {0};

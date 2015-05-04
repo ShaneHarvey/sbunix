@@ -240,7 +240,8 @@ void task_add_new(struct task_struct *task) {
 }
 
 /**
- * Block the current task
+ * Block the current task, this is called inside a system call so interrupts
+ * are disabled
  */
 void task_block(void) {
     curr_task->state = TASK_BLOCKED;
@@ -340,6 +341,8 @@ inline void context_switch(struct task_struct *prev, struct task_struct *next) {
 
 /**
  * Switch out the current task for the next task to run.
+ *
+ * TODO: schedule MUST always be called with interrupts disabled
  */
 void schedule(void) {
     struct task_struct *prev, *next;
