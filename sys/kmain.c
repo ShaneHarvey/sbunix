@@ -33,6 +33,8 @@ void kmain(void) {
     clear_console();
     printk("*** Welcome to SBUnix ***\n");
 
+    scheduler_test();
+
     ktask_create(test_terminal, "TerminalTest");
     for(i = 0; i < 100000000; i++) {
         schedule();

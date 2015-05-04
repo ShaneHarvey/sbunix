@@ -5,6 +5,7 @@
 #include <sbunix/mm/align.h>
 #include <sbunix/string.h>
 #include <sbunix/gdt.h>
+#include "roundrobin.h"
 
 /* All kernel tasks use this mm_struct */
 struct mm_struct kernel_mm = {0};
@@ -12,26 +13,31 @@ struct mm_struct kernel_mm = {0};
 struct task_struct kernel_task = {
         .type = TASK_KERN,
         .state = TASK_RUNNABLE,
-        .flags = 0,
+        .first_switch = 0,
         .foreground = 1, /* can read from the terminal */
         .kernel_rsp = 0, /* Will be set on first call to schedule */
         .mm = &kernel_mm,
         .next_task = &kernel_task,
         .prev_task = &kernel_task,
-        .next_rq = &kernel_task,
-        .prev_rq =  &kernel_task
+        .next_rq = NULL,
+        .cmdline = "kmain"
 };
 /* The currently running task */
 struct task_struct *curr_task = &kernel_task;
 /* The last (previous) task to run, may need to be reaped */
 struct task_struct *last_task = NULL;
 
-struct rq run_queue = {
+struct queue run_queue = {
         .num_switches = 0,
         .tasks = NULL,
 };
 
-struct rq block_queue = {
+struct queue already_ran_queue = {
+        .num_switches = 0,
+        .tasks = NULL,
+};
+
+struct queue block_queue = {
         .num_switches = 0,
         .tasks = NULL,
 };
@@ -40,7 +46,6 @@ struct rq block_queue = {
 static uint64_t next_pid = 1;
 
 /* Private functions */
-static void run_queue_add(struct rq *queue, struct task_struct *task);
 static void task_list_add(struct task_struct *task);
 static void task_add_new(struct task_struct *task);
 static void add_child(struct task_struct *parent, struct task_struct *chld);
@@ -78,7 +83,7 @@ struct task_struct *ktask_create(void (*start)(void), char *name) {
     task->type = TASK_KERN;
     task->state = TASK_RUNNABLE;
     /* Put the start function on the stack for switch_to  */
-    task->flags = TASK_FIRST_SWITCH;
+    task->first_switch = 1;
     task->foreground = 1; /* all kernel threads can read input */
     stack[511] = (uint64_t)start;
     task->kernel_rsp = (uint64_t)&stack[511];
@@ -131,7 +136,7 @@ out_stack:
 }
 
 /**
- * Free the task.
+ * Free the task. Only called when removed from its queue.
  */
 void task_destroy(struct task_struct *task) {
     mm_destroy(task->mm);
@@ -152,28 +157,6 @@ void task_set_cmdline(struct task_struct *task, char *cmdline) {
         return;
     strncpy(task->cmdline, cmdline, TASK_CMDLINE_MAX);
     task->cmdline[TASK_CMDLINE_MAX] = 0;
-}
-
-/**
- * Add a task to the linked list of tasks in queue.
- */
-void run_queue_add(struct rq *queue, struct task_struct *task) {
-    if(!queue || !task)
-        return;
-
-    if(!queue->tasks) {
-        /* Add the first element of the queue */
-        task->next_rq = task;
-        task->prev_rq = task;
-        queue->tasks = task;
-    } else {
-        /* Insert task behind the current (at the end of the queue) */
-        struct task_struct *hd = queue->tasks;
-        hd->prev_rq->next_rq = task;
-        task->prev_rq = hd->prev_rq;
-        hd->prev_rq = task;
-        task->next_rq = hd;
-    }
 }
 
 /**
@@ -200,32 +183,17 @@ void task_list_add(struct task_struct *task) {
 /**
  * Add task to the correct queue.
  */
-void task_queue_add(struct task_struct *task) {
+void queue_add_by_state(struct task_struct *task) {
+    debug("Adding task: %s\n", task->cmdline);
     if(task->state == TASK_RUNNABLE) {
-        run_queue_add(&run_queue, task);
+        rr_queue_add(&just_ran_queue, task);
     } else if(task->state == TASK_BLOCKED) {
-        run_queue_add(&block_queue, task);
+        rr_queue_add(&block_queue, task);
+    } else {
+        kpanic("Don't know which queue to put task into: state=%d\n", task->state);
     }
 }
 
-/**
- * Remove task from the run queue. Can never be empty.
- */
-void run_queue_remove(struct task_struct *task) {
-    if(task->next_rq)
-        task->next_rq->prev_rq = task->prev_rq;
-    if(task->prev_rq)
-        task->prev_rq->next_rq = task->next_rq;
-}
-
-/**
- * Remove task from the block queue. Can be empty.
- */
-void block_queue_remove(struct task_struct *task) {
-    run_queue_remove(task);
-    if(block_queue.tasks == task)
-        block_queue.tasks = task->next_rq;
-}
 
 /**
  * Add a newly created task to the system.
@@ -236,7 +204,7 @@ void task_add_new(struct task_struct *task) {
         return;
 
     task_list_add(task);
-    task_queue_add(task);
+    queue_add_by_state(task);
 }
 
 /**
@@ -260,8 +228,8 @@ void task_unblock_foreground(void) {
         if(task->foreground && !task_sleeping(task)) {
             /* It is the foreground, and not just sleeping */
             task->state = TASK_RUNNABLE;
-            block_queue_remove(task);
-            run_queue_add(&run_queue, task);
+            rr_queue_remove(&block_queue, task);
+            rr_queue_add(&run_queue, task); /* We want this to run on next schedule() */
         }
     }
 }
@@ -297,19 +265,6 @@ void add_child(struct task_struct *parent, struct task_struct *chld) {
  */
 uint64_t get_next_pid(void) {
     return next_pid++;
-}
-
-/**
- * Pick the highest priority task to run.
- */
-struct task_struct *pick_next_task(void) {
-    struct task_struct *task;
-    task = run_queue.tasks;
-    if(!task)
-        return curr_task;
-    run_queue.tasks = run_queue.tasks->next_task;
-    run_queue_remove(task);
-    return task;
 }
 
 /**
@@ -349,7 +304,7 @@ void schedule(void) {
 
     /* Assuming atomicity */
     prev = curr_task;
-    next = pick_next_task();
+    next = rr_pick_next_task();
 
     if(prev != next) {
         run_queue.num_switches++;
@@ -358,15 +313,74 @@ void schedule(void) {
 
         context_switch(prev, next);
 
-        /* change the kernel stack in the tss */
+        /* WE CAN NOT REFER TO LOCALS AFTER the context_switch */
+
+        /* Update the kernel stack in the tss */
         tss.rsp0 = curr_task->kernel_rsp;
         /* todo: ltr or ldtr to load the TSS again? */
 
+        /* Clean up the previous task */
+        debug("Switched from %s --> %s\n", last_task->cmdline, curr_task->cmdline);
         if(last_task->state == TASK_DEAD) {
             task_destroy(last_task);
         } else {
-            task_queue_add(last_task);
+            queue_add_by_state(last_task);
+        }
+        /* If this was the first switch then the current stack has no frame for
+         * schedule(), on retq we will return to the task's start function for
+         * the first time.
+         */
+        if(curr_task->first_switch) {
+            curr_task->first_switch = 0;
+            __asm__ __volatile__ ("retq;");
         }
     }
 
+}
+
+
+static void funX(void);
+static void funY(void);
+
+static struct task_struct *taskX, *taskY;
+
+void debug_task(struct task_struct *task) {
+    debug("type=%d, state=%d, first_switch=%d, foreground=%d\n",
+          task->type, task->state, task->first_switch, task->foreground);
+}
+
+
+void scheduler_test(void) {
+    int x = 1;
+    debug("START OF SCHEDULER TEST\n");
+    taskX = ktask_create(funX, "TaskX");
+    debug_task(taskX);
+    taskY = ktask_create(funY, "TaskY");
+    debug_task(taskY);
+    while(x < 5) {
+        debug("scheduler_test: %d\n", x++);
+        /* This is the main task (the kernel_task) */
+        __asm__ __volatile__ ("hlt;");
+        debug_queues();
+        schedule();
+    }
+    kpanic("END OF SCHEDULER TEST\n");
+}
+
+static void funX(void) {
+    printk("X\n");
+    while(1) {
+        debug_task(taskX);
+        debug_queues();
+        schedule();
+    }
+}
+
+static void funY(void) {
+    printk("Y\n");
+    while(1) {
+        debug_task(taskY);
+        debug_queues();
+        schedule();
+    }
 }
