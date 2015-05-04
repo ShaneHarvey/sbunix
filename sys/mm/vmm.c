@@ -1,9 +1,9 @@
 #include <sbunix/mm/vmm.h>
-#include <sbunix/sched.h>
-#include <sbunix/string.h>
-#include <sbunix/vfs/vfs.h>
-#include <errno.h>
 #include <sbunix/mm/pt.h>
+#include <sbunix/fs/vfs.h>
+#include <sbunix/string.h>
+#include <sbunix/sched.h>
+#include <errno.h>
 
 /*
  * Virtual Memory for user processes, should be mostly operations on

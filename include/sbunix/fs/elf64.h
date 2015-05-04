@@ -2,7 +2,7 @@
 #define _SBUNIX_ELF64_H
 
 #include <sys/types.h>
-#include <sbunix/vfs/vfs.h>
+#include <sbunix/fs/vfs.h>
 
 /*
  * This file is adapted from the Linux Kernel file:

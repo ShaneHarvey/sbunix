@@ -1,7 +1,7 @@
 #ifndef _SBUNIX_TERMINAL_H
 #define _SBUNIX_TERMINAL_H
 
-#include <sbunix/vfs/vfs.h>
+#include <sbunix/fs/vfs.h>
 
 #define EOT  4
 #define EOF  -1

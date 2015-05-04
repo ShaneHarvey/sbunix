@@ -1,7 +1,7 @@
 #include <string.h>
 #include <sbunix/sbunix.h>
 #include <sbunix/console.h>
-#include <sbunix/terminal.h>
+#include <sbunix/fs/terminal.h>
 
 #define SCRN_BASE ((uint16_t *)kphys_to_virt(0xb8000))
 #define SCRN_WIDTH 80U

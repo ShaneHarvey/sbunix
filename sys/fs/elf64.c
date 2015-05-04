@@ -1,10 +1,10 @@
-#include <sbunix/elf64.h>
-#include <sbunix/tarfs.h>
 #include <sbunix/sbunix.h>
+#include <sbunix/fs/elf64.h>
+#include <sbunix/fs/tarfs.h>
 #include <sbunix/mm/vmm.h>
+#include <sbunix/mm/pt.h>
 #include <sbunix/string.h>
 #include <errno.h>
-#include <sbunix/mm/pt.h>
 
 /*
  * Simple ELF x86-64 file loader, probably need to support

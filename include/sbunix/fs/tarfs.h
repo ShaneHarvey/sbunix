@@ -1,7 +1,7 @@
 #ifndef _SBUNIX_TARFS_H
 #define _SBUNIX_TARFS_H
 
-#include <sbunix/vfs/vfs.h>
+#include <sbunix/fs/vfs.h>
 /**
  * TARFS Functional Requirements:
  * open, read, close, opendir, readdir, closedir

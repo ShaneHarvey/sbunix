@@ -1,11 +1,11 @@
 #include <sbunix/sbunix.h>
-#include <sbunix/tarfs.h>
-#include <sbunix/sched.h>
-#include <sbunix/elf64.h>
+#include <sbunix/fs/tarfs.h>
+#include <sbunix/fs/elf64.h>
 #include <sbunix/mm/vmm.h>
-#include <errno.h>
-#include <sbunix/string.h>
 #include <sbunix/gdt.h>
+#include <sbunix/sched.h>
+#include <sbunix/string.h>
+#include <errno.h>
 #include "syscall_dispatch.h"
 
 void enter_usermode(uint64_t user_rsp, uint64_t user_rip) {

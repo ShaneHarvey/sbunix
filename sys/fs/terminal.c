@@ -1,6 +1,6 @@
 #include <sbunix/sbunix.h>
 #include <sbunix/console.h>
-#include <sbunix/terminal.h>
+#include <sbunix/fs/terminal.h>
 #include <sbunix/sched.h>
 #include <errno.h>
 #include <sbunix/string.h>

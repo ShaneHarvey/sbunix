@@ -1,6 +1,6 @@
 #include <sbunix/sbunix.h>
 #include <sbunix/gdt.h>
-#include <sbunix/tarfs.h>
+#include <sbunix/fs/tarfs.h>
 #include <sbunix/interrupt/idt.h>
 #include <sbunix/interrupt/pic8259.h>
 #include <sbunix/interrupt/pit.h>
