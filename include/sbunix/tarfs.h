@@ -105,12 +105,12 @@ void test_read_tarfs(void);
 void test_all_tarfs(const char *path);
 
 /* Tarfs file operations */
+struct file *tarfs_open(const char *path, int flags, mode_t mod, int *err);
 off_t tarfs_lseek(struct file *fp, off_t offset, int origin);
 ssize_t tarfs_read(struct file *fp, char *buf, size_t count, off_t *offset);
 ssize_t tarfs_write(struct file *fp, const char *buf, size_t count,
                     off_t *offset);
 //int tarfs_readdir(struct file *fp, void *dirent, filldir_t filldir);
-struct file *tarfs_open(const char *path, int flags, mode_t mod, int *err);
 int tarfs_close(struct file *fp);
 
 #endif

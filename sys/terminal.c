@@ -18,7 +18,6 @@ struct terminal_buf {
     unsigned char buf[TERM_BUFSIZE]; /* Holds buffered characters */
 };
 
-
 struct terminal_buf term = {
         .start     = 0,
         .end       = 0,
@@ -29,16 +28,25 @@ struct terminal_buf term = {
         .buf       = {0}
 };
 
-
-
 /* File hooks for standard terminal input */
-//struct file_ops term_input_ops = {
-//        .lseek = term_lseek,
-//        .read = term_read,
-//        .write = term_write,
-////    .readdir = term_readdir,
-//        .close = term_close
-//};
+struct file_ops term_ops = {
+        .lseek = term_lseek,
+        .read = term_read,
+        .write = term_write,
+//    .readdir = term_readdir,
+        .close = term_close
+};
+
+/* There is only one terminal ever for the system */
+struct file term_file = {
+        .f_op = &term_ops,
+        .f_count = 1,
+        .f_flags = 0,
+        .f_pos = 0,
+        .f_size = 0,
+        .f_error = 0,
+        .private_data = &term
+};
 
 /**
  * Reset the terminal to it's default state
@@ -226,10 +234,20 @@ ssize_t term_write(struct file *fp, const char *buf, size_t count,
 }
 
 /**
- * Creates a new file object for the given path
- *
- * @path: The absolute path of the file to open (MUST start with '/')
+ * Opens a new terminal
  */
 struct file *term_open(void) {
-    return NULL;
+    term_file.f_count++;
+    return &term_file;
+}
+
+/**
+ * Close a file to free any information related to the file.
+ * Terminal simply returns success
+ */
+int term_close(struct file *fp) {
+    if(!fp)
+        kpanic("file is NULL!!!\n");
+    fp->f_count--;
+    return 0;
 }

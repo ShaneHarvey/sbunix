@@ -107,6 +107,43 @@ void test_all_tarfs(const char *path) {
 }
 
 /**
+ * Creates a new file object for the given path
+ * TODO: flags and mode
+ * @path: The absolute path of the file to open (MUST start with '/')
+ * @flags: user open flags
+ * @mode: user open mode
+ * @err: pointer to error indicator
+ */
+struct file *tarfs_open(const char *path, int flags, mode_t mode, int *err) {
+    struct posix_header_ustar *hd;
+    struct file *fp;
+
+    if(!path || *path != '/')
+        kpanic("path must start with / !!!\n");
+
+    for(hd = tarfs_first(); hd != NULL; hd = tarfs_next(hd)) {
+        if(strncmp(path+1, hd->name, sizeof(hd->name)) == 0) {
+            fp = kmalloc(sizeof(struct file));
+            if(!fp) {
+                *err = -ENOMEM;
+                return NULL;
+            }
+            fp->private_data = hd;
+            fp->f_size = aotoi(hd->size, sizeof(hd->size));
+            fp->f_pos = 0;
+            fp->f_error = 0;
+            fp->f_op = &tarfs_file_ops;
+            fp->f_flags = flags;
+            fp->f_count = 1;
+            *err = 0;
+            return fp;
+        }
+    }
+    *err = -ENOENT;
+    return NULL;
+}
+
+/**
  * Update the file pointer to the given offset.
  *
  * Upon successful completion, lseek() returns the resulting offset location
@@ -205,43 +242,6 @@ ssize_t tarfs_write(struct file *fp, const char *buf, size_t count,
 //int tarfs_readdir(struct file *fp, void *dirent, filldir_t filldir) {
 //    return 0;
 //}
-
-/**
- * Creates a new file object for the given path
- * TODO: flags and mode
- * @path: The absolute path of the file to open (MUST start with '/')
- * @flags: user open flags
- * @mode: user open mode
- * @err: pointer to error indicator
- */
-struct file *tarfs_open(const char *path, int flags, mode_t mode, int *err) {
-    struct posix_header_ustar *hd;
-    struct file *fp;
-
-    if(!path || *path != '/')
-        kpanic("path must start with / !!!\n");
-
-    for(hd = tarfs_first(); hd != NULL; hd = tarfs_next(hd)) {
-        if(strncmp(path+1, hd->name, sizeof(hd->name)) == 0) {
-            fp = kmalloc(sizeof(struct file));
-            if(!fp) {
-                *err = -ENOMEM;
-                return NULL;
-            }
-            fp->private_data = hd;
-            fp->f_size = aotoi(hd->size, sizeof(hd->size));
-            fp->f_pos = 0;
-            fp->f_error = 0;
-            fp->f_op = &tarfs_file_ops;
-            fp->f_flags = flags;
-            fp->f_count = 1;
-            *err = 0;
-            return fp;
-        }
-    }
-    *err = -ENOENT;
-    return NULL;
-}
 
 /**
  * Called while closing a file descriptor to free any information related
