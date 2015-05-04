@@ -30,6 +30,9 @@ struct rq run_queue = {
         .tasks = NULL,
 };
 
+/* Global next PID to give out, monotonically increasing */
+static uint64_t next_pid = 1;
+
 /* Private functions */
 void run_queue_add(struct rq *queue, struct task_struct *task);
 void task_list_add(struct task_struct *task);
@@ -59,9 +62,11 @@ struct task_struct *ktask_create(void (*start)(void), char *name) {
     if(!stack)
         return NULL;
 
-    task = kmalloc(sizeof(struct task_struct));
+    task = kmalloc(sizeof(*task));
     if(!task)
         goto out_stack;
+
+    memset(task, 0, sizeof(*task));
 
     task->type = TASK_KERN;
     task->state = TASK_RUNNABLE;
@@ -71,7 +76,7 @@ struct task_struct *ktask_create(void (*start)(void), char *name) {
     task->kernel_rsp = (uint64_t)&stack[511];
     task->mm = &kernel_mm;
     kernel_mm.mm_count++;
-    task->mm = NULL;
+    task->pid = get_next_pid();
     task_set_cmdline(task, name);
 
     task_add_new(task); /* add to run queue and task list */
@@ -79,6 +84,32 @@ struct task_struct *ktask_create(void (*start)(void), char *name) {
 
 out_stack:
     free_page((uint64_t)stack);
+    return NULL;
+}
+
+/**
+ * Return a copy of the current task.
+ */
+struct task_struct *copy_curr_task(void) {
+    struct task_struct *task;
+    uint64_t *kstack;
+    kstack = (uint64_t *)get_free_page(0);
+    if(!kstack)
+        return NULL;
+
+    task = kmalloc(sizeof(*task));
+    if(!task)
+        goto out_stack;
+
+    memcpy(task, curr_task, sizeof(*task));
+    task->kernel_rsp = (uint64_t)&kstack[511]; /* new kernel stack */
+    task->pid = get_next_pid();
+    task->parent = curr_task;           /* setup the parent */
+
+    /* TODO: add child to parent */
+
+out_stack:
+    free_page((uint64_t)kstack);
     return NULL;
 }
 
@@ -194,6 +225,13 @@ struct task_struct *pick_next_task(void) {
 }
 
 /**
+ * Return the next PID to use.
+ */
+uint64_t get_next_pid(void) {
+    return next_pid++;
+}
+
+/**
  * Switch to the new mm_struct.
  * @prev: mm_struct of the previously running (current) task
  * @next: mm_struct to switch to
@@ -214,10 +252,8 @@ inline void context_switch(struct task_struct *prev, struct task_struct *next) {
     mm = next->mm;
     prev_mm = prev->mm;
 
-    if(next->type != TASK_KERN) /* All kernel tasks can use any mm_struct */
-        switch_mm(prev_mm, mm);
+    switch_mm(prev_mm, mm);
 
-    /* TODO: verify that switch_to() is probably broken */
     switch_to(prev, next);
     /* next is now the current task */
 }
