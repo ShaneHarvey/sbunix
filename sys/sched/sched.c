@@ -243,6 +243,13 @@ int task_sleeping(struct task_struct *task) {
 }
 
 /**
+ * Reset the timeslice.
+ */
+void reset_timeslice(struct task_struct *task) {
+    /* TODO */
+}
+
+/**
  * Add chld to parent's list of children.
  */
 void add_child(struct task_struct *parent, struct task_struct *chld) {
@@ -354,7 +361,7 @@ static void funY(void);
 static struct task_struct *taskX, *taskY;
 
 void debug_task(struct task_struct *task) {
-    debug("ptr=%p,type=%d, state=%d, first_switch=%d, foreground=%d\n", task,
+    debug("type=%d, state=%d, first_switch=%d, foreground=%d\n",
           task->type, task->state, task->first_switch, task->foreground);
 }
 

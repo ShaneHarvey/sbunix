@@ -1,4 +1,5 @@
 #include "kmain.h"
+#include "sched/roundrobin.h"
 #include <sbunix/sbunix.h>
 #include <sbunix/sched.h>
 #include <sbunix/syscall.h>
@@ -33,10 +34,9 @@ void kmain(void) {
     clear_console();
     printk("*** Welcome to SBUnix ***\n");
 
-    scheduler_test();
-
     ktask_create(test_terminal, "TerminalTest");
     for(i = 0; i < 100000000; i++) {
+        __asm__ __volatile__ ("hlt;");
         schedule();
     }
     halt_loop("halting in kmain\n");

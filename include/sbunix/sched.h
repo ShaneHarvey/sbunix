@@ -58,6 +58,7 @@ void task_set_cmdline(struct task_struct *task, char *cmdline);
 uint64_t get_next_pid(void);
 void scheduler_test(void);
 void debug_task(struct task_struct *task);
+void reset_timeslice(struct task_struct *task);
 
 
 #define switch_to(prev, next)                                              \

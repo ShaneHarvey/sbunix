@@ -87,6 +87,14 @@ struct task_struct *rr_pick_next_task(void) {
         /* Try again */
         task = rr_queue_pop(&run_queue);
     }
+
+    /* If no other tasks, but the current is still runnable, then run it! */
+    if(!task && curr_task->state == TASK_RUNNABLE) {
+        /* TODO: reset timeslice */
+        reset_timeslice(curr_task);
+        task = curr_task;
+    }
+
     if(!task) {
         /* TODO: return idle task if no task */
         debug_queues();

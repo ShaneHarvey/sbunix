@@ -1,6 +1,8 @@
 #ifndef SCHED_ROUNDROBIN_H
 #define SCHED_ROUNDROBIN_H
 
+#include <sbunix/sched.h>
+
 extern struct queue just_ran_queue;
 
 void rr_queue_add(struct queue *queue, struct task_struct *task);
