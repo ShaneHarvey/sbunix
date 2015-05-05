@@ -107,6 +107,9 @@ out_stack:
 struct task_struct *fork_curr_task(void) {
     struct task_struct *task;
     uint64_t *kstack;
+    struct file *fp;
+    int i;
+
     kstack = (uint64_t *)get_free_page(0);
     if(!kstack)
         return NULL;
@@ -125,6 +128,13 @@ struct task_struct *fork_curr_task(void) {
     add_child(curr_task, task);
 
     curr_task->foreground = 0; /* We steal our parent's foreground status */
+
+    /* Increment reference counts on any open files */
+    for(i = 0, fp = task->files[0]; i < TASK_FILES_MAX; fp++, i++) {
+        if(fp) {
+            fp->f_count++;
+        }
+    }
 
     /* TODO: deep copy mm */
 
