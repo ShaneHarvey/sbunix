@@ -107,7 +107,6 @@ out_stack:
 struct task_struct *fork_curr_task(void) {
     struct task_struct *task;
     uint64_t *kstack, *curr_kstack;
-    struct file *fp;
     int i;
 
     kstack = (uint64_t *)get_free_page(0);
@@ -134,7 +133,8 @@ struct task_struct *fork_curr_task(void) {
     curr_task->foreground = 0; /* We steal our parent's foreground status */
 
     /* Increment reference counts on any open files */
-    for(i = 0, fp = task->files[0]; i < TASK_FILES_MAX; fp++, i++) {
+    for(i = 0; i < TASK_FILES_MAX; i++) {
+        struct file *fp = task->files[i];
         if(fp) {
             fp->f_count++;
         }
@@ -155,7 +155,6 @@ out_stack:
  */
 void task_destroy(struct task_struct *task) {
     int i;
-    struct file *fp;
     mm_destroy(task->mm);
 
     if(task->next_task)
@@ -166,7 +165,8 @@ void task_destroy(struct task_struct *task) {
     free_page(ALIGN_DOWN(task->kernel_rsp, PAGE_SIZE));
 
     /* Close any open files */
-    for(i = 0, fp = task->files[0]; i < TASK_FILES_MAX; fp++, i++) {
+    for(i = 0; i < TASK_FILES_MAX; i++) {
+        struct file *fp = task->files[i];
         if(fp) {
             fp->f_op->close(fp);
             fp = NULL;
