@@ -5,6 +5,7 @@
 #include <sbunix/mm/align.h>
 #include <sbunix/string.h>
 #include <sbunix/gdt.h>
+#include <sbunix/interrupt/pit.h>
 #include "roundrobin.h"
 
 /* All kernel tasks use this mm_struct */
@@ -283,7 +284,7 @@ void switch_mm(struct mm_struct *prev, struct mm_struct *next) {
  * @prev: previously running (current) task
  * @next: task to switch to
  */
-inline void context_switch(struct task_struct *prev, struct task_struct *next) {
+static inline void __attribute__((always_inline)) context_switch(struct task_struct *prev, struct task_struct *next) {
     struct mm_struct *mm, *prev_mm;
     mm = next->mm;
     prev_mm = prev->mm;
@@ -292,6 +293,24 @@ inline void context_switch(struct task_struct *prev, struct task_struct *next) {
 
     switch_to(prev, next);
     /* next is now the current task */
+}
+
+/**
+ * Update the TSS with the new kernel stack.
+ * Cleanup the last task, destroying or placing on a queue as needed.
+ */
+static void __attribute__((noinline)) post_context_switch(void) {
+    /* Update the kernel stack in the tss */
+    tss.rsp0 = curr_task->kernel_rsp;
+    /* todo: ltr or ldtr to load the TSS again? */
+
+    /* Clean up the previous task */
+    debug("Switched from %s --> %s\n", last_task->cmdline, curr_task->cmdline);
+    if(last_task->state == TASK_DEAD) {
+        task_destroy(last_task);
+    } else {
+        queue_add_by_state(last_task);
+    }
 }
 
 /**
@@ -312,20 +331,10 @@ void schedule(void) {
         last_task = prev; /* the last_task to run is the "prev" */
 
         context_switch(prev, next);
-
         /* WE CAN NOT REFER TO LOCALS AFTER the context_switch */
 
-        /* Update the kernel stack in the tss */
-        tss.rsp0 = curr_task->kernel_rsp;
-        /* todo: ltr or ldtr to load the TSS again? */
+        post_context_switch();
 
-        /* Clean up the previous task */
-        debug("Switched from %s --> %s\n", last_task->cmdline, curr_task->cmdline);
-        if(last_task->state == TASK_DEAD) {
-            task_destroy(last_task);
-        } else {
-            queue_add_by_state(last_task);
-        }
         /* If this was the first switch then the current stack has no frame for
          * schedule(), on retq we will return to the task's start function for
          * the first time.
@@ -345,7 +354,7 @@ static void funY(void);
 static struct task_struct *taskX, *taskY;
 
 void debug_task(struct task_struct *task) {
-    debug("type=%d, state=%d, first_switch=%d, foreground=%d\n",
+    debug("ptr=%p,type=%d, state=%d, first_switch=%d, foreground=%d\n", task,
           task->type, task->state, task->first_switch, task->foreground);
 }
 
@@ -371,6 +380,9 @@ static void funX(void) {
     printk("X\n");
     while(1) {
         debug_task(taskX);
+        if(taskX != curr_task) {
+            kpanic("taskX not the curr_task!\n");
+        }
         debug_queues();
         schedule();
     }
@@ -380,6 +392,9 @@ static void funY(void) {
     printk("Y\n");
     while(1) {
         debug_task(taskY);
+        if(taskY != curr_task) {
+            kpanic("taskY not the curr_task!\n");
+        }
         debug_queues();
         schedule();
     }

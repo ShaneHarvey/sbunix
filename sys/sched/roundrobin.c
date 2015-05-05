@@ -14,14 +14,16 @@ void rr_queue_add(struct queue *queue, struct task_struct *task) {
     if(!queue || !task)
         return;
 
+    task->next_rq = NULL;
     if(!queue->tasks) {
         /* Add the first element of the queue */
-        task->next_rq = NULL;
         queue->tasks = task;
     } else {
-        /* Insert into the front of the queue */
-        task->next_rq = queue->tasks;
-        queue->tasks = task;
+        /* Insert into the end of the queue */
+        struct task_struct *prev = queue->tasks;
+        for(; prev->next_rq != NULL; prev = prev->next_rq) {
+        }
+        prev->next_rq = task;
     }
 }
 
