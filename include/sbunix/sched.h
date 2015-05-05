@@ -3,6 +3,7 @@
 
 #include <sys/defs.h>
 #include <sbunix/mm/types.h> /* mm_struct */
+#include <sbunix/fs/vfs.h>   /* file */
 #include <sbunix/time.h>
 
 extern struct queue         run_queue;
@@ -11,7 +12,8 @@ extern struct mm_struct     kernel_mm;
 extern struct task_struct   kernel_task;
 extern struct task_struct   *curr_task;
 
-# define TASK_CMDLINE_MAX 67
+#define TASK_CMDLINE_MAX 128
+#define TASK_FILES_MAX   64
 
 /* Kernel thread or user process */
 struct task_struct {
@@ -27,6 +29,7 @@ struct task_struct {
     struct task_struct *next_task, *prev_task; /* for traversing all tasks */
     struct task_struct *next_rq;    /* for traversing a run queue */
     struct task_struct *parent, *chld, *sib;   /* parent/child/sibling pointers */
+    struct file *files[TASK_FILES_MAX];
     char cmdline[TASK_CMDLINE_MAX + 1];
 };
 

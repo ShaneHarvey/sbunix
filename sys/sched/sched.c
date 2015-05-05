@@ -140,6 +140,8 @@ out_stack:
  * Free the task. Only called when removed from its queue.
  */
 void task_destroy(struct task_struct *task) {
+    int i;
+    struct file *fp;
     mm_destroy(task->mm);
 
     if(task->next_task)
@@ -148,6 +150,14 @@ void task_destroy(struct task_struct *task) {
         task->prev_task->next_task = task->next_task;
 
     free_page(ALIGN_DOWN(task->kernel_rsp, PAGE_SIZE));
+
+    /* Close any open files */
+    for(i = 0, fp = task->files[0]; i < TASK_FILES_MAX; fp++, i++) {
+        if(fp) {
+            fp->f_op->close(fp);
+            fp = NULL;
+        }
+    }
 
     /* TODO: reference will be kfree'd when parent calls wait() */
 }
