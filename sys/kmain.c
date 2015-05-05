@@ -7,58 +7,22 @@
 #include <sbunix/console.h>
 #include <sbunix/fs/terminal.h>
 
-void printA(void) {
-    int a = 1, b = 2, c = 3, d = 4, e = 5, f = 6, g = 7, h = 8;
-    while(1) {
-        printk("%d %d %d %d %d %d %d %d\n", a, b, c, d, e ,f, g, h);
-        schedule();
-        a++;b++;c++;d++;e++;f++;g++;h++;
-    }
-}
-
-void printB(void) {
-    int a = -1, b = -2, c = -3, d = -4, e = -5, f = -6, g = -7, h = -8;
-    while(1) {
-        printk("%d %d %d %d %d %d %d %d\n", a, b, c, d, e ,f, g, h);
-        schedule();
-        a--;b--;c--;d--;e--;f--;g--;h--;
-    }
-}
+#include "test/test.h"
 
 /**
  * The entry point of our kernel. Here we have access to a page allocator and
  * interrupts are enabled.
  */
 void kmain(void) {
-    int i, err;
     clear_console();
     printk("*** Welcome to SBUnix ***\n");
 
-    ktask_create(test_terminal, "TerminalTest");
-    for(i = 0; i < 100000000; i++) {
-        __asm__ __volatile__ ("hlt;");
-        schedule();
-    }
-    halt_loop("halting in kmain\n");
-    printk("Starting task test...\n");
-    ktask_create(printA, "KernelPrintA");
-    ktask_create(printB, "KernelPrintB");
-    printk("Created the threads\n");
+    ktask_create(test_exec, "TestExec");
 
-    for(i = 0; i < 5; i++) {
-        printk("Main Task\n");
+
+    while(1){
         schedule();
     }
-//    test_read_tarfs();
-//    test_all_tarfs("/bin/sbush");
-//    test_all_tarfs("/bin/sbus");
-//    test_all_tarfs("/bin/");
-//    elf_test_load("/bin/sbush");
-    char *argv[] = {"-h", "hi", NULL};
-    char *envp[] = {"PATH=/:", "HOME=/", NULL};
-    err = do_execve("/bin/hello", argv, envp);
-    if(err) {
-        kpanic("do_execve failed: %s\n", strerror(-err));
-    }
+
     kpanic("\nReturned to kmain!!!\n");
 }
