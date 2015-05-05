@@ -106,7 +106,7 @@ out_stack:
  */
 struct task_struct *fork_curr_task(void) {
     struct task_struct *task;
-    uint64_t *kstack;
+    uint64_t *kstack, *curr_kstack;
     struct file *fp;
     int i;
 
@@ -119,6 +119,10 @@ struct task_struct *fork_curr_task(void) {
         goto out_stack;
 
     memcpy(task, curr_task, sizeof(*task));     /* Exact copy of parent */
+
+    /* Copy the curr_task's kstack */
+    curr_kstack = (uint64_t *)ALIGN_DOWN(read_rsp(), PAGE_SIZE);
+    memcpy(kstack, curr_kstack, PAGE_SIZE);
     task->kernel_rsp = (uint64_t)&kstack[511];  /* new kernel stack */
     task->pid = get_next_pid();                 /* new pid */
     task->parent = curr_task;                   /* new parent */

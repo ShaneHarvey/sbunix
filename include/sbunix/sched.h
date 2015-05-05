@@ -64,6 +64,7 @@ void scheduler_test(void);
 void debug_task(struct task_struct *task);
 void reset_timeslice(struct task_struct *task);
 void kill_curr_task(void);
+struct task_struct *fork_curr_task(void);
 
 
 #define switch_to(prev, next)                                              \
