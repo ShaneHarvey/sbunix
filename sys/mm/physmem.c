@@ -151,30 +151,30 @@ void pzone_remove(uint64_t startpage, uint64_t endpage) {
 /**
 * Fill array of ppage{}s
 * @base:    start address of ppage array.
-* @nppages: number of ppages in array base[].
+* @num_ppages: number of ppages in array base[].
 */
-void _ppage_new(struct ppage *base, size_t nppages) {
-    memset(base, 0, nppages);
+void _ppage_new(struct ppage *base, size_t num_ppages) {
+    memset(base, 0, num_ppages * sizeof(struct ppage));
 }
 
 /**
 * Try to allocate space for pzone->ppages in the first pages of zone.
 */
 void _pzone_ppages_init(struct pzone *pz) {
-    uint64_t npages = PZONE_NUM_PAGES(pz);
-    uint64_t needbytes = npages * sizeof(struct ppage);
+    uint64_t nppages = PZONE_NUM_PAGES(pz);
+    uint64_t needbytes = nppages * sizeof(struct ppage);
     uint64_t needpages = ALIGN_UP(needbytes, PAGE_SIZE) >> PAGE_SHIFT;
 
     /*debug("PZ%ld: [%lx-%lx] %ld pages\n", i, base[i].start, base[i].end, npages);
     debug("PZ%ld: needbytes %ld, needpages %ld.\n", i, needbytes, needpages);*/
-    if(needpages >= npages) {
+    if(needpages >= nppages) {
         pz->zflags &= ~PZONE_USABLE; /* Can't use, no space for ppages. */
         return;
     }
 
     /* Put ppage array in first pages of the pzone */
     pz->ppages = (struct ppage*)pz->start;
-    _ppage_new(pz->ppages, needpages);
+    _ppage_new(pz->ppages, nppages);
 
     /* Bump up the start address, possibly wasting space. */
     pz->start = ALIGN_UP(pz->start + needbytes, PAGE_SIZE);
@@ -260,16 +260,16 @@ void _create_free_page_list(struct pzone *base) {
 }
 
 /**
-* Mark a physical page's ppage{} as used.
+* Mark a kernel virtual address's page's ppage{} as used.
 * return: -1 on error, 0 on success
 */
-int ppage_mark_used(uint64_t physpage) {
-    struct pzone* pz = pzone_find(physpage);
+int ppage_mark_used(uint64_t kvirt_addr) {
+    struct pzone* pz = pzone_find(kvirt_addr);
     size_t ppagei;
     if(!pz)
         return -1;
 
-    ppagei = physpage - pz->start;
+    ppagei = (kvirt_addr - pz->start) >> PAGE_SHIFT;
 
     /* If page already says USED then error */
     if(pz->ppages[ppagei].pflags & PPAGE_USED)
@@ -279,4 +279,53 @@ int ppage_mark_used(uint64_t physpage) {
     pz->ppages[ppagei].pflags &= PPAGE_USED;
 
     return 0;
+}
+
+/**
+ * Return the corresponding ppage struct for this kernel virtual address.
+ */
+struct ppage *kvirt_to_ppage(uint64_t kvirt_addr) {
+    struct pzone *pz = pzone_find(kvirt_addr);
+    size_t ppagei;
+    if(!pz)
+        return NULL;
+
+    ppagei = (kvirt_addr - pz->start) >> PAGE_SHIFT;
+    return &pz->ppages[ppagei];
+}
+
+/**
+ * Return the corresponding ppage struct for this kernel physical address.
+ */
+struct ppage *kphys_to_ppage(uint64_t kphys_addr) {
+    uint64_t kvirt_addr = kphys_to_virt(kphys_addr);
+    struct pzone *pz = pzone_find(kvirt_addr);
+    size_t ppagei;
+    if(!pz)
+        return NULL;
+
+    ppagei = (kvirt_addr - pz->start) >> PAGE_SHIFT;
+    return &pz->ppages[ppagei];
+}
+
+/**
+ * Increment the map count of this kernel physical page.
+ */
+void kphys_inc_mapcount(uint64_t kphys_addr) {
+    struct ppage *ppage = kphys_to_ppage(kphys_addr);
+    if(!ppage)
+        kpanic("No ppage struct for phys addr %p\n", kphys_addr);
+
+    ppage->mapcount++;
+}
+
+/**
+ * Increment the map count of this kernel virtual page.
+ */
+void kvirt_inc_mapcount(uint64_t kvirt_addr) {
+    struct ppage *ppage = kvirt_to_ppage(kvirt_addr);
+    if(!ppage)
+        kpanic("No ppage struct for kernel virt addr %p\n", kvirt_addr);
+
+    ppage->mapcount++;
 }

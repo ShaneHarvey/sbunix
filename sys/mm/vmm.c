@@ -181,6 +181,29 @@ void mm_destroy(struct mm_struct *mm) {
     }
 }
 
+/**
+ * Return a deep copy of the current task's mm_struct.
+ * This is used by fork.
+ */
+struct mm_struct *mm_deep_copy(void) {
+    struct mm_struct *curr_mm = curr_task->mm;
+    struct mm_struct *copy_mm;
+    if(!curr_mm)
+        kpanic("Current task has no memory struct!\n");
+
+    copy_mm = kmalloc(sizeof(*copy_mm));
+    if(!copy_mm)
+        return NULL;
+
+    /* Copy exactly from parent */
+    memcpy(copy_mm, curr_mm, sizeof(*copy_mm));
+
+    /* Create a copy of the page tables */
+    curr_mm->pml4 = copy_current_pml4();
+
+    return NULL;
+}
+
 
 /**
  * Real work for brk()
