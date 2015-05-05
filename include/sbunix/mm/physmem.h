@@ -30,6 +30,7 @@ enum zflags {
 /**
 * Physical Page descriptor, one per physical page frame on the system.
 * Contains ptr to anon_vma{} or addr_space{}.
+ * NOTE: only mapcount is used at the moment!
 */
 struct ppage {
     uint32_t pflags; /* Physical page flags. */
@@ -38,7 +39,7 @@ struct ppage {
     * If (mapping & 1) == 0: addr_space{}
     * If (mapping & 1) == 1: anon_vma{}
     */
-    void *mapping;
+    /*void *mapping;*/
 };
 
 enum pflags {
@@ -52,6 +53,10 @@ void pzone_remove(uint64_t startpage, uint64_t endpage);
 struct pzone* pzone_find(uint64_t kvirtpg);
 
 int ppage_mark_used(uint64_t physpage);
+struct ppage *kvirt_to_ppage(uint64_t kvirt_addr);
+struct ppage *kphys_to_ppage(uint64_t kphys_addr);
+void kvirt_inc_mapcount(uint64_t kvirt_addr);
+void kphys_inc_mapcount(uint64_t kphys_addr);
 
 void physmem_init(void);
 void physmem_report(void);
