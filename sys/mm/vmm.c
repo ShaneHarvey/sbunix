@@ -183,13 +183,13 @@ void mm_destroy(struct mm_struct *mm) {
 
 
 /**
- * Real work for srbk()
+ * Real work for brk()
  *    new break     -- on success
  *    current break -- on failure
  */
-uint64_t do_sbrk(struct mm_struct *mm, uint64_t newbrk) {
+uint64_t do_brk(struct mm_struct *mm, uint64_t newbrk) {
     if(!mm)
-        return (uint64_t)-1;
+        kpanic("Null mm in do_brk!\n");
     if(newbrk <= mm->brk)
         return mm->brk;
     else {
