@@ -5,7 +5,7 @@ void test_exec(void) {
 
     char *argv[] = {"-h", "hi", NULL};
     char *envp[] = {"PATH=/:", "HOME=/", NULL};
-    err = do_execve("/bin/hello", argv, envp);
+    err = do_execve("/bin/forktest", argv, envp);
     if(err) {
         kpanic("do_execve failed: %s\n", strerror(-err));
     }
