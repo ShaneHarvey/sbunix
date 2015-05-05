@@ -3,24 +3,67 @@
 #include <stdarg.h>
 #include <string.h>
 
-int printf(const char *format, ...) {
-    va_list ap;
-    int printed = 0;
+/**
+ * Append the dest string with the source string starting at off.
+ * If the result will not fit in dest the string is reallocated to
+ * accommodate src.
+ *
+ * @dest: result string, MUST be a pointer returned by malloc
+ * @dlen: length of result
+ * @src:  string to insert
+ * @slen: length of source
+ * @off:  index into dest to insert the src string
+ */
+char *strinsert(char *dest, size_t *dlen, const char *src, size_t slen, size_t *off) {
+    size_t newlen;
 
-    va_start(ap, format);
+    if(!dest || !src || !dlen || !off)
+        return dest;
+
+    newlen = *off + slen;
+    if(newlen > *dlen) {
+        /* reallocate dest to twice the required size */
+        char *newdest;
+        newlen *= 2;
+        newdest = realloc(dest, newlen);
+        if(!newdest)
+            return NULL;
+        *dlen = newlen;
+        dest = newdest;
+    }
+    /* safe to copy src into dest */
+    strncpy(dest + *off, src, slen+1);
+    *off += slen;
+    return dest;
+}
+
+/**
+ * Sane version of sprintf, it allocates a string. User must free it
+ */
+char *strprintf(const char *format, va_list ap) {
+    char *result, *tmpstr;
+    size_t newlen, newoff = 0;
 
     if(format == NULL)
-        return 0;
+        return NULL;
+
+    newlen = 2*strlen(format); /* initially 2x format string length */
+    result = malloc(newlen + 1);
+    if(result == NULL)
+        return NULL;
 
     while(*format) {
+        char arr[129] = {0};
+        const char *towrite;
+        size_t len;
+
         if(*format == '%') {
             int i;
             unsigned int ui;
             long int li;
             unsigned long int uli;
             uint64_t ui64;
-            char arr[129] = {0}, *str, *towrite;
-            int len;
+            char *str;
             switch(format[1]) {
                 case 'c':
                     i = va_arg(ap, int);
@@ -113,17 +156,40 @@ int printf(const char *format, ...) {
                     towrite = (char*)format;
             }
             format += 2;
-            i = (int)write(STDOUT_FILENO, towrite, len);
-            if(i < 0) {
-                return -1;
-            }
-            printed += len;
         } else {
-            write(STDOUT_FILENO, format, 1);
-            ++printed;
-            ++format;
+            towrite = format++;
+            len = 1;
         }
+        /* Insert the formatted string into the result */
+        tmpstr = strinsert(result, &newlen, towrite, len, &newoff);
+        if(!tmpstr)
+            goto out_newstr;
+        result = tmpstr;
     }
+
+    return result;
+out_newstr:
+    free(result);
+    return NULL;
+}
+
+int printf(const char *format, ...) {
+    va_list ap;
+    char *printstr;
+    int written;
+
+    va_start(ap, format);
+
+    if(format == NULL || *format == '\0')
+        return 0;
+
+    printstr = strprintf(format, ap);
+    if(!printstr)
+        return -1;
+
+    written = (int)write(STDOUT_FILENO, printstr, strlen(printstr));
+    free(printstr); /* free the constructed string */
+
     va_end(ap);
-    return printed;
+    return written;
 }
