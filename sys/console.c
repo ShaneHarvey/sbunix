@@ -158,18 +158,8 @@ void writec_glyph(char c) {
 }
 
 /* Input functions */
-
-#define SC_BUFSIZE 4096
-struct sc_buf {
-    int start;                /* Read head of the buffer  (first occupied cell) */
-    int end;                  /* Write head of the buffer (next empty cell) */
-    int full;                 /* If the buffer is full */
-    int shift;                /* If shift is currently pressed */
-    int control;              /* If control is currently pressed */
-    uint8_t buf[SC_BUFSIZE];  /* Buffer holding scan codes */
-};
-
-struct sc_buf sb = {0, 0, 0, 0, 0, {0}};
+static int shift_enabled;       /* If shift is currently pressed */
+static int control_enabled;     /* If control is currently pressed */
 
 unsigned char sc_to_ascii(uint8_t scan_code, int shift, int control) {
     unsigned char c;
@@ -242,23 +232,14 @@ unsigned char sc_to_ascii(uint8_t scan_code, int shift, int control) {
 }
 
 /**
- * Add a scan code to the scan code buffer
+ * Add a scan code
  *
  * NOTE: interrupts are disabled here
  */
-void sc_buf_add(uint8_t scan_code) {
+void sc_add(uint8_t scan_code) {
     int c;
-    if(sb.full) {
-        return;
-    }
-    sb.buf[sb.end] = scan_code;
-    sb.end = (sb.end + 1) % SC_BUFSIZE;
-    if(sb.end == sb.start) {
-        sb.full = 1;
-    }
-
     /* Print last glyph pressed and add it to the terminal */
-    c = sc_buf_getch();
+    c = sc_getch(scan_code);
     if(c > 0) {
         writec_glyph((char)c);
         term_putch((unsigned char)c);
@@ -267,27 +248,20 @@ void sc_buf_add(uint8_t scan_code) {
 
 
 /**
- * Get the first char from the scan code buffer
+ * Convert a scan_code to an ascii character
  */
-int sc_buf_getch(void) {
-    uint8_t scan_code;
+int sc_getch(uint8_t scan_code) {
     char c;
 
-    /* check if the buffer is empty */
-    if(sb.start == sb.end && !sb.full)
-        return 0;
     /* Print last glyph pressed */
-    scan_code = sb.buf[sb.start];
     if (scan_code == SC_LEFT_SHIFT || scan_code == SC_RIGHT_SHIFT)
-        sb.shift = 1;
+        shift_enabled = 1;
     else if (scan_code == (0x80|SC_LEFT_SHIFT) || scan_code == (0x80|SC_RIGHT_SHIFT))
-        sb.shift = 0;
+        shift_enabled = 0;
     if (scan_code == SC_LEFT_CONTROL)
-        sb.control = 1;
+        control_enabled = 1;
     else if (scan_code == (0x80|SC_LEFT_CONTROL))
-        sb.control = 0;
-    c = sc_to_ascii(sb.buf[sb.start], sb.shift, sb.control);
-    sb.start = (sb.start + 1) % SC_BUFSIZE;
-    sb.full = 0;
+        control_enabled = 0;
+    c = sc_to_ascii(scan_code, shift_enabled, control_enabled);
     return c;
 }

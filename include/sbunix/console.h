@@ -12,8 +12,8 @@ void writec_glyph(char c);
 void clear_console(void);
 
 
-void sc_buf_add(uint8_t scan_code);
-int sc_buf_getch(void);
+void sc_add(uint8_t scan_code);
+int sc_getch(uint8_t scan_code);
 
 /* Scan Code Set 1 */
 enum scan_codes {
