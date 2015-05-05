@@ -11,6 +11,7 @@
 #include <sbunix/sbunix.h>
 #include <sbunix/sched.h>
 #include <sbunix/string.h>
+#include <sbunix/mm/vmm.h>
 
 /* 9th bit in the RFLAGS is the IF bit */
 #define RFLAGS_IF   1<<9
@@ -48,8 +49,8 @@ void sys_exit(int status) {
     return;
 }
 
-int sys_brk(void *addr) {
-    return -ENOSYS;
+uint64_t sys_brk(void *addr) {
+    return do_brk(curr_task->mm, (uint64_t)addr);
 }
 
 pid_t sys_fork(void) {

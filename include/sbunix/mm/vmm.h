@@ -17,7 +17,7 @@ void              mm_destroy(struct mm_struct *mm);
 int               mmap_area(struct mm_struct *mm, struct file *filep,
                             off_t fstart, size_t fsize, uint64_t prot,
                             uint64_t vm_start, uint64_t vm_end);
-uint64_t          do_sbrk(struct mm_struct *mm, uint64_t newbrk);
+uint64_t          do_brk(struct mm_struct *mm, uint64_t newbrk);
 
 int add_heap(struct mm_struct *user);
 int add_stack(struct mm_struct *user, char *argv[], char *envp[]);
