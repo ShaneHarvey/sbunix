@@ -1,5 +1,6 @@
 #include "syscall_dispatch.h"
 #include <sys/syscall.h>
+#include <sbunix/syscall.h>
 #include <sys/types.h>
 #include <sys/resource.h>
 #include <sys/utsname.h>
@@ -70,12 +71,16 @@ pid_t sys_fork(void) {
     stack_off = ALIGN_UP(curr_stack, PAGE_SIZE) - curr_stack;
     child->kernel_rsp = child_stack - stack_off - 8;
     *(uint64_t *)child->kernel_rsp = (uint64_t)&&child_fork_ret;
+    printk("curr_task RSP: %p, child_task RSP: %p\n",curr_stack, child->kernel_rsp);
     schedule();
-    return child_pid;
+    /* this will never happen, but the label gets optimized out if we don't trick gcc */
+    if(child_pid == 0) {
 child_fork_ret: /* Child will retq to this label the first time it gets scheduled */
-    return 0;
+        __asm__ __volatile__("xorq %rax, %rax; popq %rbx; retq;");
+        return 0;
+    }
+    return child_pid;
 }
-
 
 pid_t sys_getpid(void) {
     return -ENOSYS;
@@ -134,11 +139,11 @@ int sys_pipe(int *filedes) {
 }
 
 int sys_dup(int oldfd) {
-    return -ENOSYS;
+    return do_dup(oldfd);
 }
 
 int sys_dup2(int oldfd, int newfd) {
-    return -ENOSYS;
+    return do_dup2(oldfd, newfd);
 }
 
 int sys_getdents(unsigned int fd, struct dirent *dirp, unsigned int count) {

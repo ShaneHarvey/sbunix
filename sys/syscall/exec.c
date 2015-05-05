@@ -5,6 +5,7 @@
 #include <sbunix/gdt.h>
 #include <sbunix/sched.h>
 #include <sbunix/string.h>
+#include <sbunix/syscall.h>
 #include <errno.h>
 #include "syscall_dispatch.h"
 

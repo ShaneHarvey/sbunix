@@ -171,7 +171,7 @@ void task_destroy(struct task_struct *task) {
         struct file *fp = task->files[i];
         if(fp) {
             fp->f_op->close(fp);
-            fp = NULL;
+            task->files[i] = NULL;
         }
     }
 
