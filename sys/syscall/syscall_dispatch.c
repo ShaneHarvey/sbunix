@@ -158,7 +158,7 @@ int sys_getdents(unsigned int fd, struct dirent *dirp, unsigned int count) {
     return -ENOSYS;
 }
 
-int sys_uname (struct utsname *buf) {
+int sys_uname(struct utsname *buf) {
     return -ENOSYS;
 }
 

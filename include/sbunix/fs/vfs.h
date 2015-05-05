@@ -14,8 +14,10 @@ struct file {
     void *private_data;    /* tty driver hook, for TARFS it points to file's ustar header */
 };
 
-/* for lseek */
+/* whence for lseek */
 enum { SEEK_SET = 0, SEEK_CUR = 1, SEEK_END = 2 };
+/* flags for open */
+enum { O_RDONLY = 0, O_WRONLY = 1, O_RDWR = 2, O_CREAT = 0x40, O_DIRECTORY = 0x10000 };
 
 struct file_ops {
     off_t (*lseek) (struct file *, off_t, int);

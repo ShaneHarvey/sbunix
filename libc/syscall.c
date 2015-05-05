@@ -229,7 +229,7 @@ int getdents(unsigned int fd, struct dirent *dirp, unsigned int count) {
             (uint64_t)count);
 }
 
-int uname (struct utsname *buf) {
+int uname(struct utsname *buf) {
     return (int) syscall_1(SYS_uname, (uint64_t)buf);
 }
 

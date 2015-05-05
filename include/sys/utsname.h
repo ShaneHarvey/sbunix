@@ -20,6 +20,6 @@ struct utsname {
 };
 
 /* Put information about the system in buf.  */
-int uname (struct utsname *buf);
+int uname(struct utsname *buf);
 
 #endif

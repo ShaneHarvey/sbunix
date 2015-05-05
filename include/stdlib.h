@@ -9,6 +9,7 @@
 /* These two were in stdlib.h, but we moved them */
 #include <unistd.h>
 #include <time.h>
+#include <dirent.h>
 
 #define EXIT_SUCCESS 0
 #define EXIT_FAILURE 1
