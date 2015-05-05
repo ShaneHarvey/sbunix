@@ -86,7 +86,8 @@ static void term_push(unsigned char c) {
  */
 static int term_popfirst(struct terminal_buf *tb, char *save) {
     int c;
-    if(tb->delims == 0)
+
+    if(tb->start == tb->end && !tb->full)
         return -1;
 
     c = tb->buf[tb->start];
@@ -141,7 +142,8 @@ void term_putch(unsigned char c) {
     }
     if(term.full) {
         /* print a bell to notify that we lost a character */
-        putch('\a');
+//        putch('\a');
+        task_unblock_foreground();
         return;
     }
 
@@ -159,6 +161,9 @@ void term_putch(unsigned char c) {
     if(term.echo && c && c != EOT) {
         putch(c);
         move_csr();
+    }
+    if(term.full) {
+        task_unblock_foreground();
     }
 }
 
