@@ -41,42 +41,6 @@ void enable_syscalls(void) {
     wrmsr(MSR_SFMASK, RFLAGS_IF);
 }
 
-
-int64_t syscall_dispatch(int64_t a1, int64_t a2, int64_t a3,
-                         int64_t a4, int64_t a5, int64_t a6, int64_t sysnum) {
-    int64_t err;
-    debug("Doing a syscall: %d\n", sysnum);
-    switch(sysnum) {
-        case SYS_read:
-        case SYS_write:
-        case SYS_open:
-        case SYS_close:
-        case SYS_lseek:
-        case SYS_mmap:
-        case SYS_munmap:
-        case SYS_brk:
-        case SYS_pipe:
-        case SYS_dup:
-        case SYS_dup2:
-        case SYS_nanosleep:
-        case SYS_alarm:
-        case SYS_getpid:
-        case SYS_fork:
-        case SYS_execve:
-        case SYS_exit:
-        case SYS_wait4:
-        case SYS_uname:
-        case SYS_getdents:
-        case SYS_getcwd:
-        case SYS_chdir:
-        case SYS_getppid:
-        default: err = -ENOSYS;
-    }
-    debug("Did a syscall: %d\n", sysnum);
-    return err;
-}
-
-
 void sys_exit(int status) {
     return;
 }
@@ -98,7 +62,7 @@ pid_t sys_getppid(void) {
     return -ENOSYS;
 }
 
-int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
+int sys_execve(const char *filename, const char **argv, const char **envp) {
     return -ENOSYS;
 }
 
@@ -122,7 +86,7 @@ int sys_chdir(const char *path) {
     return -ENOSYS;
 }
 
-int sys_open(const char *pathname, int flags) {
+int sys_open(const char *pathname, int flags, mode_t mode) {
     return -ENOSYS;
 }
 
@@ -142,7 +106,7 @@ int sys_close(int fd) {
     return -ENOSYS;
 }
 
-int sys_pipe(int filedes[2]) {
+int sys_pipe(int *filedes) {
     return -ENOSYS;
 }
 
@@ -169,4 +133,86 @@ void *sys_mmap(void *addr, size_t length, int prot, int flags, int fd,
 
 int sys_munmap(void *addr, size_t length) {
     return -ENOSYS;
+}
+
+int64_t syscall_dispatch(int64_t a1, int64_t a2, int64_t a3,
+                         int64_t a4, int64_t a5, int64_t a6, int64_t sysnum) {
+    int64_t rv;
+    debug("Doing a syscall: %d\n", sysnum);
+    switch(sysnum) {
+        case SYS_read:
+            rv = sys_read((int)a1, (void *)a2, (size_t)a3);
+            break;
+        case SYS_write:
+            rv = sys_write((int)a1, (void *)a2, (size_t)a3);
+            break;
+        case SYS_open:
+            rv = sys_open((const char *)a1, (int)a2, (mode_t)a3);
+            break;
+        case SYS_close:
+            rv = sys_close((int)a1);
+            break;
+        case SYS_lseek:
+            rv = sys_lseek((int)a1, (off_t)a2, (int)a3);
+            break;
+        case SYS_mmap:
+            rv = (int64_t)sys_mmap((void *)a1, (size_t)a2, (int)a3, (int)a4,
+                                   (int)a5, (off_t)a6);
+            break;
+        case SYS_munmap:
+            rv = sys_munmap((void *)a1, (size_t)a2);
+            break;
+        case SYS_brk:
+            rv = sys_brk((void *)a1);
+            break;
+        case SYS_pipe:
+            rv = sys_pipe((int *)a1);
+            break;
+        case SYS_dup:
+            rv = sys_dup((int)a1);
+            break;
+        case SYS_dup2:
+            rv = sys_dup2((int)a1, (int)a2);
+            break;
+        case SYS_nanosleep:
+            rv = sys_nanosleep((const struct timespec *)a1, (struct timespec *)a2);
+            break;
+        case SYS_alarm:
+            rv = sys_alarm((unsigned int)a1);
+            break;
+        case SYS_getpid:
+            rv = sys_getpid();
+            break;
+        case SYS_fork:
+            rv = sys_fork();
+            break;
+        case SYS_execve:
+            rv = sys_execve((const char *)a1, (const char **)a2, (const char **)a3);
+            break;
+        case SYS_exit:
+            sys_exit((int)a1); /* Exit should not return to the user */
+            rv = -EAGAIN;      /* try again :P */
+            break;
+        case SYS_wait4:
+            rv = sys_wait4((pid_t)a1, (int *)a2, (int)a3, (struct rusage *)a4);
+            break;
+        case SYS_uname:
+            rv = sys_uname((struct utsname *)a1);
+            break;
+        case SYS_getdents:
+            rv = sys_getdents((unsigned int)a1, (struct dirent *)a2, (unsigned int)a3);
+            break;
+        case SYS_getcwd:
+            rv = (int64_t)sys_getcwd((char *)a1, (size_t)a2);
+            break;
+        case SYS_chdir:
+            rv = sys_chdir((const char *)a1);
+            break;
+        case SYS_getppid:
+            rv = sys_getppid();
+            break;
+        default: rv = -ENOSYS;
+    }
+    debug("Did a syscall: %d\n", sysnum);
+    return rv;
 }
