@@ -80,13 +80,13 @@ static void term_push(unsigned char c) {
  * Helper pops the first character from the buffer
  *
  * @tb:  a valid terminal_buf
- * @save: address to put the character
  *
  * @return the first character or -1 if there are none to read
  */
-static int term_popfirst(struct terminal_buf *tb, char *save) {
+static int term_popfirst(struct terminal_buf *tb) {
     int c;
-    if(tb->delims == 0)
+
+    if(tb->start == tb->end && !tb->full)
         return -1;
 
     c = tb->buf[tb->start];
@@ -97,12 +97,8 @@ static int term_popfirst(struct terminal_buf *tb, char *save) {
         return -1;
     } else if(c == '\n') {
         tb->delims--;
-        *save = (char)c; /* save the char */
-        return -1;
-    } else {
-        *save = (char)c; /* save the char */
-        return c;
     }
+    return c;
 }
 
 /**
@@ -141,7 +137,8 @@ void term_putch(unsigned char c) {
     }
     if(term.full) {
         /* print a bell to notify that we lost a character */
-        putch('\a');
+//        putch('\a');
+        task_unblock_foreground();
         return;
     }
 
@@ -159,6 +156,9 @@ void term_putch(unsigned char c) {
     if(term.echo && c && c != EOT) {
         putch(c);
         move_csr();
+    }
+    if(term.full) {
+        task_unblock_foreground();
     }
 }
 
@@ -210,9 +210,10 @@ ssize_t term_read(struct file *fp, char *buf, size_t count, off_t *offset) {
     /* Unblocked! We can read until delim or count bytes are consumed */
     num_read = 0;
     while(count--) {
-        c = term_popfirst(tb, &buf[num_read++]);
+        c = term_popfirst(tb);
         if(c < 0)
             break;
+        buf[num_read++] = (char)c;
     }
     return num_read;
 }
@@ -280,21 +281,26 @@ void test_terminal(void) {
     if(!stdout)
         goto cleanup_stdin;
     /* Read from stdin, this should block the current process */
-    nread = stdin->f_op->read(stdin, buf, 99, NULL);
-    if(nread < 0) {
-        printk("ERROR: %s\n", strerror(-(int)nread));
-        goto cleanup_stdout;
-    }
-    /* Write to stdout */
-    nbytes = stdout->f_op->write(stdout, "ECHO: ", 6, NULL);
-    if(nbytes < 6) {
-        printk("ERROR: nbytes written = %d\n", (int)nread);
-        goto cleanup_stdout;
-    }
-    nbytes = stdout->f_op->write(stdout, buf, (size_t)nread, NULL);
-    if(nbytes < nread) {
-        printk("ERROR: nbytes written = %d\n", (int)nread);
-        goto cleanup_stdout;
+    while(1) {
+        nread = stdin->f_op->read(stdin, buf, 99, NULL);
+        if(nread < 0) {
+            printk("ERROR: %s\n", strerror(-(int)nread));
+            goto cleanup_stdout;
+        } else if(nread == 0) {
+            printk("READ EOF.\n");
+            break;
+        }
+        /* Write to stdout */
+        nbytes = stdout->f_op->write(stdout, "ECHO: ", 6, NULL);
+        if(nbytes < 6) {
+            printk("ERROR: nbytes written = %d\n", (int)nread);
+            goto cleanup_stdout;
+        }
+        nbytes = stdout->f_op->write(stdout, buf, (size_t)nread, NULL);
+        if(nbytes < nread) {
+            printk("ERROR: nbytes written = %d\n", (int)nread);
+            goto cleanup_stdout;
+        }
     }
     /* Close files */
 cleanup_stdout:
