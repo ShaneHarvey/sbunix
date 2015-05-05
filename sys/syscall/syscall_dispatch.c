@@ -1,5 +1,10 @@
 #include "syscall_dispatch.h"
 #include <sys/syscall.h>
+#include <sys/types.h>
+#include <sys/resource.h>
+#include <sys/utsname.h>
+#include <dirent.h>
+#include <sbunix/time.h>
 #include <sbunix/asm.h>
 #include <errno.h>
 #include <sbunix/gdt.h>
@@ -69,4 +74,99 @@ int64_t syscall_dispatch(int64_t a1, int64_t a2, int64_t a3,
     }
     debug("Did a syscall: %d\n", sysnum);
     return err;
+}
+
+
+void sys_exit(int status) {
+    return;
+}
+
+int sys_brk(void *addr) {
+    return -ENOSYS;
+}
+
+pid_t sys_fork(void) {
+    return -ENOSYS;
+}
+
+
+pid_t sys_getpid(void) {
+    return -ENOSYS;
+}
+
+pid_t sys_getppid(void) {
+    return -ENOSYS;
+}
+
+int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
+    return -ENOSYS;
+}
+
+pid_t sys_wait4(pid_t pid, int *status, int options, struct rusage *rusage) {
+    return -ENOSYS;
+}
+
+int sys_nanosleep(const struct timespec *req, struct timespec *rem) {
+    return -ENOSYS;
+}
+
+unsigned int sys_alarm(unsigned int seconds)  {
+    return -ENOSYS;
+}
+
+char *sys_getcwd(char *buf, size_t size) {
+    return (void*)-ENOSYS;
+}
+
+int sys_chdir(const char *path) {
+    return -ENOSYS;
+}
+
+int sys_open(const char *pathname, int flags) {
+    return -ENOSYS;
+}
+
+ssize_t sys_read(int fd, void *buf, size_t count) {
+    return -ENOSYS;
+}
+
+ssize_t sys_write(int fd, const void *buf, size_t count) {
+    return -ENOSYS;
+}
+
+off_t sys_lseek(int fildes, off_t offset, int whence) {
+    return -ENOSYS;
+}
+
+int sys_close(int fd) {
+    return -ENOSYS;
+}
+
+int sys_pipe(int filedes[2]) {
+    return -ENOSYS;
+}
+
+int sys_dup(int oldfd) {
+    return -ENOSYS;
+}
+
+int sys_dup2(int oldfd, int newfd) {
+    return -ENOSYS;
+}
+
+int sys_getdents(unsigned int fd, struct dirent *dirp, unsigned int count) {
+    return -ENOSYS;
+}
+
+int sys_uname (struct utsname *buf) {
+    return -ENOSYS;
+}
+
+void *sys_mmap(void *addr, size_t length, int prot, int flags, int fd,
+           off_t offset) {
+    return (void*)-ENOSYS;
+}
+
+int sys_munmap(void *addr, size_t length) {
+    return -ENOSYS;
 }
