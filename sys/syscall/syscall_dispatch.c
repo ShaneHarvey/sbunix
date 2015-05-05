@@ -44,6 +44,7 @@ void enable_syscalls(void) {
 }
 
 void sys_exit(int status) {
+    kill_curr_task(status);
     return;
 }
 

@@ -144,6 +144,8 @@ struct task_struct *fork_curr_task(void) {
 
     /* TODO: COW stuff */
 
+    task_add_new(task); /* add to run queue and task list */
+
     return task;
 out_stack:
     free_page((uint64_t)kstack);
@@ -238,7 +240,8 @@ void task_add_new(struct task_struct *task) {
  * Called to end the life of the current task.
  * This function NEVER returns.
  */
-void kill_curr_task(void) {
+void kill_curr_task(int exit_code) {
+    curr_task->exit_code = exit_code;
     curr_task->state = TASK_DEAD;
     schedule();
 }
@@ -426,7 +429,7 @@ static void funX(void) {
     while(1) {
         x++;
         if(x == 5)
-            kill_curr_task();
+            kill_curr_task(0);
 
         debug_task(taskX);
         if(taskX != curr_task) {
@@ -443,7 +446,7 @@ static void funY(void) {
     while(1) {
         x++;
         if(x == 5)
-            kill_curr_task();
+            kill_curr_task(0);
         debug_task(taskY);
         if(taskY != curr_task) {
             kpanic("taskY not the curr_task!\n");

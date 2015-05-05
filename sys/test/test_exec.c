@@ -10,5 +10,5 @@ void test_exec(void) {
         kpanic("do_execve failed: %s\n", strerror(-err));
     }
 
-    kill_curr_task();
+    kill_curr_task(0);
 }

@@ -42,5 +42,5 @@ void test_terminal(void) {
     stdin->f_op->close(stdin);
     printk("END TEST TERMINAL\n");
 
-    kill_curr_task();
+    kill_curr_task(0);
 }
