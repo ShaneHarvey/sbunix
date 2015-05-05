@@ -148,6 +148,8 @@ void task_destroy(struct task_struct *task) {
         task->prev_task->next_task = task->next_task;
 
     free_page(ALIGN_DOWN(task->kernel_rsp, PAGE_SIZE));
+
+    /* TODO: reference will be kfree'd when parent calls wait() */
 }
 
 /**
@@ -206,6 +208,15 @@ void task_add_new(struct task_struct *task) {
 
     task_list_add(task);
     queue_add_by_state(task);
+}
+
+/**
+ * Called to end the life of the current task.
+ * This function NEVER returns.
+ */
+void kill_curr_task(void) {
+    curr_task->state = TASK_DEAD;
+    schedule();
 }
 
 /**
@@ -369,23 +380,30 @@ void debug_task(struct task_struct *task) {
 void scheduler_test(void) {
     int x = 1;
     debug("START OF SCHEDULER TEST\n");
+    freemem_report();
+//    halt_loop("");
     taskX = ktask_create(funX, "TaskX");
     debug_task(taskX);
     taskY = ktask_create(funY, "TaskY");
     debug_task(taskY);
-    while(x < 5) {
-        debug("scheduler_test: %d\n", x++);
+    while(x++ < 10) {
         /* This is the main task (the kernel_task) */
         __asm__ __volatile__ ("hlt;");
         debug_queues();
         schedule();
     }
+    freemem_report();
     kpanic("END OF SCHEDULER TEST\n");
 }
 
 static void funX(void) {
+    int x = 0;
     printk("X\n");
     while(1) {
+        x++;
+        if(x == 5)
+            kill_curr_task();
+
         debug_task(taskX);
         if(taskX != curr_task) {
             kpanic("taskX not the curr_task!\n");
@@ -396,8 +414,12 @@ static void funX(void) {
 }
 
 static void funY(void) {
+    int x = 0;
     printk("Y\n");
     while(1) {
+        x++;
+        if(x == 5)
+            kill_curr_task();
         debug_task(taskY);
         if(taskY != curr_task) {
             kpanic("taskY not the curr_task!\n");

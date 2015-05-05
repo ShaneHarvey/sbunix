@@ -36,10 +36,11 @@ enum task_type {
 };
 
 enum task_state {
-    TASK_UNRUNNABLE = 1, /* unable to be scheduled */
-    TASK_RUNNABLE   = 2, /* able to be scheduled */
-    TASK_DEAD       = 4, /* after a context-switch the task is cleaned-up, set on exit() */
-    TASK_BLOCKED    = 8  /* waiting for I/O */
+    TASK_UNRUNNABLE = 1,  /* unable to be scheduled */
+    TASK_RUNNABLE   = 2,  /* able to be scheduled */
+    TASK_DEAD       = 4,  /* after a context-switch the task is cleaned-up, set on exit() */
+    TASK_BLOCKED    = 8,  /* waiting for I/O */
+    TASK_SLEEPING   = 16  /* sleeping */
 };
 
 /* Run-Queue */
@@ -59,6 +60,7 @@ uint64_t get_next_pid(void);
 void scheduler_test(void);
 void debug_task(struct task_struct *task);
 void reset_timeslice(struct task_struct *task);
+void kill_curr_task(void);
 
 
 #define switch_to(prev, next)                                              \
