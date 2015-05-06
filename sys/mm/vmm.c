@@ -456,6 +456,8 @@ int vma_contains(struct vm_area *vma, uint64_t addr) {
 int vma_contains_region(struct vm_area *vma, uint64_t addr, size_t size) {
     if(!vma)
         return 0;
+    if(vma->vm_start == vma->vm_end)
+        return vma->vm_start == addr;
     return (vma->vm_start <= addr && (addr+size) < vma->vm_end);
 }
 
