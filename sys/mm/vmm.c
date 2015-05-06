@@ -177,6 +177,8 @@ void mm_destroy(struct mm_struct *mm) {
             mm->mm_prev->mm_next = mm->mm_next;
         }
         /* fixme: add other kfree()'s */
+
+        /* fixme: FREE the page_tables */
         kfree(mm);
     }
 }
@@ -191,16 +193,36 @@ struct mm_struct *mm_deep_copy(void) {
     if(!curr_mm)
         kpanic("Current task has no memory struct!\n");
 
+    if(curr_task->type == TASK_KERN)
+        kpanic("Trying to fork a kernel mm\n");
+
     copy_mm = kmalloc(sizeof(*copy_mm));
     if(!copy_mm)
         return NULL;
 
     /* Copy exactly from parent */
     memcpy(copy_mm, curr_mm, sizeof(*copy_mm));
+    /* Update the prev/next mm pointers */
+    mm_list_add(copy_mm);
 
-    /* Create a copy of the page tables */
+    /* Copy all of the vma's, incrementing file ref counts */
+    copy_mm->vmas = vma_deep_copy(curr_mm, copy_mm);
+    if(!copy_mm->vmas)
+        goto out_copy_mm;
+
+    /* TODO: Copy-On-Write */
+    /* TODO: set all present pte's to read only, calling kphys_inc_mapcount on each */
+
+    /* Create a copy of the page tables that are now Copy-On-Write */
     curr_mm->pml4 = copy_current_pml4();
+    if(!curr_mm->pml4)
+        goto out_copy_mm;
 
+    return copy_mm;
+
+out_copy_mm:
+    /* Destroy the vma's if any and the copy_mm */
+    mm_destroy(copy_mm);
     return NULL;
 }
 
@@ -338,10 +360,10 @@ void vma_destroy(struct vm_area *vma) {
     if(vma->vm_mm)
         vma->vm_mm->vma_count--;
     if(vma->vm_file)
-        vma->vm_file->f_op->close(vma->vm_file); /* fixme: kfree? */
+        vma->vm_file->f_op->close(vma->vm_file);
+
     /* fixme: free all pages in vm_area. CALL free_pagetbl_range_and_pages */
 
-    /* fixme: CAN I FREE vma->vm_file ?? */
     kfree(vma);
 }
 
@@ -357,6 +379,60 @@ void vma_destroy_all(struct mm_struct *mm) {
         next = prev->vm_next;
         vma_destroy(prev);
     }
+}
+
+/**
+ * Return a deep copy of the vm_areas of the mm struct.
+ * Copying the vm_area's does not increment the mapcounts for the physical
+ * pages used in the regions.
+ * @return: return the first vma in a list of vma's
+ */
+struct vm_area *vma_deep_copy(struct mm_struct *mm_old, struct mm_struct *mm_new) {
+    int firstvma_set = 0;
+    struct vm_area *firstvma = NULL;
+    struct vm_area *prevnew = NULL, *new = NULL, *old;
+
+    if(!mm_old)
+        kpanic("Null mm in vma_deep_copy\n");
+
+    old = mm_old->vmas;
+    for(; old != NULL; old = old->vm_next){
+        new = kmalloc(sizeof(*new));
+        if(!new)
+            goto out_vmas;
+
+        /* Create an exact copy, then change pointers */
+        memcpy(new, old, sizeof(*old));
+
+        if(!firstvma_set) {
+            /* Keep the reference to the first vma copied (to return) */
+            firstvma = new;
+            firstvma_set = 1;
+        }
+
+        new->vm_mm = mm_new; /* new mm owner */
+        new->vm_next = NULL;
+        if(new->vm_file)
+            new->vm_file->f_count++; /* inc ref count */
+
+        if(prevnew)
+            prevnew->vm_next = new; /* build list of new vm_areas */
+
+        prevnew = new;
+    }
+    return firstvma;
+
+out_vmas:
+    /* free all vmas here */
+    while(firstvma != NULL) {
+        struct vm_area *prev = firstvma;
+        firstvma = firstvma->vm_next;
+
+        if(prev->vm_file)
+            prev->vm_file->f_count--; /* undo ref count inc */
+        kfree(prev);
+    }
+    return NULL;
 }
 
 /**
