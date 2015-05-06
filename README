@@ -1,3 +1,11 @@
+    Final Project
+Preemptive OS — 70 pts
+======================
+Shane Harvey 108272239
+Scott Harvey 108272691
+======================
+
+======================
 The provided Makefile:
   1) builds a kernel
   2) copies it into rootfs/boot/kernel/kernel

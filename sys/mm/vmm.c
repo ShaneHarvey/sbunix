@@ -212,12 +212,12 @@ struct mm_struct *mm_deep_copy(void) {
 
     /* TODO: Copy-On-Write */
     /* TODO: set all present pte's to read only, calling kphys_inc_mapcount on each */
-    copy_on_write_pml4();
+    //copy_on_write_pml4();
 
     /* Create a copy of the page tables that are now Copy-On-Write */
     curr_mm->pml4 = copy_current_pml4();
     if(!curr_mm->pml4)
-        goto out_copy_mm;
+        goto out_cow_pml4;
 
     return copy_mm;
 
