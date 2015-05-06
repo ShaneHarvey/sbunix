@@ -222,7 +222,7 @@ struct mm_struct *mm_deep_copy(void) {
     return copy_mm;
 
 out_cow_pml4:
-    /* TODO: undo Copy-On-Write */
+    /* TODO: undo Copy-On-Write by calling kphys_dec_mapcount on each phys page */
 
 out_copy_mm:
     /* Destroy the vma's if any and the copy_mm */
@@ -525,8 +525,7 @@ uint64_t onfault_test(struct vm_area *vma, uint64_t addr) {
 
 /**
  * Onfault handler for a region with a memory mapped file.
- * @return: 0 on error,
- *          otherwise a kernel virt addr to map to the page table
+ * @return: error or 0, same as map_page
  */
 int onfault_mmap_file(struct vm_area *vma, uint64_t addr) {
     uint64_t page, aligned, toread;
@@ -578,7 +577,7 @@ int onfault_mmap_file(struct vm_area *vma, uint64_t addr) {
 
 /**
  * Onfault handler for a region with a memory mapped file.
- * @return:
+ * @return: error or 0, same as map_page
  */
 int onfault_mmap_anon(struct vm_area *vma, uint64_t addr) {
     uint64_t physpage, aligned;
@@ -593,6 +592,50 @@ int onfault_mmap_anon(struct vm_area *vma, uint64_t addr) {
     aligned = ALIGN_DOWN(addr, PAGE_SIZE);
 
     return map_page(aligned, physpage, vma->vm_prot);
+}
+
+
+/**
+ * Work for a Copy-On-Write page fault.
+ * NOTE: This is only called when we have faulted on a PRESENT page.
+ * @vma:
+ * @addr: user virtual fault address
+ */
+int copy_on_write_pagefault(struct vm_area *vma, uint64_t addr) {
+    struct ppage *ppage;
+    uint64_t old_kphys = 0, aligned;
+
+    /* TODO: get the physical address this virtual addr maps to */
+    /* TODO: old_kphys = get_mapped_addr(addr) */
+
+    aligned = ALIGN_DOWN(addr, PAGE_SIZE);
+
+    ppage = kphys_to_ppage(old_kphys);
+    if(ppage->mapcount == 1) {
+        /* The mapcount has fallen to one since the time of the COW fork.
+         * Just add write permission to the page. */
+        /* TODO: add write permission to this user virt addr. Only changes prot */
+        /* TODO: add_write_prot(aligned) */
+        return 0;
+    } else if(ppage->mapcount > 1) {
+        uint64_t new_kvirt;
+        /* We're copying the old contents into a new page */
+        new_kvirt = get_free_page(0);
+        if(!new_kvirt)
+            return -ENOMEM;
+        memcpy((void*)new_kvirt, (void*)kphys_to_virt(old_kphys), PAGE_SIZE);
+
+        ppage->mapcount--;  /* fast free_page() */
+
+        /* TODO: replace old_kphys with  kvirt_to_phys(new_kvirt) */
+        /* TODO: old_kphys SHOULD be free_page()'d by this function: */
+        /* TODO: map_page_over(aligned, kvirt_to_phys(new_kvirt), vma->vm_prot)*/        return 0;
+        return 0;
+    } else {
+        kpanic("COW user page %p had <= 0 mapcount\nKernel phys page was %p\n",
+               aligned, old_kphys);
+        return -EINVAL;
+    }
 }
 
 
