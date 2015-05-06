@@ -510,20 +510,6 @@ int vma_intersects(struct vm_area *vma, struct vm_area *other) {
 }
 
 /**
- * Test vm_area.onfault function.
- * A real onfault will take appropriate actions (map_page(), kill user, etc...)
- */
-uint64_t onfault_test(struct vm_area *vma, uint64_t addr) {
-    char *msg[] = {
-        "NOT",
-        ""
-    };
-    debug("0x%lx is %s in the vm_area\n", addr, msg[vma_contains(vma, addr)]);
-    //map_page(....)
-    return 0;
-}
-
-/**
  * Onfault handler for a region with a memory mapped file.
  * @return: error or 0, same as map_page
  */

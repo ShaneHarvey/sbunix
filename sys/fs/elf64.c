@@ -43,6 +43,35 @@ int validate_elf64_hdr(Elf64_Ehdr *hdr) {
     return 0;
 }
 
+/**
+ * Print info about the elf headers
+ */
+void print_elf_info(Elf64_Ehdr *hdr) {
+    Elf64_Half i;
+    Elf64_Shdr *shdr;
+    Elf64_Phdr *phdr;
+    if(!hdr)
+        return;
+    printk("ELF virtual entry point: %p\n", hdr->e_entry);
+    /* First entry is NULL */
+
+    printk("Section headers:\n");
+    for(i = 0; i < hdr->e_shnum; i++) {
+        char *name;
+        shdr = elf_sheader(hdr, i);
+        if(shdr->sh_name == SHN_UNDEF) {
+            name = "NO_NAME";
+        } else {
+            name = elf_lookup_string(hdr, shdr->sh_name);
+        }
+        printk("%s, ", name);
+    }
+    printk("\nProgram headers:\nType  FileOffset  FileSiz  MemSiz  VirtAddr  PhysAddr  Flag\n");
+    for(i = 0; i < hdr->e_phnum; i++) {
+        phdr = elf_pheader(hdr, i);
+        elf_print_phdr(phdr);
+    }
+}
 
 /**
  * Validate the given file is a supported ELF file
@@ -52,7 +81,6 @@ int validate_elf64_hdr(Elf64_Ehdr *hdr) {
  */
 int elf_validiate_exec(struct file *fp) {
     Elf64_Ehdr *hdr;
-    Elf64_Shdr *shdr;
     Elf64_Phdr *phdr;
     Elf64_Half i;
     int err;
@@ -67,26 +95,14 @@ int elf_validiate_exec(struct file *fp) {
     err = validate_elf64_hdr(hdr);
     if(err)
         return err;
-    /* Valid, try searching for .text, .rodata, .got, .got.plt, .data, and .bss */
-    printk("ELF virtual entry point: %p\n", hdr->e_entry);
-    /* First entry is NULL */
-    printk("Section headers:\n");
-    for(i = 0; i < hdr->e_shnum; i++) {
-        char *name;
-        shdr = elf_sheader(hdr, i);
-        if(shdr->sh_name == SHN_UNDEF) {
-            name = "NO_NAME";
-        } else {
-            name = elf_lookup_string(hdr, shdr->sh_name);
-        }
-        printk("%s, ", name);
-    }
-    printk("\nProgram headers:\nType   FileOffset   FileSiz   MemSiz   VirtAddr   PhysAddr   Flag\n");
+
+    /* To be valid we must have a loadable segment */
     for(i = 0; i < hdr->e_phnum; i++) {
         phdr = elf_pheader(hdr, i);
-        elf_print_phdr(phdr);
+        if(phdr->p_type == PT_LOAD)
+            return 0;
     }
-    return 0;
+    return -ENOEXEC;
 }
 
 /**

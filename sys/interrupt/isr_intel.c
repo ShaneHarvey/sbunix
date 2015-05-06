@@ -142,6 +142,16 @@ pf_violation:
 pf_enomem:
     kpanic("!! TODO: Page-Fault ENOMEM !!\n");
     /* todo: Kill self, exit_code = ENOMEM */
+    goto pf_kernel_oops;
+pf_kernel_oops:
+    printk("%s%s%s%s%s\n",
+      pf_who[0],
+      pf_rsvd[was_rsrvd  == PF_RSVD],
+      pf_read[was_write  == PF_WRITE],
+      pf_inst[(errorcode & PF_INSTR) == PF_INSTR],
+      pf_prot[was_present == PF_PROT]);
+    printk("Page-Fault (#PF) at RIP %p, on ADDR %p!\n", (void*)fault_rip, (void*)addr);
+    kpanic("KERNEL OOPS please reboot\n");
 }
 
 /* 15 Reserved */

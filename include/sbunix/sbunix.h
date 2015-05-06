@@ -12,7 +12,7 @@
 #   define debug(fmt, ...)   printk("[DB] %s:%d: " fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__)
 /* #   define debug(fmt, ...)   printk("[DB] %s:%s: " fmt, __FILE__, __FUNCTION__, ##__VA_ARGS__) */
 #else
-#   define debug(S, ...)
+#   define debug(S, ...) do{}while(0)
 #endif /* DEBUG */
 #define MIN(a, b) (((a)<(b))?(a):(b))
 #define MAX(a, b) (((a)>(b))?(a):(b))

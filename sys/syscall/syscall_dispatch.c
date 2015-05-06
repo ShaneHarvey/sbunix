@@ -63,7 +63,7 @@ pid_t sys_fork(void) {
     stack_off = ALIGN_UP(curr_stack, PAGE_SIZE) - curr_stack;
     child->kernel_rsp = child_stack - stack_off - 8;
     *(uint64_t *)child->kernel_rsp = (uint64_t)&&child_fork_ret;
-    printk("curr_task RSP: %p, child_task RSP: %p\n",curr_stack, child->kernel_rsp);
+    debug("curr_task RSP: %p, child_task RSP: %p\n",curr_stack, child->kernel_rsp);
     schedule();
     /* this will never happen, but the label gets optimized out if we don't trick gcc */
     if(child_pid == 0) {
