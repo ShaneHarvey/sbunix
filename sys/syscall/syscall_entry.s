@@ -29,7 +29,8 @@
 .global syscall_entry
 syscall_entry:
     movq %rsp, syscall_user_rsp     # save user stack
-    movq syscall_kernel_rsp, %rsp   # restore task's kernel stack
+    movq (syscall_kernel_rsp), %rsp # restore task's kernel stack
+    pushq (syscall_user_rsp)        # save user rsp on kernel stack
     pushq %r11                      # save user RFLAGS
     pushq %rcx                      # save user RIP onto kern stack
     movq %r10, %rcx                 # switch syscall convention to SYSV C convention
@@ -43,5 +44,5 @@ syscall_entry:
     # Prepare for sysret
     popq %rcx                       # pop user return addr off kern stack
     popq %r11                       # pop user RFLAGS
-    movq syscall_user_rsp, %rsp     # restore user stack
-    sysret
+    popq %rsp                       # restore user stack
+    sysret                          # TODO: shouldn't this be sysretq ??
