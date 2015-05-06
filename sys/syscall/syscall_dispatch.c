@@ -233,6 +233,7 @@ int sys_munmap(void *addr, size_t length) {
 int64_t syscall_dispatch(int64_t a1, int64_t a2, int64_t a3,
                          int64_t a4, int64_t a5, int64_t a6, int64_t sysnum) {
     int64_t rv;
+    curr_task->in_syscall = 1; /* set syscall flag */
     debug("Doing a syscall: %d\n", sysnum);
     switch(sysnum) {
         case SYS_read:
@@ -309,5 +310,6 @@ int64_t syscall_dispatch(int64_t a1, int64_t a2, int64_t a3,
         default: rv = -ENOSYS;
     }
     debug("Did a syscall: %d\n", sysnum);
+    curr_task->in_syscall = 0;  /* reset syscall flag */
     return rv;
 }

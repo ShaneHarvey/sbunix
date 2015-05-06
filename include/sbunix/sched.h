@@ -22,6 +22,7 @@ struct task_struct {
     int state;
     int first_switch;
     int foreground;       /* True if this task controls the terminal */
+    int in_syscall;       /* Set to 1 if this task is in a system call */
     struct timespec sleepts; /* time left to sleep */
     uint64_t kernel_rsp;
     pid_t pid;            /* Process ID, monotonically increasing. 0 is not valid */
