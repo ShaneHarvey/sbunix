@@ -54,7 +54,7 @@ int add_heap(struct mm_struct *user) {
 /**
  * Add the stack vm area.
  */
-int add_stack(struct mm_struct *user, char *argv[], char *envp[]) {
+int add_stack(struct mm_struct *user, const char **argv, const char **envp) {
     struct vm_area *stack;
     uint64_t phys_page;
     int err;

@@ -108,10 +108,10 @@ void test_all_tarfs(const char *path) {
 
 /**
  * Creates a new file object for the given path
- * TODO: flags and mode
+ * TODO: flags
  * @path: The absolute path of the file to open (MUST start with '/')
  * @flags: user open flags
- * @mode: user open mode
+ * @mode: unused
  * @err: pointer to error indicator
  */
 struct file *tarfs_open(const char *path, int flags, mode_t mode, int *err) {
@@ -251,9 +251,8 @@ ssize_t tarfs_write(struct file *fp, const char *buf, size_t count,
 int tarfs_close(struct file *fp) {
     if(!fp)
         kpanic("file is NULL!!!\n");
-    if(fp->f_count > 1) {
-        fp->f_count--;
-    } else {
+    fp->f_count--;
+    if(fp->f_count == 0) {
         memset(fp, 0, sizeof(struct file));
         kfree(fp);
     }

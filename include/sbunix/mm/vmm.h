@@ -18,7 +18,7 @@ int               mmap_area(struct mm_struct *mm, struct file *filep,
 uint64_t          do_brk(struct mm_struct *mm, uint64_t newbrk);
 
 int add_heap(struct mm_struct *user);
-int add_stack(struct mm_struct *user, char *argv[], char *envp[]);
+int add_stack(struct mm_struct *user, const char **argv, const char **envp);
 
 /* vm_area functions */
 

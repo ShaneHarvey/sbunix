@@ -83,22 +83,28 @@ child_fork_ret: /* Child will retq to this label the first time it gets schedule
 }
 
 pid_t sys_getpid(void) {
-    return -ENOSYS;
+    return curr_task->pid;
 }
 
 pid_t sys_getppid(void) {
-    return -ENOSYS;
+    if(!curr_task->parent)
+        return 1;
+    else
+        return curr_task->parent->pid;
 }
 
 int sys_execve(const char *filename, const char **argv, const char **envp) {
-    return -ENOSYS;
+    /* TODO: validate user pointers */
+    return do_execve(filename, argv, envp);
 }
 
 pid_t sys_wait4(pid_t pid, int *status, int options, struct rusage *rusage) {
+    /* TODO: validate user pointers */
     return -ENOSYS;
 }
 
 int sys_nanosleep(const struct timespec *req, struct timespec *rem) {
+    /* TODO: validate user pointers */
     return -ENOSYS;
 }
 
@@ -107,35 +113,41 @@ unsigned int sys_alarm(unsigned int seconds)  {
 }
 
 char *sys_getcwd(char *buf, size_t size) {
+    /* TODO: validate user pointer */
     return (void*)-ENOSYS;
 }
 
 int sys_chdir(const char *path) {
+    /* TODO: validate user pointer */
     return -ENOSYS;
 }
 
 int sys_open(const char *pathname, int flags, mode_t mode) {
-    return -ENOSYS;
+    /* TODO: validate user pointer */
+    return do_open(pathname, flags, mode);
 }
 
 ssize_t sys_read(int fd, void *buf, size_t count) {
-    return -ENOSYS;
+    /* TODO: validate user pointer */
+    return do_read(fd, buf, count);
 }
 
 ssize_t sys_write(int fd, const void *buf, size_t count) {
-    return -ENOSYS;
+    /* TODO: validate user pointer */
+    return do_write(fd, buf, count);
 }
 
-off_t sys_lseek(int fildes, off_t offset, int whence) {
-    return -ENOSYS;
+off_t sys_lseek(int fd, off_t offset, int whence) {
+    return do_lseek(fd, offset, whence);
 }
 
 int sys_close(int fd) {
-    return -ENOSYS;
+    return do_close(fd);
 }
 
-int sys_pipe(int *filedes) {
-    return -ENOSYS;
+int sys_pipe(int *pipefd) {
+    /* TODO: validate user pointer */
+    return do_pipe(pipefd);
 }
 
 int sys_dup(int oldfd) {
@@ -175,7 +187,7 @@ int64_t syscall_dispatch(int64_t a1, int64_t a2, int64_t a3,
             rv = sys_write((int)a1, (void *)a2, (size_t)a3);
             break;
         case SYS_open:
-            rv = sys_open((const char *)a1, (int)a2, (mode_t)a3);
+            rv = sys_open((const char *)a1, (int)a2, (mode_t)0);
             break;
         case SYS_close:
             rv = sys_close((int)a1);

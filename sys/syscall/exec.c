@@ -51,15 +51,15 @@ void enter_usermode(uint64_t user_rsp, uint64_t user_rip) {
     kpanic("FAILED to enter user mode!");
 }
 
-int do_execve(char *filename, char *argv[], char *envp[]) {
+int do_execve(const char *filename, const char **argv, const char **envp) {
     struct file *fp;
     struct mm_struct *mm;
     int err;
-    /* TODO: validate user pointers */
+
     /* TODO: resolve filename to absolute path */
     fp = tarfs_open(filename, 0, 0, &err);
     if(err)
-        goto cleanup_kmalloc;
+        return err;
     err = elf_validiate_exec(fp);
     if(err)
         goto cleanup_file;
@@ -99,8 +99,5 @@ cleanup_mm:
     mm_destroy(mm);
 cleanup_file:
     fp->f_op->close(fp);
-    return err;
-cleanup_kmalloc:
-    kfree(fp);
     return err;
 }
