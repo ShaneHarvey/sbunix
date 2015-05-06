@@ -121,6 +121,7 @@ uint64_t copy_current_pml4(void);
 uint64_t copy_kernel_pml4(void);
 
 void copy_on_write_pml4(void);
+int copy_cow_page(uint64_t virt_addr, uint64_t pte_flags);
 
 void print_pml4e(void);
 

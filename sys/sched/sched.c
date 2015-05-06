@@ -36,6 +36,7 @@ struct queue run_queue = {
 struct queue just_ran_queue = {
         .num_switches = 0,
         .tasks = NULL,
+
 };
 
 struct queue block_queue = {

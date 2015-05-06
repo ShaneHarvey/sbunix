@@ -244,7 +244,7 @@ static inline int _ensure_present_pml4e(uint64_t virt_addr) {
  * @phy_addr
  */
 int map_page(uint64_t virt_addr, uint64_t phy_addr, uint64_t pte_flags) {
-    uint64_t old_pte, *magic;
+    uint64_t old_pte, *magic, new_pte;
     /* Should virtual check be done? could be easier on the caller to pass any
      * virtual address and just map to its page.
      */
@@ -266,7 +266,7 @@ int map_page(uint64_t virt_addr, uint64_t phy_addr, uint64_t pte_flags) {
     if(PTE_PRESENT(old_pte))
         kpanic("Error: tried to remap present pte 0x%lx\n", old_pte);
 
-    uint64_t new_pte = phy_addr | pte_flags | PFLAG_P;
+    new_pte = phy_addr | pte_flags | PFLAG_P;
     debug("Adding PML4[%ld]->PDPT[%ld]->PD[%ld]->PT[%ld]=0x%lx\n",
           PML4_INDEX(virt_addr), PDPT_INDEX(virt_addr), PD_INDEX(virt_addr),
           PT_INDEX(virt_addr), new_pte);
@@ -468,6 +468,58 @@ uint64_t copy_kernel_pml4(void) {
     pml4[pml4_self_index] = kvirt_to_phys((uint64_t)pml4)|PFLAG_RW|PFLAG_P;
 
     return kvirt_to_phys((uint64_t)pml4) | PE_FLAGS(kernel_pt);
+}
+
+/**
+ * Handle a copy-on-write page fault.
+ * @virt_addr: aligned, KNOWN to be PRESENT in these page tables.
+ * @pte_flags: new flags
+ */
+int copy_cow_page(uint64_t virt_addr, uint64_t pte_flags) {
+    uint64_t old_pte, old_kphys, *magic, new_pte;
+    struct ppage *ppage;
+
+    /* "Magic" address points to the pte we want to overwrite */
+    magic = VA_PTE(virt_addr);
+    old_pte = *magic;
+
+    old_kphys = (uint64_t)PE_PHYS_ADDR(old_pte);
+
+    /* Grab the ppage struct */
+    ppage = kphys_to_ppage(old_kphys);
+
+    if(ppage->mapcount == 1) {
+        /* The mapcount has fallen to one since the time of the COW fork.
+         * Just add write permission to the page. */
+        new_pte = old_pte | PFLAG_RW;
+        *magic = new_pte;
+        debug("Updated PML4[%ld]->PDPT[%ld]->PD[%ld]->PT[%ld]=0x%lx\n",
+              PML4_INDEX(virt_addr), PDPT_INDEX(virt_addr), PD_INDEX(virt_addr),
+              PT_INDEX(virt_addr), new_pte);
+        return 0;
+
+    } else if(ppage->mapcount > 1) {
+        uint64_t new_kvirt;
+        /* We're copying the old contents into a new page */
+        new_kvirt = get_free_page(0);
+        if(!new_kvirt)
+            return -ENOMEM;
+        memcpy((void*)new_kvirt, (void*)kphys_to_virt(old_kphys), PAGE_SIZE);
+
+        ppage->mapcount--;  /* fast free_page() */
+
+        new_pte = kvirt_to_phys(new_kvirt) | pte_flags | PFLAG_RW | PFLAG_P;
+        *magic = new_pte;
+        debug("Updated PML4[%ld]->PDPT[%ld]->PD[%ld]->PT[%ld]=0x%lx\n",
+              PML4_INDEX(virt_addr), PDPT_INDEX(virt_addr), PD_INDEX(virt_addr),
+              PT_INDEX(virt_addr), new_pte);
+        return 0;
+
+    } else {
+        kpanic("COW user page %p had <= 0 mapcount\nKernel phys page was %p\n",
+               virt_addr, PE_PHYS_ADDR(old_pte));
+        return -EINVAL;
+    }
 }
 
 
