@@ -3,7 +3,6 @@
 #include <sbunix/fs/pipe.h>
 #include <sbunix/sched.h>
 #include <sbunix/syscall.h>
-#include <errno.h>
 
 #define INVALID_FD(fd) ((fd) < 0 || (fd) >= TASK_FILES_MAX)
 
@@ -173,4 +172,31 @@ int do_dup2(int oldfd, int newfd) {
     oldfilep->f_count++;
     curr_task->files[newfd] = oldfilep;
     return newfd;
+}
+
+/**
+ * TODO: this
+ *
+ * @fd:  file descriptor of a opened directory file
+ * @dirp: pointer to count bytes
+ * @count: the number of bytes in dirp
+ */
+int do_getdents(unsigned int fd, struct dirent *dirp, unsigned int count) {
+    return -ENOSYS;
+}
+
+
+/**
+ * TODO: this
+ */
+void *do_mmap(void *addr, size_t length, int prot, int flags, int fd,
+              off_t offset) {
+    return (void *)-ENOSYS;
+}
+
+/**
+ * TODO: this
+ */
+int do_munmap(void *addr, size_t length) {
+    return -ENOSYS;
 }

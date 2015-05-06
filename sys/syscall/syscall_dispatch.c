@@ -1,17 +1,9 @@
 #include "syscall_dispatch.h"
-#include <sys/syscall.h>
 #include <sbunix/syscall.h>
-#include <sys/types.h>
-#include <sys/resource.h>
-#include <sys/utsname.h>
-#include <dirent.h>
-#include <sbunix/time.h>
 #include <sbunix/asm.h>
-#include <errno.h>
 #include <sbunix/gdt.h>
 #include <sbunix/sbunix.h>
 #include <sbunix/sched.h>
-#include <sbunix/string.h>
 #include <sbunix/mm/vmm.h>
 
 /* 9th bit in the RFLAGS is the IF bit */
@@ -61,7 +53,7 @@ pid_t sys_fork(void) {
 
     child = fork_curr_task();
     if(!child)
-        return -ENOMEM;
+        return (pid_t)-ENOMEM;
     /* Magic hack to switch to child task */
     child_pid = child->pid;
     child->first_switch = 1;
@@ -94,46 +86,86 @@ pid_t sys_getppid(void) {
 }
 
 int sys_execve(const char *filename, const char **argv, const char **envp) {
-    /* TODO: validate user pointers */
+    /* TODO: validate unbounded pointers ???? */
     return do_execve(filename, argv, envp);
 }
 
 pid_t sys_wait4(pid_t pid, int *status, int options, struct rusage *rusage) {
-    /* TODO: validate user pointers */
-    return -ENOSYS;
+    int err;
+
+    /* status and rusage are filled in only if they are not NULL */
+    if(status) {
+        err = valid_userptr_write(curr_task->mm, status, sizeof(int));
+        if(err)
+            return (pid_t)err;
+    }
+    if(rusage) {
+        err = valid_userptr_write(curr_task->mm, rusage, sizeof(struct rusage));
+        if(err)
+            return (pid_t)err;
+    }
+    return do_wait4(pid, status, options, rusage);
 }
 
 int sys_nanosleep(const struct timespec *req, struct timespec *rem) {
-    /* TODO: validate user pointers */
-    return -ENOSYS;
+    int err;
+
+    err = valid_userptr_read(curr_task->mm, req, sizeof(struct timespec));
+    if(err)
+        return (pid_t)err;
+    /* rem is filled in only if it is not NULL */
+    if(rem) {
+        err = valid_userptr_write(curr_task->mm, rem, sizeof(struct timespec));
+        if(err)
+            return (pid_t)err;
+    }
+    return do_nanosleep(req, rem);
 }
 
 unsigned int sys_alarm(unsigned int seconds)  {
-    return -ENOSYS;
+    return 0;
 }
 
 char *sys_getcwd(char *buf, size_t size) {
-    /* TODO: validate user pointer */
-    return (void*)-ENOSYS;
+    int err;
+    if(!buf)
+        return (void *)-EFAULT;
+    err = valid_userptr_write(curr_task->mm, buf, size);
+    if(err)
+        return (void *)(int64_t)err;
+    return do_getcwd(buf, size);
 }
 
 int sys_chdir(const char *path) {
-    /* TODO: validate user pointer */
-    return -ENOSYS;
+    if(!path)
+        return -EFAULT;
+
+    /* TODO: validate unbounded pointer ???? */
+    return do_chdir(path);
 }
 
 int sys_open(const char *pathname, int flags, mode_t mode) {
-    /* TODO: validate user pointer */
+    /* TODO: validate unbounded pointer ???? */
     return do_open(pathname, flags, mode);
 }
 
 ssize_t sys_read(int fd, void *buf, size_t count) {
-    /* TODO: validate user pointer */
+    int err;
+    if(!buf)
+        return -EFAULT;
+    err = valid_userptr_write(curr_task->mm, buf, count);
+    if(err)
+        return err;
     return do_read(fd, buf, count);
 }
 
 ssize_t sys_write(int fd, const void *buf, size_t count) {
-    /* TODO: validate user pointer */
+    int err;
+    if(!buf)
+        return -EFAULT;
+    err = valid_userptr_read(curr_task->mm, buf, count);
+    if(err)
+        return err;
     return do_write(fd, buf, count);
 }
 
@@ -146,7 +178,12 @@ int sys_close(int fd) {
 }
 
 int sys_pipe(int *pipefd) {
-    /* TODO: validate user pointer */
+    int err;
+    if(!pipefd)
+        return -EFAULT;
+    err = valid_userptr_write(curr_task->mm, pipefd, 2 * sizeof(int));
+    if(err)
+        return err;
     return do_pipe(pipefd);
 }
 
@@ -158,21 +195,39 @@ int sys_dup2(int oldfd, int newfd) {
     return do_dup2(oldfd, newfd);
 }
 
+/**
+ * @dirp: pointer to count bytes
+ * @count: the number of bytes in dirp
+ */
 int sys_getdents(unsigned int fd, struct dirent *dirp, unsigned int count) {
-    return -ENOSYS;
+    int err;
+    if(!dirp)
+        return -EFAULT;
+    err = valid_userptr_write(curr_task->mm, dirp, count);
+    if(err)
+        return err;
+    return do_getdents(fd, dirp, count);
 }
 
 int sys_uname(struct utsname *buf) {
-    return -ENOSYS;
+    int err;
+    if(!buf)
+        return -EFAULT;
+    err = valid_userptr_write(curr_task->mm, buf, sizeof(struct utsname));
+    if(err)
+        return err;
+    return do_uname(buf);
 }
 
 void *sys_mmap(void *addr, size_t length, int prot, int flags, int fd,
-           off_t offset) {
-    return (void*)-ENOSYS;
+               off_t offset) {
+    /* TODO: validate user pointer */
+    return do_mmap(addr,length, prot, flags, fd, offset);
 }
 
 int sys_munmap(void *addr, size_t length) {
-    return -ENOSYS;
+    /* TODO: validate user pointer */
+    return do_munmap(addr, length);
 }
 
 int64_t syscall_dispatch(int64_t a1, int64_t a2, int64_t a3,

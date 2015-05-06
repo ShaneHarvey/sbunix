@@ -1,19 +1,22 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <errno.h>
+#include <string.h>
 
-int main() {
+int main(int argc, char **argv, char **envp) {
     pid_t p;
 
     p = fork();
-    if(p == 0) {
+    if(p < 0) {
+        printf("fork failed: %s\n", strerror(errno));
+    } else if(p == 0) {
         /* In child */
-//        printf("In child!\n");
-        write(STDOUT_FILENO, "In child\n", 9);
-        sleep(30);
+        printf("In child!\n");
+        sleep(2);
     } else {
         /* In parent */
-//        printf("In parent, child pid=%d!\n", (int)p);
-        sleep(30);
+        sleep(3);
+        printf("In parent, child pid=%d!\n", (int)p);
     }
     return 0;
 }
