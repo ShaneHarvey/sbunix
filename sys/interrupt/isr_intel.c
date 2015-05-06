@@ -103,7 +103,7 @@ void _isr_handler_14(uint64_t errorcode, uint64_t fault_rip) {
         /* We wrote into the reserved bits of a page table entry */
         goto pf_violation;
 
-    if(!was_write && !was_present)
+    if(!was_write && was_present)
         /* We read a page and we didn't have permission. */
         goto pf_violation;
 
