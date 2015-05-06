@@ -129,9 +129,8 @@ int elf_load(struct file *fp, struct mm_struct *mm) {
         if(phdr->p_type == PT_LOAD) {
             ulong prot = (phdr->p_flags & PF_W)? PFLAG_RW: 0;
             /* TODO: Enable NXE bit for page tables */
-//            prot |= (phdr->p_flags & PF_X)? 0: PFLAG_NXE;
-            debug("LOADING segement via mmap:");
-            elf_print_phdr(phdr);
+            /*prot |= (phdr->p_flags & PF_X)? 0: PFLAG_NXE;*/
+            /*elf_print_phdr(phdr);*/
             err = mmap_area(mm, fp, phdr->p_offset, phdr->p_filesz, prot,
                       phdr->p_vaddr, phdr->p_vaddr + phdr->p_memsz);
             if(err) {

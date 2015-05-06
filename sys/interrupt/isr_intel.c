@@ -138,10 +138,24 @@ void _isr_handler_14(uint64_t errorcode, uint64_t fault_rip) {
 
 pf_violation:
     /* todo: kill self, exit_code = SEGV, call schedule */
+    printk("%s%s%s%s%s\n",
+       pf_who[0],
+       pf_rsvd[was_rsrvd  == PF_RSVD],
+       pf_read[was_write  == PF_WRITE],
+       pf_inst[(errorcode & PF_INSTR) == PF_INSTR],
+       pf_prot[was_present == PF_PROT]);
+    printk("Page-Fault (#PF) at RIP %p, on ADDR %p!\n", (void*)fault_rip, (void*)addr);
     kpanic("!! TODO: Page-Fault SEGV !!\n");
 pf_enomem:
-    kpanic("!! TODO: Page-Fault ENOMEM !!\n");
     /* todo: Kill self, exit_code = ENOMEM */
+    printk("%s%s%s%s%s\n",
+       pf_who[0],
+       pf_rsvd[was_rsrvd  == PF_RSVD],
+       pf_read[was_write  == PF_WRITE],
+       pf_inst[(errorcode & PF_INSTR) == PF_INSTR],
+       pf_prot[was_present == PF_PROT]);
+    printk("Page-Fault (#PF) at RIP %p, on ADDR %p!\n", (void*)fault_rip, (void*)addr);
+    kpanic("!! TODO: Page-Fault ENOMEM !!\n");
     goto pf_kernel_oops;
 pf_kernel_oops:
     printk("%s%s%s%s%s\n",
