@@ -2,11 +2,6 @@
 #include <sbunix/sched.h>
 #include "roundrobin.h"
 
-struct queue just_ran_queue = {
-    .num_switches = 0,
-    .tasks = NULL
-};
-
 /**
  * Add a task to the front of the list of tasks in queue.
  */

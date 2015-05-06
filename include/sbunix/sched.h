@@ -7,6 +7,7 @@
 #include <sbunix/time.h>
 
 extern struct queue         run_queue;
+extern struct queue         just_ran_queue;
 extern struct queue         block_queue;
 extern struct mm_struct     kernel_mm;
 extern struct task_struct   kernel_task;
@@ -23,7 +24,7 @@ struct task_struct {
     int foreground;       /* True if this task controls the terminal */
     struct timespec sleepts; /* time left to sleep */
     uint64_t kernel_rsp;
-    uint64_t pid;         /* Process ID, monotonically increasing. 0 is not valid */
+    pid_t pid;            /* Process ID, monotonically increasing. 0 is not valid */
     int exit_code;        /* Exit code of a process, returned by wait() */
     struct mm_struct *mm; /* virtual memory info, kernel tasks all share a global */
     struct task_struct *next_task, *prev_task; /* for traversing all tasks */
@@ -59,7 +60,7 @@ void schedule(void);
 void scheduler_init(void);
 struct task_struct *ktask_create(void (*start)(void), char *name);
 void task_set_cmdline(struct task_struct *task, char *cmdline);
-uint64_t get_next_pid(void);
+pid_t get_next_pid(void);
 void scheduler_test(void);
 void debug_task(struct task_struct *task);
 void reset_timeslice(struct task_struct *task);

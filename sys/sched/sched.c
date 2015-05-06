@@ -33,7 +33,7 @@ struct queue run_queue = {
         .tasks = NULL,
 };
 
-struct queue already_ran_queue = {
+struct queue just_ran_queue = {
         .num_switches = 0,
         .tasks = NULL,
 };
@@ -44,7 +44,7 @@ struct queue block_queue = {
 };
 
 /* Global next PID to give out, monotonically increasing */
-static uint64_t next_pid = 1;
+static pid_t next_pid = 1;
 
 /* Private functions */
 static void task_list_add(struct task_struct *task);
@@ -309,7 +309,7 @@ void add_child(struct task_struct *parent, struct task_struct *chld) {
 /**
  * Return the next PID to use.
  */
-uint64_t get_next_pid(void) {
+pid_t get_next_pid(void) {
     return next_pid++;
 }
 
