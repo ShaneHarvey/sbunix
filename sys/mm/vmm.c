@@ -212,6 +212,7 @@ struct mm_struct *mm_deep_copy(void) {
 
     /* TODO: Copy-On-Write */
     /* TODO: set all present pte's to read only, calling kphys_inc_mapcount on each */
+    copy_on_write_pml4();
 
     /* Create a copy of the page tables that are now Copy-On-Write */
     curr_mm->pml4 = copy_current_pml4();
@@ -219,6 +220,9 @@ struct mm_struct *mm_deep_copy(void) {
         goto out_copy_mm;
 
     return copy_mm;
+
+out_cow_pml4:
+    /* TODO: undo Copy-On-Write */
 
 out_copy_mm:
     /* Destroy the vma's if any and the copy_mm */
