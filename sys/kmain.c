@@ -17,6 +17,7 @@ void kmain(void) {
     clear_console();
     printk("*** Welcome to SBUnix ***\n");
 
+    task_files_init(&kernel_task);
     ktask_create(test_exec, "TestExec");
 
 
