@@ -66,7 +66,7 @@ void debug_task(struct task_struct *task);
 void reset_timeslice(struct task_struct *task);
 void kill_curr_task(int exit_code);
 struct task_struct *fork_curr_task(void);
-
+int task_files_init(struct task_struct *task);
 
 #define switch_to(prev, next)                                              \
 	__asm__ __volatile__ (                                                 \

@@ -6,6 +6,8 @@
 #include <sbunix/string.h>
 #include <sbunix/gdt.h>
 #include <sbunix/interrupt/pit.h>
+#include <sbunix/fs/terminal.h>
+#include <errno.h>
 #include "roundrobin.h"
 
 /* All kernel tasks use this mm_struct */
@@ -393,6 +395,24 @@ void schedule(void) {
 
 }
 
+/**
+ * Init stdin, stdout, stderr in the specified task
+ */
+int task_files_init(struct task_struct *task) {
+    struct file *fp;
+    if(!task)
+        kpanic("task is NULL!\n");
+    if(task->files[0] || task->files[1] || task->files[2])
+        kpanic("A file is open during init!!\n");
+    fp = term_open();
+    if(!fp)
+        return -ENOMEM;
+    fp->f_count += 2; /* we make 2 "copies" */
+    task->files[0] = fp;
+    task->files[1] = fp;
+    task->files[2] = fp;
+    return 0;
+}
 
 static void funX(void);
 static void funY(void);

@@ -6,7 +6,11 @@ const char *envp[] = {"PATH=/:", "HOME=/", NULL};
 void test_exec(void) {
     int err;
 
-    err = do_execve("/bin/forktest", argv, envp);
+    err = task_files_init(curr_task);
+    if(err) {
+        kpanic("task_files_init failed: %s\n", strerror(-err));
+    }
+    err = do_execve("/bin/printftest", argv, envp);
     if(err) {
         kpanic("do_execve failed: %s\n", strerror(-err));
     }
