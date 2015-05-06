@@ -182,6 +182,12 @@ int do_dup2(int oldfd, int newfd) {
  * @count: the number of bytes in dirp
  */
 int do_getdents(unsigned int fd, struct dirent *dirp, unsigned int count) {
+    if(!dirp)
+        return -EFAULT;
+
+    if(INVALID_FD(fd))
+        return -EBADF;
+
     return -ENOSYS;
 }
 
