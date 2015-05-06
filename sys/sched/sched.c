@@ -216,7 +216,7 @@ void task_list_add(struct task_struct *task) {
  * Add task to the correct queue.
  */
 void queue_add_by_state(struct task_struct *task) {
-    debug("Adding task: %s\n", task->cmdline);
+//    debug("Adding task: %s\n", task->cmdline);
     if(task->state == TASK_RUNNABLE) {
         rr_queue_add(&just_ran_queue, task);
     } else if(task->state == TASK_BLOCKED) {
@@ -353,7 +353,7 @@ static void __attribute__((noinline)) post_context_switch(void) {
     /* todo: ltr or ldtr to load the TSS again? */
 
     /* Clean up the previous task */
-    debug("Switched from %s --> %s\n", last_task->cmdline, curr_task->cmdline);
+//    debug("Switched from %s --> %s\n", last_task->cmdline, curr_task->cmdline);
     if(last_task->state == TASK_DEAD) {
         task_destroy(last_task);
     } else {
