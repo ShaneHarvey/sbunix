@@ -75,12 +75,8 @@
 
 
 void debug_iretq(uint64_t fault_rip, uint64_t cs, uint64_t rflags, uint64_t rsp, uint64_t ss) {
-    debug("INTERRUPT RSP: %p\n", read_rsp());
-    debug("SS:     %p\n", (void*)ss);
-    debug("RSP:    %p\n", (void*)rsp);
-    debug("RFLAGS: %p\n", (void*)rflags);
-    debug("CS:     %p\n", (void*)cs);
-    debug("RIP:    %p\n", (void*)fault_rip);
+    debug("CURR_RSP:%p\nIRETQ: RSP:%p RIP:%p SS:%p RFLAGS:%p CS:%p\n", read_rsp(),
+          (void*)rsp, (void*)fault_rip, (void*)ss, (void*)rflags, (void*)cs);
 }
 
 /* Intel Reserved 0-31 */
