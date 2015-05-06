@@ -120,6 +120,8 @@ uint64_t copy_pml4(uint64_t pml4);
 uint64_t copy_current_pml4(void);
 uint64_t copy_kernel_pml4(void);
 
+void copy_on_write_pml4(void);
+
 void print_pml4e(void);
 
 void pt_test_map(void);

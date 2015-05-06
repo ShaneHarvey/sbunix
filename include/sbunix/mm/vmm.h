@@ -12,6 +12,7 @@
 
 struct mm_struct *mm_create(void);
 void              mm_destroy(struct mm_struct *mm);
+struct mm_struct *mm_deep_copy(void);
 int               mmap_area(struct mm_struct *mm, struct file *filep,
                             off_t fstart, size_t fsize, uint64_t prot,
                             uint64_t vm_start, uint64_t vm_end);
@@ -27,6 +28,7 @@ struct vm_area *vma_create(uint64_t vm_start, uint64_t vm_end,
 void            vma_destroy(struct vm_area *vma);
 void            vma_destroy_all(struct mm_struct *mm);
 struct vm_area *vma_find_region(struct vm_area *vma, uint64_t addr, size_t size);
+struct vm_area *vma_deep_copy(struct mm_struct *mm_old, struct mm_struct *mm_new);
 
 /* onfault's */
 int onfault_mmap_file(struct vm_area *vma, uint64_t addr);
