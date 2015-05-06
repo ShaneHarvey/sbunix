@@ -37,8 +37,9 @@ uint64_t gdt[MAX_GDT] = {
 	0,                      /*** NULL descriptor ***/
 	GDT_CS | P | DPL0 | L,  /*** kernel code segment descriptor ***/
 	GDT_DS | P | W | DPL0,  /*** kernel data segment descriptor ***/
-	GDT_CS | P | DPL3 | L,  /*** user code segment descriptor ***/
+	GDT_CS | P | DPL3 | L,  /*** user 16/32-bit code segment descriptor ***/
 	GDT_DS | P | W | DPL3,  /*** user data segment descriptor ***/
+	GDT_CS | P | DPL3 | L,  /*** user 64-bit code segment descriptor (needed for sysret) ***/
 	0, 0,                   /*** TSS ***/
 };
 
@@ -65,7 +66,7 @@ void reload_gdt() {
  */
 void load_tss(void) {
 	__asm__ __volatile__(
-		"mov $0x2b, %%ax;" /* 0x2b is 0x28 + 3 */
+		"mov $0x33, %%ax;" /* 0x33 is 0x30 + 3 */
 		"ltr %%ax"
 		:::
 	);
@@ -80,7 +81,7 @@ void load_tss(void) {
 * Also see: http://wiki.osdev.org/Descriptor
 */
 void setup_tss() {
-	struct sys_segment_descriptor* sd = (struct sys_segment_descriptor*)&gdt[5]; /* 6th&7th entry in GDT */
+	struct sys_segment_descriptor* sd = (struct sys_segment_descriptor*)&gdt[6]; /* 6th&7th entry in GDT */
 	sd->sd_lolimit = sizeof(struct tss_t)-1;
 	sd->sd_lobase = ((uint64_t)&tss);
 	sd->sd_type = 9; /* 80386-TSS, 32 bit */

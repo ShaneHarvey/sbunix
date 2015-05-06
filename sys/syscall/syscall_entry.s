@@ -45,4 +45,4 @@ syscall_entry:
     popq %rcx                       # pop user return addr off kern stack
     popq %r11                       # pop user RFLAGS
     popq %rsp                       # restore user stack
-    sysret                          # TODO: shouldn't this be sysretq ??
+    sysretq
