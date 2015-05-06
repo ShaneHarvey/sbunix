@@ -91,8 +91,9 @@ void _isr_handler_14(uint64_t errorcode, uint64_t fault_rip) {
     uint64_t was_present = (errorcode & PF_PROT);
     uint64_t was_write = (errorcode & PF_WRITE);
     uint64_t was_rsrvd = (errorcode & PF_RSVD);
+    uint64_t was_user = (errorcode & PF_USER);
     debug("%s%s%s%s%s\n",
-           pf_who[(errorcode & PF_USER) == PF_USER],
+           pf_who[was_user == PF_USER],
            pf_rsvd[was_rsrvd  == PF_RSVD],
            pf_read[was_write  == PF_WRITE],
            pf_inst[(errorcode & PF_INSTR) == PF_INSTR],
@@ -139,7 +140,7 @@ void _isr_handler_14(uint64_t errorcode, uint64_t fault_rip) {
 pf_violation:
     /* todo: kill self, exit_code = SEGV, call schedule */
     printk("%s%s%s%s%s\n",
-       pf_who[0],
+       pf_who[was_user == PF_USER],
        pf_rsvd[was_rsrvd  == PF_RSVD],
        pf_read[was_write  == PF_WRITE],
        pf_inst[(errorcode & PF_INSTR) == PF_INSTR],
@@ -149,7 +150,7 @@ pf_violation:
 pf_enomem:
     /* todo: Kill self, exit_code = ENOMEM */
     printk("%s%s%s%s%s\n",
-       pf_who[0],
+       pf_who[was_user == PF_USER],
        pf_rsvd[was_rsrvd  == PF_RSVD],
        pf_read[was_write  == PF_WRITE],
        pf_inst[(errorcode & PF_INSTR) == PF_INSTR],
@@ -159,7 +160,7 @@ pf_enomem:
     goto pf_kernel_oops;
 pf_kernel_oops:
     printk("%s%s%s%s%s\n",
-      pf_who[0],
+      pf_who[was_user == PF_USER],
       pf_rsvd[was_rsrvd  == PF_RSVD],
       pf_read[was_write  == PF_WRITE],
       pf_inst[(errorcode & PF_INSTR) == PF_INSTR],
