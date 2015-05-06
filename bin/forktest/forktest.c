@@ -3,7 +3,7 @@
 #include <errno.h>
 #include <string.h>
 
-int main() {
+int main(int argc, char **argv, char **envp) {
     pid_t p;
 
     p = fork();

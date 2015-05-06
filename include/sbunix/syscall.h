@@ -1,7 +1,13 @@
 #ifndef _SBUNIX_SYSCALL_H
 #define _SBUNIX_SYSCALL_H
 
+#include <sys/syscall.h>
 #include <sys/types.h>
+#include <sys/utsname.h>
+#include <sys/resource.h>
+#include <sbunix/time.h>
+#include <dirent.h>
+#include <errno.h>
 
 int do_execve(const char *filename, const char **argv, const char **envp);
 
@@ -22,6 +28,7 @@ int do_dup(int oldfd);
 
 int do_dup2(int oldfd, int newfd);
 
+int do_uname(struct utsname *buf);
 
 
 #endif //_SBUNIX_SYSCALL_H

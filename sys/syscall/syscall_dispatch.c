@@ -1,17 +1,9 @@
 #include "syscall_dispatch.h"
-#include <sys/syscall.h>
 #include <sbunix/syscall.h>
-#include <sys/types.h>
-#include <sys/resource.h>
-#include <sys/utsname.h>
-#include <dirent.h>
-#include <sbunix/time.h>
 #include <sbunix/asm.h>
-#include <errno.h>
 #include <sbunix/gdt.h>
 #include <sbunix/sbunix.h>
 #include <sbunix/sched.h>
-#include <sbunix/string.h>
 #include <sbunix/mm/vmm.h>
 
 /* 9th bit in the RFLAGS is the IF bit */
@@ -159,19 +151,23 @@ int sys_dup2(int oldfd, int newfd) {
 }
 
 int sys_getdents(unsigned int fd, struct dirent *dirp, unsigned int count) {
+    /* TODO: validate user pointer */
     return -ENOSYS;
 }
 
 int sys_uname(struct utsname *buf) {
-    return -ENOSYS;
+    /* TODO: validate user pointer */
+    return do_uname(buf);
 }
 
 void *sys_mmap(void *addr, size_t length, int prot, int flags, int fd,
            off_t offset) {
+    /* TODO: validate user pointer */
     return (void*)-ENOSYS;
 }
 
 int sys_munmap(void *addr, size_t length) {
+    /* TODO: validate user pointer */
     return -ENOSYS;
 }
 
