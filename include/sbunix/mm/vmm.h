@@ -34,4 +34,8 @@ struct vm_area *vma_deep_copy(struct mm_struct *mm_old, struct mm_struct *mm_new
 int onfault_mmap_file(struct vm_area *vma, uint64_t addr);
 int onfault_mmap_anon(struct vm_area *vma, uint64_t addr);
 
+/* User pointer validation */
+int valid_userptr_read(struct mm_struct *mm, const void *userp, size_t size);
+int valid_userptr_write(struct mm_struct *mm, void *userp, size_t size);
+
 #endif

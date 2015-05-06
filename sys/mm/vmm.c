@@ -321,16 +321,33 @@ int mm_add_vma(struct mm_struct *mm, struct vm_area *vma) {
  * handler.
  * This does NOT map pages!
  * @return:  0 if userp is valid and is safe to page fault in the kernel, or
- *          -1 if not valid
+ *          -EFAULT if not valid
  */
-int validate_userptr(struct mm_struct *mm, userptr_t userp, size_t size) {
+int valid_userptr_read(struct mm_struct *mm, const void *userp, size_t size) {
     struct vm_area *vma;
 
     vma = vma_find_region(mm->vmas, (uint64_t)userp, size);
     if(!vma)
-        return -1;  /* not valid */
+        return -EFAULT;  /* not valid */
 
     return 0;
+}
+
+/**
+ * Checks if the user pointer is write-able within a vma
+ * This does NOT map pages!
+ * @return:  0 if userp is valid and is safe to page fault in the kernel, or
+ *          -EFAULT if not valid
+ */
+int valid_userptr_write(struct mm_struct *mm, void *userp, size_t size) {
+    struct vm_area *vma;
+
+    vma = vma_find_region(mm->vmas, (uint64_t)userp, size);
+
+    if(vma && vma->vm_prot & PFLAG_RW)
+        return 0; /* exists and is write-able */
+
+    return -EFAULT;
 }
 
 
