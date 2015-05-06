@@ -25,8 +25,6 @@ uint64_t get_free_page(uint32_t gpf_flags) {
 
     /* Set the mapcount of the ppage for this address to 1 */
     ppage = kvirt_to_ppage(pgaddr);
-    if(!ppage)
-        kpanic("No ppage for addr %p\n", (void*)pgaddr);
     if(ppage->mapcount != 0)
         kpanic("New free page %p had non-zero mapcount: %u\n", pgaddr, ppage->mapcount);
 
@@ -72,8 +70,6 @@ void free_page(uint64_t virt_page_addr) {
         kpanic("Address %p not page aligned!\n", (void*)virt_page_addr);
 
     ppage = kvirt_to_ppage(virt_page_addr);
-    if(!ppage)
-        kpanic("No ppage for addr %p\n", (void*)virt_page_addr);
     if(ppage->mapcount == 0)
         kpanic("Freeing ppage for addr %p with mapcount 0\n", virt_page_addr);
 

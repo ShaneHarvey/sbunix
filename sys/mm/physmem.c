@@ -288,7 +288,7 @@ struct ppage *kvirt_to_ppage(uint64_t kvirt_addr) {
     struct pzone *pz = pzone_find(kvirt_addr);
     size_t ppagei;
     if(!pz)
-        return NULL;
+        kpanic("No ppage struct for kernel virt addr %p\n", kvirt_addr);
 
     ppagei = (kvirt_addr - pz->start) >> PAGE_SHIFT;
     return &pz->ppages[ppagei];
@@ -302,7 +302,7 @@ struct ppage *kphys_to_ppage(uint64_t kphys_addr) {
     struct pzone *pz = pzone_find(kvirt_addr);
     size_t ppagei;
     if(!pz)
-        return NULL;
+        kpanic("No ppage struct for phys addr %p\n", kphys_addr);
 
     ppagei = (kvirt_addr - pz->start) >> PAGE_SHIFT;
     return &pz->ppages[ppagei];
@@ -313,9 +313,6 @@ struct ppage *kphys_to_ppage(uint64_t kphys_addr) {
  */
 void kphys_inc_mapcount(uint64_t kphys_addr) {
     struct ppage *ppage = kphys_to_ppage(kphys_addr);
-    if(!ppage)
-        kpanic("No ppage struct for phys addr %p\n", kphys_addr);
-
     ppage->mapcount++;
 }
 
@@ -324,8 +321,5 @@ void kphys_inc_mapcount(uint64_t kphys_addr) {
  */
 void kvirt_inc_mapcount(uint64_t kvirt_addr) {
     struct ppage *ppage = kvirt_to_ppage(kvirt_addr);
-    if(!ppage)
-        kpanic("No ppage struct for kernel virt addr %p\n", kvirt_addr);
-
     ppage->mapcount++;
 }
