@@ -344,7 +344,7 @@ void init_kernel_pt(uint64_t phys_free_page) {
 static void rec_free_pt(int level, uint64_t pte) {
     uint64_t *current_pt;  /* The page table pointed to by pte */
     int i;
-    if(level > 4 || level < 2)
+    if(level > 4 || level < 1)
         kpanic("Invalid call: level cannot be %d\n", level);
 
     current_pt = (uint64_t *)kphys_to_virt((uint64_t)PE_PHYS_ADDR(pte));
@@ -352,12 +352,14 @@ static void rec_free_pt(int level, uint64_t pte) {
     for(i = 0; i < PAGE_ENTRIES; i++) {
         uint64_t next_pte = current_pt[i];
         /* PML4: skip kernel entry and self-entry */
-        if (PTE_PRESENT(next_pte) && !(level == 4 && (i == pml4_self_index || i == PML4_INDEX(virt_base)))) {
-            if(level == 2){
-                /* Level2:PD, means next_pte is a Page Table so just free it */
+        if (PTE_PRESENT(next_pte) && !(level == 4 &&
+                (i == pml4_self_index || i == PML4_INDEX(virt_base)))) {
+            if(level == 1){
+                /* Level 1 means next_pte is a Page Table Entry so free the
+                 * physical mem it points too */
                 free_page(kphys_to_virt((uint64_t)PE_PHYS_ADDR(next_pte)));
             } else {
-                /* Level 3 or 4: recursively go down and free */
+                /* Level 2, 3, or 4: recursively go down and free */
                 rec_free_pt(level - 1, next_pte);
             }
         }
@@ -377,6 +379,8 @@ void free_pml4(uint64_t pml4) {
 
 /**
  * Recursively copy the page table pointed to by pte
+ *
+ * REMOVES WRITE PERMISSION for Copy-On-Write fork
  *
  * @level: page table level of pte, 4:PML4, 3:PDPT, 2:PD, 1:PT
  * @pte: page table entry pointing to the table to free
@@ -402,11 +406,17 @@ static uint64_t rec_copy_pt(int level, uint64_t pte) {
 
         /* PML4: skip kernel entry and self-entry */
         if (PTE_PRESENT(other_pte)) {
-            if(level == 1 || (level == 4 && i == PML4_INDEX(virt_base)) ) {
-                /* Add it to Page Table level 1 */
+            if(level == 1) {
+                /* Increment the ref count of this physical page */
+                kphys_inc_mapcount((uint64_t)PE_PHYS_ADDR(other_pte));
+                /* Add it to Page Table level 1, without write permission */
+                new_pt[i] = other_pte & ~PFLAG_RW;
+            } else if (level == 4 && i == PML4_INDEX(virt_base)) {
+                /* add kernel index */
                 new_pt[i] = other_pte;
             } else if (level == 4 && i == pml4_self_index) {
-                new_pt[i] = kvirt_to_phys((uint64_t)new_pt)|PFLAG_RW|PFLAG_P; /* add self index */
+                /* add self index */
+                new_pt[i] = kvirt_to_phys((uint64_t)new_pt)|PFLAG_RW|PFLAG_P;
             } else {
                 /* Level 2, 3 or 4: recursively go down and copy */
                 uint64_t new_pte = rec_copy_pt(level - 1, other_pte);
