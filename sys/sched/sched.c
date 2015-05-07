@@ -178,16 +178,14 @@ out_stack:
 }
 
 /**
- * Free the task. Only called when removed from its queue.
+ * Free the task's kernel stack, memory context, and close open files.
+ * NOTE: Only called when removed from its queue.
+ * Leaves the task on in the list of all tasks (only remove when a
+ * parent calls cleanup_child).
  */
 void task_destroy(struct task_struct *task) {
     int i;
     mm_destroy(task->mm);
-
-    if(task->next_task)
-        task->next_task->prev_task = task->prev_task;
-    if(task->prev_task)
-        task->prev_task->next_task = task->next_task;
 
     free_page(ALIGN_DOWN(task->kernel_rsp, PAGE_SIZE));
 
@@ -199,8 +197,26 @@ void task_destroy(struct task_struct *task) {
             task->files[i] = NULL;
         }
     }
+}
 
-    /* TODO: reference will be kfree'd when parent calls wait() */
+/**
+ * Do the final cleanup of a task struct.
+ * return: the exit code of the task
+ */
+int cleanup_child(struct task_struct *task) {
+    int rv;
+    if(!task)
+        kpanic("Waiting on NULL task\n");
+
+    /* Remove the child from list of all tasks. */
+    if(task->next_task)
+        task->next_task->prev_task = task->prev_task;
+    if(task->prev_task)
+        task->prev_task->next_task = task->next_task;
+
+    rv = task->exit_code;
+    kfree(task);
+    return rv;
 }
 
 /**
@@ -248,6 +264,21 @@ void queue_add_by_state(struct task_struct *task) {
     }
 }
 
+/**
+ * Remove task from the queue it resides in.
+ */
+void queue_remove_by_state(struct task_struct *task) {
+    if(task->state == TASK_RUNNABLE) {
+        /* Could be in either queue */
+        rr_queue_remove(&run_queue, task);
+        rr_queue_remove(&just_ran_queue, task);
+    } else if(task->state == TASK_BLOCKED) {
+        rr_queue_remove(&block_queue, task);
+    } else {
+        kpanic("Don't know which queue to remvoe task from: state=%d\n", task->state);
+    }
+}
+
 
 /**
  * Add a newly created task to the system.
@@ -269,6 +300,44 @@ void kill_curr_task(int exit_code) {
     curr_task->exit_code = exit_code;
     curr_task->state = TASK_DEAD;
     schedule();
+}
+
+/**
+ * Kill a task (possibly the current task) with exit code.
+ */
+void kill_other_task(struct task_struct *task, int exit_code) {
+    /* If already dead do nothing */
+    if(!task || task->state == TASK_DEAD)
+        return;
+
+    /* Let's you kill the current task too */
+    if(task == curr_task) {
+        kill_curr_task(exit_code);
+        return; /* Doesn't return! */
+    }
+
+    if(task->type == TASK_KERN && curr_task->type != TASK_KERN) {
+        return; /* users can't kill kernel tasks */
+    }
+
+    /* Remove from it's queue */
+    queue_remove_by_state(task);
+
+    /* Proceed with the kill */
+    task->state = TASK_DEAD;
+    task->exit_code = exit_code;
+    task_destroy(task);
+}
+
+/**
+ * Signal a task, only the fatal signals are implemented.
+ */
+void send_signal(struct task_struct *task, int sig) {
+    if(sig == 0)
+        return;
+    /* Fatal signals */
+    if(sig == SIGKILL || sig == SIGSEGV)
+        kill_other_task(task, EXIT_FATALSIG + sig);
 }
 
 /**
@@ -344,6 +413,8 @@ void add_child(struct task_struct *parent, struct task_struct *chld) {
  * Return the next PID to use.
  */
 pid_t get_next_pid(void) {
+    if(next_pid > 2147483647)
+        kpanic("Ran out of PIDs, please reboot!");
     return next_pid++;
 }
 
@@ -453,65 +524,10 @@ int task_files_init(struct task_struct *task) {
     return 0;
 }
 
-static void funX(void);
-static void funY(void);
-
-static struct task_struct *taskX, *taskY;
-
+/**
+ * Print some info from a task.
+ */
 void debug_task(struct task_struct *task) {
-    debug("type=%d, state=%d, first_switch=%d, foreground=%d\n",
-          task->type, task->state, task->first_switch, task->foreground);
-}
-
-
-void scheduler_test(void) {
-    int x = 1;
-    debug("START OF SCHEDULER TEST\n");
-    freemem_report();
-//    halt_loop("");
-    taskX = ktask_create(funX, "TaskX");
-    debug_task(taskX);
-    taskY = ktask_create(funY, "TaskY");
-    debug_task(taskY);
-    while(x++ < 10) {
-        /* This is the main task (the kernel_task) */
-        __asm__ __volatile__ ("hlt;");
-        debug_queues();
-        schedule();
-    }
-    freemem_report();
-    kpanic("END OF SCHEDULER TEST\n");
-}
-
-static void funX(void) {
-    int x = 0;
-    printk("X\n");
-    while(1) {
-        x++;
-        if(x == 5)
-            kill_curr_task(0);
-
-        debug_task(taskX);
-        if(taskX != curr_task) {
-            kpanic("taskX not the curr_task!\n");
-        }
-        debug_queues();
-        schedule();
-    }
-}
-
-static void funY(void) {
-    int x = 0;
-    printk("Y\n");
-    while(1) {
-        x++;
-        if(x == 5)
-            kill_curr_task(0);
-        debug_task(taskY);
-        if(taskY != curr_task) {
-            kpanic("taskY not the curr_task!\n");
-        }
-        debug_queues();
-        schedule();
-    }
+    debug("type=%d, state=%d, 1st_switch=%d, fg=%d, cmd=%s\n",
+          task->type, task->state, task->first_switch, task->foreground, task->cmdline);
 }

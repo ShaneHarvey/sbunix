@@ -6,7 +6,7 @@
 typedef int64_t ssize_t;
 typedef unsigned long int size_t;
 typedef unsigned int uint;
-typedef uint32_t pid_t;
+typedef int pid_t;
 
 typedef long long off_t;
 typedef unsigned long ino_t;
