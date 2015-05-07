@@ -357,7 +357,7 @@ struct task_struct *foreground_task(void) {
         if(task->foreground)
             return task;
     }
-    kpanic("NO task is in the foreground!\n");
+    debug("NO task is in the foreground!\n");
     return NULL;
 }
 

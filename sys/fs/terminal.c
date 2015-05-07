@@ -126,15 +126,13 @@ void term_putch(unsigned char c) {
     if(c == CTRL_C) {
         /* Flush terminal buffer and kill current task */
         struct task_struct *fg;
-        printk("^C\n");
+        printk("^C");
         term_reset();
         fg = foreground_task();
         /* kill controlling task */
-        if(fg && fg->pid >= 1) { /* TODO: change to 2 */
-            printk("killing %s\n", fg->cmdline);
+        if(fg && fg->pid > 2)
             send_signal(fg, SIGTERM);
-        }
-        return;
+        c = '\n'; /* send a newline instead of ^C */
     }
     /* handle backspace here */
     if(c == '\b') {
