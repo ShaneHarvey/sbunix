@@ -51,37 +51,142 @@ int add_heap(struct mm_struct *user) {
     return 0;
 }
 
+
+/**
+ * Check that argv and envp are valid, and validate
+ * E2BIG: they're too big to fit in 2 pages
+ */
+
+int num_pointers(const char **array) {
+    int len = 0;
+    while(*array++)
+        len++;
+    return len;
+}
+
+int num_bytes(const char **array) {
+    int bytes = 0, err = 0;
+    while(*array) {
+        size_t len = strnlen(*array, PAGE_SIZE) + 1;   /* TODO: this could fault */
+        /* TODO: testing exec... uncomment for security */
+//        err = valid_userptr_read(curr_task->mm, *array, len);
+        if(err)
+            return err;
+
+        bytes += len;
+        array++;
+    }
+    return bytes;
+}
+
+#define MAX_ARG_ENV_BYTES PAGE_SIZE
+/* gotta leave room for the actual stack */
+#define MAX_ARG_ENV_PTRS ((PAGE_SIZE/sizeof(void *)) - 10)
+
+int argv_envp_err(const char **argv, const char **envp, int *argc, int *envc) {
+    int arg_bytes, env_bytes;
+
+    /* first iteration argv, second envp */
+    *argc = num_pointers(argv);
+    *envc = num_pointers(envp);
+    arg_bytes = num_bytes(argv);
+    if(arg_bytes < 0)
+        return arg_bytes;
+
+    env_bytes = num_bytes(envp);
+    if(env_bytes < 0)
+        return env_bytes;
+
+    if((arg_bytes + env_bytes) > MAX_ARG_ENV_BYTES ||
+            (*argc + *envc + 2) > MAX_ARG_ENV_PTRS)
+        return -E2BIG;
+    return 0;
+}
+
+
+/**
+ * Copy num strings from strs into virt_strs, put user pointers in virt_ptrs
+ *
+ * copy backwards from last string
+ */
+void copy_strings(const char **strs, int num, uint64_t *ptrs, char **deststrsp, int off) {
+    uint64_t user_ptr = PAGE_ALIGN(USER_STACK_START);
+    char *dest = *deststrsp;
+    user_ptr += (uint64_t)dest - PAGE_ALIGN((uint64_t)dest);
+
+    ptrs[--off] = 0; /* start from end */
+    while(num--) {
+        const char *src = strs[num];
+        ptrs[--off] = user_ptr; /* user pointer to dest string */
+        while (user_ptr++ && (*dest++ = *src++) != '\0')/* nothing */;
+    }
+    *deststrsp = dest;
+}
+
 /**
  * Add the stack vm area.
+ *
+ * TODO: I don't know why I stayed up doing this. I can't think
  */
 int add_stack(struct mm_struct *user, const char **argv, const char **envp) {
     struct vm_area *stack;
-    uint64_t phys_page;
-    int err;
+    uint64_t phys_ptrs, phys_strs, *virt_ptrs;
+    char *virt_strs; /* hold page of user strings */
+    int err, argc, envc;
+
     user->start_stack = USER_STACK_START;
     stack = vma_create(USER_STACK_END, USER_STACK_START, VM_STACK, PFLAG_RW);
     if(!stack)
         return -ENOMEM;
-    if(mm_add_vma(user, stack)) {
-        vma_destroy(stack);
-        return -EINVAL;
-    }
     stack->onfault = onfault_mmap_anon;
-    /* TODO: copy envp and args to new stack */
-    phys_page = get_zero_page();
-    if(!phys_page) {
-        vma_destroy(stack);
-        return -ENOMEM;
+
+    /* Copy envp and args to new stack */
+    phys_ptrs = get_zero_page();
+    if(!phys_ptrs) {
+        err = -ENOMEM;
+        goto out_vma;
     }
-    user->user_rsp = USER_STACK_START - 32; /* - 32 for argc, argv, envp */
-    /* Must map at least user_rsp page for now */
-    err = map_page_into(ALIGN_DOWN(user->user_rsp, PAGE_SIZE), phys_page,
+    virt_ptrs = (uint64_t *)kphys_to_virt(phys_ptrs);
+    phys_strs = get_zero_page();
+    if(!phys_strs) {
+        err = -ENOMEM;
+        goto out_virt_ptrs;
+    }
+    virt_strs = (char *)kphys_to_virt(phys_strs);
+
+    err = argv_envp_err(argv, envp, &argc, &envc); /* TODO: move this? validate pointers */
+    if(err)
+        goto out_virt_strs;
+    /* Now safe to copy! */
+    copy_strings(envp, envc, virt_ptrs, &virt_strs, 512);
+    copy_strings(argv, argc, virt_ptrs, &virt_strs, 512 - envc - 1);
+    virt_ptrs[512 - (argc + envc + 3)] = (int64_t)argc;
+    /* Map the string page to the top */
+    err = map_page_into(ALIGN_DOWN(USER_STACK_START, PAGE_SIZE), phys_strs,
                         stack->vm_prot, user->pml4);
-    if(err) {
-        vma_destroy(stack);
-        return err;
+    if(err)
+        goto out_virt_strs;
+    /* Map the pointer page next and set entry rsp */
+    user->user_rsp = USER_STACK_START - PAGE_SIZE - (8 * (argc + envc + 2));
+    err = map_page_into(ALIGN_DOWN(user->user_rsp, PAGE_SIZE), phys_ptrs,
+                        stack->vm_prot, user->pml4);
+    if(err)
+        goto out_virt_strs;
+
+    /* Finally, add stack to the user */
+    if(mm_add_vma(user, stack)) {
+        err = -ENOEXEC;
+        goto out_vma;
     }
+
     return 0;
+out_virt_strs:
+    free_page((uint64_t)virt_strs);
+out_virt_ptrs:
+    free_page((uint64_t)virt_ptrs);
+out_vma:
+    vma_destroy(stack);
+    return err;
 }
 
 /**
@@ -379,8 +484,6 @@ void vma_destroy(struct vm_area *vma) {
         vma->vm_mm->vma_count--;
     if(vma->vm_file)
         vma->vm_file->f_op->close(vma->vm_file);
-
-    /* fixme: free all pages in vm_area. CALL free_pagetbl_range_and_pages */
 
     kfree(vma);
 }

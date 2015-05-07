@@ -1,6 +1,6 @@
 #include "test.h"
 
-const char *argv[] = {"-h", "hi", NULL};
+const char *argv[] = {NULL};
 const char *envp[] = {"PATH=/:", "HOME=/", NULL};
 
 void test_exec(void) {
@@ -10,7 +10,7 @@ void test_exec(void) {
     if(err) {
         kpanic("task_files_init failed: %s\n", strerror(-err));
     }
-    err = do_execve("/bin/forktest", argv, envp);
+    err = do_execve("/bin/sbush", argv, envp);
     if(err) {
         kpanic("do_execve failed: %s\n", strerror(-err));
     }

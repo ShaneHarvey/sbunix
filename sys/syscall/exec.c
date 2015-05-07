@@ -51,6 +51,11 @@ void enter_usermode(uint64_t user_rsp, uint64_t user_rip) {
     kpanic("FAILED to enter user mode!");
 }
 
+
+/**
+ * TODO: MUST support #! scripts
+ * "./script.sh" -->> "/bin/sbush script.sh"
+ */
 int do_execve(const char *filename, const char **argv, const char **envp) {
     struct file *fp;
     struct mm_struct *mm;
@@ -94,7 +99,7 @@ int do_execve(const char *filename, const char **argv, const char **envp) {
     /* TODO: Copy on write stuff????? */
     debug("new mm->usr_rsp=%p, mm->user_rip=%p\n", mm->user_rsp, mm->user_rip);
     enter_usermode(mm->user_rsp, mm->user_rip);
-    return 0;
+    return -ENOEXEC;
 cleanup_mm:
     mm_destroy(mm);
 cleanup_file:
