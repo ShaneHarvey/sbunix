@@ -15,7 +15,8 @@ void kmain(void) {
     /* IRQs off in kernel */
     cli();
 
-    ktask_create(test_exec, "TestExec");
+//    ktask_create(test_exec, "TestExec");
+    ktask_create(exec_preemptuser, "TestPreemeptuser");
 
     /* idle task */
     while(1){

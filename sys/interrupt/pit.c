@@ -27,7 +27,7 @@ void ISR_HANDLER(32) {
     PIC_sendEOI(32);
 
     /* Timeslicing */
-    if(curr_task->type & TASK_KERN && --curr_task->timeslice <= 0) {
+    if(curr_task->type & TASK_USER && --curr_task->timeslice <= 0) {
         schedule();
     }
 
