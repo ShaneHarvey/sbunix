@@ -51,8 +51,6 @@ syscall_entry:
 
     pushq %rax                      # 7th arg must be on stack for SYSV C
     call syscall_dispatch
-    addq $0x8, %rsp                 # pop 7th arg
-
     jmp restore_and_sysret
 
 # Child returns here from fork, we need to store 0 in rax
@@ -61,6 +59,7 @@ child_ret_from_fork:
     xorq %rax, %rax                 # Child returns 0
 
 restore_and_sysret:
+    addq $0x8, %rsp                 # pop 7th arg to syscall_dispatch
 # Restore user regs, except rax, rcx, and r11
     popq %rbp
     popq %r15

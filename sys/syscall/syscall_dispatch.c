@@ -285,7 +285,7 @@ int64_t syscall_dispatch(int64_t a1, int64_t a2, int64_t a3,
             break;
         default: rv = -ENOSYS;
     }
-    debug("Did a syscall: %d, pid: %d\n", sysnum, (int)curr_task->pid);
+    debug("Did a syscall: %d, pid: %d, rv: %ld\n", sysnum, (int)curr_task->pid, rv);
     curr_task->in_syscall = 0;  /* reset syscall flag */
     return rv;
 }
