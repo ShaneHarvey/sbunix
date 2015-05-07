@@ -209,7 +209,7 @@ ssize_t term_read(struct file *fp, char *buf, size_t count, off_t *offset) {
     if(count == 0)
         return 0;
     /* Is this task controlling the terminal */
-    if(!curr_task->foreground)
+    if(!curr_task->foreground && curr_task->pid > 2)
         return -EIO; /* should send SIGTTIN as well, but don't have signals */
 
     if(tb->delims == 0) {
