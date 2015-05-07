@@ -282,6 +282,26 @@ void task_block(void *block_on) {
 }
 
 /**
+ * Unblock the first task blocking on blocked_on
+ */
+void task_unblock(void *blocked_on) {
+    struct task_struct *task = block_queue.tasks;
+    if(!task)
+        return;
+
+    for(;task != NULL; task = task->next_rq) {
+        if(blocked_on == task->blocked_on) {
+            /* It is the foreground, AND blocking on blocked_on */
+            task->state = TASK_RUNNABLE;
+            task->blocked_on = NULL;
+            rr_queue_remove(&block_queue, task);
+            rr_queue_add(&run_queue, task); /* We want this to run on next schedule() */
+            /* TODO: break; ???? */
+        }
+    }
+}
+
+/**
  * Unblock the task which was waiting for the terminal.
  */
 void task_unblock_foreground(void *blocked_on) {
@@ -291,10 +311,12 @@ void task_unblock_foreground(void *blocked_on) {
 
     for(;task != NULL; task = task->next_rq) {
         if(task->foreground && (blocked_on == task->blocked_on)) {
-            /* It is the foreground, and not just sleeping */
+            /* It is the foreground, AND blocking on blocked_on */
             task->state = TASK_RUNNABLE;
+            task->blocked_on = NULL;
             rr_queue_remove(&block_queue, task);
             rr_queue_add(&run_queue, task); /* We want this to run on next schedule() */
+            /* TODO: break; ???? */
         }
     }
 }

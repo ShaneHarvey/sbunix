@@ -1,5 +1,6 @@
 #include <sbunix/fs/pipe.h>
 #include <sbunix/sbunix.h>
+#include <sbunix/sched.h>
 #include <errno.h>
 #include <sbunix/string.h>
 
@@ -80,8 +81,8 @@ ssize_t read_end_read(struct file *fp, char *buf, size_t count,
         if(pipe->write_closed) {
             return 0; /* Read the EOF */
         } else {
-            /* TODO: block until able to write again */
-            //block_task();
+            /* block until able to write again */
+            task_block(pipe);
         }
     }
     /* pipe has data to read */
@@ -96,7 +97,8 @@ ssize_t read_end_read(struct file *fp, char *buf, size_t count,
     } while(num_read < count && pipe->start != pipe->end);
 
     if(was_full) {
-        /* TODO: unblock any task that may have been waiting to write */
+        /* unblock any tasks that may have been waiting to write */
+        task_unblock(pipe);
     }
     return num_read;
 }
@@ -129,8 +131,8 @@ int read_end_close(struct file *fp) {
             kfree(pipe);
             fp->private_data = NULL;
         } else {
-            /* TODO: Unblock any task blocking on a write for THIS pipe */
-            //wake_task();
+            /* unblock any task blocking on a write for THIS pipe */
+            task_unblock(pipe);
         }
         kfree(fp);
     }
@@ -174,10 +176,10 @@ ssize_t write_end_write(struct file *fp, const char *buf, size_t count,
     num_written = 0;
     while(num_written < count) {
         while(pipe->full) {
-            /* TODO: First, unblock any task blocking on a read for THIS pipe */
-            //wake_task();
-            /* TODO: Then, block until someone wakes you up */
-            //block_task();
+            /* First, unblock any task blocking on a read for THIS pipe */
+            task_unblock(pipe);
+            /* Then, block until someone wakes you up */
+            task_block(pipe);
         }
         /* pipe may have been closed while waiting */
         if(pipe->read_closed)
@@ -211,8 +213,8 @@ int write_end_close(struct file *fp) {
             kfree(pipe);
             fp->private_data = NULL;
         } else {
-            /* TODO: Unblock any task blocking on a read for THIS pipe */
-            //wake_task();
+            /* unblock any task blocking on a read for THIS pipe */
+            task_unblock(pipe);
         }
         kfree(fp);
     }
