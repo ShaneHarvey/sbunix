@@ -202,6 +202,7 @@ void task_destroy(struct task_struct *task) {
     if(task->foreground && task->parent) {
         task->parent->foreground = 1;
     }
+    task->foreground = 0; /* remove the foreground from the dead task */
 }
 
 /**
