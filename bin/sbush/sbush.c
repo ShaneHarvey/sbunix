@@ -33,6 +33,7 @@ int procces_cmd(cmd_t *cmd, char **envp);
 int eval_assignment(cmd_t *cmd);
 void save_cmd_info(cmd_t *cmd);
 
+/* TODO: change print prompt */
 char *ps1_default =  "[\\u@\\h \\w]$ ";
 
 int main(int argc, char **argv, char **envp) {
@@ -72,9 +73,9 @@ int main(int argc, char **argv, char **envp) {
         char last_char;
         cmd_t *cmd;
 
-        if(interactive) {
+        if(interactive)
             print_prompt(ps1);
-        }
+
         i = 0;
         last_char = '\0';
         for(i = last_char = 0; last_char != '\n'; last_char = line[i++]) {
@@ -224,7 +225,8 @@ int procces_cmd(cmd_t *cmd, char **envp) {
         if(curcmd->pid != 0) {
             wpid = waitpid(curcmd->pid, &status, 0);
             if (wpid == (pid_t)-1) {
-                printf("waitpid failed: %s\n", strerror(errno));
+                /* TODO: to print error once wait is implemented */
+//                printf("waitpid failed: %s\n", strerror(errno));
             }
             if(WIFEXITED(status))
                 curcmd->status = WEXITSTATUS(status);
@@ -466,6 +468,7 @@ int arg_count(char *line) {
 * \u – Username
 * \h – Hostname
 * \w – Full path of the current working directory
+* TODO: change to only call write once
 */
 void print_prompt(char *ps1) {
     char *tmp = ps1;
@@ -474,6 +477,7 @@ void print_prompt(char *ps1) {
         if(*tmp == '\\') {
             char buf[PATH_MAX];
             char *user;
+            buf[0] = '\0';
             switch (*(tmp + 1)) {
                 case 'u':
                     user = load_var("USER");

@@ -5,7 +5,7 @@
 #include <errno.h>
 
 int main(int argc, char **argv) {
-    int i = 1, newline = 1;
+    int i = 1, newline = 1, first = 1;;
 
     if(argc > 1) {
         /* -n means no trailing newline */
@@ -18,8 +18,12 @@ int main(int argc, char **argv) {
         }
     }
 
-    for( ; i < argc; i++)
+    for( ; i < argc; i++) {
+        if(!first)
+            write(STDOUT_FILENO, " ", 1);
+        first = 0;
         write(STDOUT_FILENO, argv[i], strlen(argv[i]));
+    }
 
     if(newline)
         write(STDOUT_FILENO, "\n", 1);
