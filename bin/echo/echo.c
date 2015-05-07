@@ -7,10 +7,15 @@
 int main(int argc, char **argv) {
     int i = 1, newline = 1;
 
-    /* -n means no trailing newline */
-    if(argc > 1 && strcmp("-n", argv[1]) == 0) {
-        i++;
-        newline = 0;
+    if(argc > 1) {
+        /* -n means no trailing newline */
+        if(strcmp("-n", argv[1]) == 0) {
+            i++;
+            newline = 0;
+        } else if(strcmp("--help", argv[1]) == 0) {
+            printf("echo: [-n|--help] STRING...\n");
+            return EXIT_SUCCESS;
+        }
     }
 
     for( ; i < argc; i++)
