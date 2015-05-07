@@ -23,7 +23,7 @@ int do_kill(pid_t pid, int sig) {
         return 0;
     }
 
-    /* Send to all or */
+    /* For all tasks on the system */
     for(; task != &kernel_task; task = task->next_task) {
         /* Don't signal yourself (yet), never signal kernel tasks, and
          * never signal the init task either */
@@ -37,6 +37,12 @@ int do_kill(pid_t pid, int sig) {
             if(!sendtoall)
                 break; /* They only wanted to send 1 */
         }
+    }
+
+    /* Now signal yourself */
+    if(curr_task->pid == pid || sendtoall) {
+        send_signal(task, sig);
+        sigs_sent++;
     }
 
     if(sigs_sent == 0)
