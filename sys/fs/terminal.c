@@ -149,14 +149,14 @@ void term_putch(unsigned char c) {
     if(term.full) {
         /* print a bell to notify that we lost a character */
 //        putch('\a');
-        task_unblock_foreground();
+        task_unblock_foreground(&term);
         return;
     }
 
     if(c == EOT || c == '\n') {
         term.delims++;
         term.backspace = 0;
-        task_unblock_foreground();
+        task_unblock_foreground(&term);
     } else {
         /* TODO: handle other special characters here */
         term.backspace++;
@@ -169,7 +169,7 @@ void term_putch(unsigned char c) {
         move_csr();
     }
     if(term.full) {
-        task_unblock_foreground();
+        task_unblock_foreground(&term);
     }
 }
 
@@ -213,7 +213,7 @@ ssize_t term_read(struct file *fp, char *buf, size_t count, off_t *offset) {
 
     if(tb->delims == 0) {
         /* Block as a line has not been buffered yet */
-        task_block();
+        task_block(&term);
     }
 //    if(tb->delims == 0) {
 //        kpanic("Unblocked but still no input!!!\n");

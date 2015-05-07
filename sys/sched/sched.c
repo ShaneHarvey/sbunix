@@ -275,21 +275,22 @@ void kill_curr_task(int exit_code) {
  * Block the current task, this is called inside a system call so interrupts
  * are disabled
  */
-void task_block(void) {
+void task_block(void *block_on) {
     curr_task->state = TASK_BLOCKED;
+    curr_task->blocked_on = block_on;
     schedule();
 }
 
 /**
  * Unblock the task which was waiting for the terminal.
  */
-void task_unblock_foreground(void) {
+void task_unblock_foreground(void *blocked_on) {
     struct task_struct *task = block_queue.tasks;
     if(!task)
         return;
 
     for(;task != NULL; task = task->next_rq) {
-        if(task->foreground && !task_sleeping(task)) {
+        if(task->foreground && (blocked_on == task->blocked_on)) {
             /* It is the foreground, and not just sleeping */
             task->state = TASK_RUNNABLE;
             rr_queue_remove(&block_queue, task);
