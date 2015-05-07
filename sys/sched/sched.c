@@ -197,6 +197,12 @@ void task_destroy(struct task_struct *task) {
             task->files[i] = NULL;
         }
     }
+
+    /* Give terminal control back to the parent */
+    if(task->foreground && task->parent) {
+        task->parent->foreground = 1;
+    }
+    task->foreground = 0; /* remove the foreground from the dead task */
 }
 
 /**
