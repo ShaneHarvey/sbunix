@@ -20,13 +20,13 @@ pid_t do_fork(void) {
     /* We want to retq to child_ret_from_fork */
     child->first_switch = 1;
 
-    /* -(3 * 8), for 3 popq's after child_ret_from_fork
+    /* -(16 * 8), for 16 popq's after child_ret_from_fork
      * -8, for retq pop */
-    child->kernel_rsp = child->kernel_rsp - 24 - 8;
+    child->kernel_rsp = ALIGN_UP(child->kernel_rsp, PAGE_SIZE) - 16 - 128 - 8;
     *(uint64_t *)child->kernel_rsp = (uint64_t)child_ret_from_fork;
 
     debug("curr_task RSP: %p, child_task RSP: %p\n", read_rsp(), child->kernel_rsp);
     schedule();
-    printk("PARENT RETURNED FROM SCHEDULE\n");
+    printk("PARENT RETURNED FROM SCHEDULE: returning child pid %d\n", child->pid);
     return child->pid;
 }
