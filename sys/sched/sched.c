@@ -387,6 +387,16 @@ void task_block(void *block_on) {
 }
 
 /**
+ * Remove the task from the from queue and add it to the run queue.
+ */
+void task_wakeup(struct queue *from_queue, struct task_struct *task) {
+    task->state = TASK_RUNNABLE;
+    task->blocked_on = NULL;
+    rr_queue_remove(from_queue, task);
+    rr_queue_add(&run_queue, task); /* We want this to run on next schedule() */
+}
+
+/**
  * Unblock the first task blocking on blocked_on
  */
 void task_unblock(void *blocked_on) {
@@ -397,11 +407,8 @@ void task_unblock(void *blocked_on) {
     for(;task != NULL; task = task->next_rq) {
         if(blocked_on == task->blocked_on) {
             /* It is the foreground, AND blocking on blocked_on */
-            task->state = TASK_RUNNABLE;
-            task->blocked_on = NULL;
-            rr_queue_remove(&block_queue, task);
-            rr_queue_add(&run_queue, task); /* We want this to run on next schedule() */
-            /* TODO: break; ???? */
+            task_wakeup(&block_queue, task);
+            /* Wake up ALL, do not break here. Consider blocking on pipes... */
         }
     }
 }
@@ -417,10 +424,7 @@ void task_unblock_foreground(void *blocked_on) {
     for(;task != NULL; task = task->next_rq) {
         if(task->foreground && (blocked_on == task->blocked_on)) {
             /* It is the foreground, AND blocking on blocked_on */
-            task->state = TASK_RUNNABLE;
-            task->blocked_on = NULL;
-            rr_queue_remove(&block_queue, task);
-            rr_queue_add(&run_queue, task); /* We want this to run on next schedule() */
+            task_wakeup(&block_queue, task);
             /* TODO: break; ???? */
         }
     }
