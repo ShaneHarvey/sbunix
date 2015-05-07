@@ -25,8 +25,7 @@ pid_t do_fork(void) {
     child->kernel_rsp = ALIGN_UP(child->kernel_rsp, PAGE_SIZE) - 16 - 128 - 8;
     *(uint64_t *)child->kernel_rsp = (uint64_t)child_ret_from_fork;
 
-    debug("curr_task RSP: %p, child_task RSP: %p\n", read_rsp(), child->kernel_rsp);
     schedule();
-    printk("PARENT RETURNED FROM SCHEDULE: returning child pid %d\n", child->pid);
+    debug("PARENT RETURNED FROM SCHEDULE: returning child pid %d\n", child->pid);
     return child->pid;
 }

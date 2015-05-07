@@ -311,7 +311,7 @@ void init_kernel_pt(uint64_t phys_free_page) {
     pdpt = (uint64_t *)(phys_free_page + PAGE_SIZE);
     pdt = (uint64_t *)(phys_free_page + 2*PAGE_SIZE);
 
-    pdte = (uint64_t)0|PFLAG_PS|PFLAG_RW|PFLAG_P;
+    pdte = (uint64_t)0|PFLAG_PS|PFLAG_G|PFLAG_RW|PFLAG_P;
     for(i = 0; i < PAGE_ENTRIES; i++) {
         pml4[i] = 0;
         pdpt[i] = 0;
@@ -325,8 +325,8 @@ void init_kernel_pt(uint64_t phys_free_page) {
     pml4[pml4_self_index] = (uint64_t)pml4|PFLAG_RW|PFLAG_P;
 
     /* Map virt_base one to one for 1GB at physical address 0x0 */
-    pml4[pml4e_index] = (uint64_t)pdpt|PFLAG_RW|PFLAG_P;
-    pdpt[pdpte_index] = (uint64_t)pdt|PFLAG_RW|PFLAG_P;
+    pml4[pml4e_index] = (uint64_t)pdpt|PFLAG_G|PFLAG_RW|PFLAG_P;
+    pdpt[pdpte_index] = (uint64_t)pdt|PFLAG_G|PFLAG_RW|PFLAG_P;
 
     /* Set CR3 to the pml4 table */
     kernel_pt = (uint64_t)pml4;
@@ -411,6 +411,7 @@ static uint64_t rec_copy_pt(int level, uint64_t pte) {
                 kphys_inc_mapcount((uint64_t)PE_PHYS_ADDR(other_pte));
                 /* Add it to Page Table level 1, without write permission */
                 new_pt[i] = other_pte & ~PFLAG_RW;
+                current_pt[i] = other_pte & ~PFLAG_RW;
             } else if (level == 4 && i == PML4_INDEX(virt_base)) {
                 /* add kernel index */
                 new_pt[i] = other_pte;
@@ -445,14 +446,21 @@ error_copy:
  * @pml4: physical address of the PML4 table to copy
  */
 uint64_t copy_pml4(uint64_t pml4) {
-    return rec_copy_pt(4, pml4);
+    uint64_t copy;
+    copy = rec_copy_pt(4, pml4);
+    write_cr3(read_cr3()); /* update tlb with new COW mappings */
+    return copy;
 }
 
 /**
  * Copy the currently used PML4 table
  */
 uint64_t copy_current_pml4(void) {
-    return rec_copy_pt(4, read_cr3());
+    uint64_t copy, curr;
+    curr = read_cr3();
+    copy = rec_copy_pt(4, curr);
+    write_cr3(curr); /* update tlb with new COW mappings */
+    return copy;
 }
 
 /**
