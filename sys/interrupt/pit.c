@@ -15,7 +15,7 @@ static uint32_t timer_hz      = 0; /* timer frequency */
  * Subtract nsec from the given timespec
  *
  * @ts: pointer to valid timespec to update
- * @nsec: number of nanoseconds to subtract
+ * @nsec: number of nanoseconds to subtract, must be POSITIVE
  * @return:  true if the resultant ts is 0
  */
 int time_sub(struct timespec *ts, long nsecs) {
@@ -40,6 +40,9 @@ int time_sub(struct timespec *ts, long nsecs) {
  * Timer interrupt handler
  */
 void ISR_HANDLER(32) {
+    int done;
+    struct task_struct *task;
+
     timer_ticks++;
     if(timer_ticks == timer_hz) {
         timer_ticks = 1;
@@ -52,12 +55,16 @@ void ISR_HANDLER(32) {
     PIC_sendEOI(32);
 
     /* PIT is set to 1000 HZ (1 millisecond) (1000000 nanoseconds) */
+    for(task = sleep_queue.tasks; task != NULL; task = task->next_rq) {
+        done = time_sub(&task->sleepts, 1000000L);
+        /* task is done sleeping, wake it up... */
+        if(done)
+            task_wakeup(&sleep_queue, task);
+    }
     /* Timeslicing */
     if(curr_task->type & TASK_USER && --curr_task->timeslice <= 0) {
         schedule();
     }
-
-    /* TODO: wake up sleeping tasks */
 }
 
 /**
