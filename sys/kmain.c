@@ -16,7 +16,7 @@ void kmain(void) {
     cli();
 
 //    ktask_create(test_exec, "TestExec");
-    ktask_create(exec_preemptuser, "TestPreemeptuser");
+    ktask_create(test_terminal, "TestPreemeptuser");
 
     /* idle task */
     while(1){

@@ -19,12 +19,23 @@ struct task_struct kernel_task = {
         .state = TASK_RUNNABLE,
         .first_switch = 0,
         .foreground = 1, /* can read from the terminal */
+        .in_syscall = 0,
+        .timeslice = 0,  /* does not have timeslice */
+        .sleepts = {0, 0},
+        .pid = 0,
+        .exit_code = 0,
+        .blocked_on = NULL,
         .kernel_rsp = 0, /* Will be set on first call to schedule */
         .mm = &kernel_mm,
         .next_task = &kernel_task,
         .prev_task = &kernel_task,
         .next_rq = NULL,
-        .cmdline = "kmain"
+        .parent = NULL,
+        .chld = NULL,
+        .sib = NULL,
+        .files = {0},
+        .cmdline = "kmain",
+        .cwd = "/",
 };
 /* The currently running task */
 struct task_struct *curr_task = &kernel_task;
@@ -333,21 +344,22 @@ void send_signal(struct task_struct *task, int sig) {
  * Block the current task, this is called inside a system call so interrupts
  * are disabled
  */
-void task_block(void) {
+void task_block(void *block_on) {
     curr_task->state = TASK_BLOCKED;
+    curr_task->blocked_on = block_on;
     schedule();
 }
 
 /**
  * Unblock the task which was waiting for the terminal.
  */
-void task_unblock_foreground(void) {
+void task_unblock_foreground(void *blocked_on) {
     struct task_struct *task = block_queue.tasks;
     if(!task)
         return;
 
     for(;task != NULL; task = task->next_rq) {
-        if(task->foreground && !task_sleeping(task)) {
+        if(task->foreground && (blocked_on == task->blocked_on)) {
             /* It is the foreground, and not just sleeping */
             task->state = TASK_RUNNABLE;
             rr_queue_remove(&block_queue, task);

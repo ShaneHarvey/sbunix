@@ -33,6 +33,8 @@ int procces_cmd(cmd_t *cmd, char **envp);
 int eval_assignment(cmd_t *cmd);
 void save_cmd_info(cmd_t *cmd);
 
+char *ps1_default =  "[\\u@\\h \\w]$ ";
+
 int main(int argc, char **argv, char **envp) {
     int finished = 0, interactive = 1;
     ssize_t rv;
@@ -61,7 +63,7 @@ int main(int argc, char **argv, char **envp) {
     ps1 = load_var("PS1");
     if(ps1 == NULL) {
         /* default prompt */
-        ps1 = "[\\u@\\h \\w]$ ";
+        ps1 = ps1_default;
         save_var("PS1", ps1);
     }
 
@@ -221,7 +223,7 @@ int procces_cmd(cmd_t *cmd, char **envp) {
 
         if(curcmd->pid != 0) {
             wpid = waitpid(curcmd->pid, &status, 0);
-            if (wpid < 0) {
+            if (wpid == (pid_t)-1) {
                 printf("waitpid failed: %s\n", strerror(errno));
                 exit(1);
             }

@@ -16,6 +16,7 @@ extern struct task_struct   *curr_task;
 
 #define TASK_CMDLINE_MAX 128
 #define TASK_FILES_MAX   64
+#define TASK_CWD_MAX   99
 
 /* Kernel thread or user process */
 struct task_struct {
@@ -24,17 +25,19 @@ struct task_struct {
     int first_switch;
     int foreground;       /* True if this task controls the terminal */
     int in_syscall;       /* Set to 1 if this task is in a system call */
-    struct timespec sleepts; /* time left to sleep */
     int timeslice;        /* User timeslices */
-    uint64_t kernel_rsp;
+    struct timespec sleepts; /* time left to sleep */
     pid_t pid;            /* Process ID, monotonically increasing. 0 is not valid */
     int exit_code;        /* Exit code of a process, returned by wait() */
+    void *blocked_on;     /* Pointer to data structure that this task is waiting on */
+    uint64_t kernel_rsp;
     struct mm_struct *mm; /* virtual memory info, kernel tasks all share a global */
     struct task_struct *next_task, *prev_task; /* for traversing all tasks */
     struct task_struct *next_rq;    /* for traversing a run queue */
     struct task_struct *parent, *chld, *sib;   /* parent/child/sibling pointers */
     struct file *files[TASK_FILES_MAX];
     char cmdline[TASK_CMDLINE_MAX + 1];
+    char cwd[TASK_CWD_MAX + 1];
 };
 
 enum task_type {
@@ -63,8 +66,8 @@ struct queue {
     struct task_struct *tasks; /* task queue */
 };
 
-void task_block(void);
-void task_unblock_foreground(void);
+void task_block(void *block_on);
+void task_unblock_foreground(void *blocked_on);
 int task_sleeping(struct task_struct *task);
 void schedule(void);
 void scheduler_init(void);

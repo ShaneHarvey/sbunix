@@ -122,6 +122,17 @@ static int term_poplast(void) {
  * @c:  Character to enqueue
  */
 void term_putch(unsigned char c) {
+    /* Special kill character */
+    if(c == CTRL_C) {
+        /* Flush terminal buffer and kill current task */
+        printk("^C\n");
+        term_reset();
+        /* TODO: kill controlling task NOT current task */
+        if(curr_task->pid >= 2) {
+            printk("killing %s\n", curr_task->cmdline);
+            kill_curr_task(130);
+        }
+    }
     /* handle backspace here */
     if(c == '\b') {
         if(term.backspace == 0)
@@ -138,14 +149,14 @@ void term_putch(unsigned char c) {
     if(term.full) {
         /* print a bell to notify that we lost a character */
 //        putch('\a');
-        task_unblock_foreground();
+        task_unblock_foreground(&term);
         return;
     }
 
     if(c == EOT || c == '\n') {
         term.delims++;
         term.backspace = 0;
-        task_unblock_foreground();
+        task_unblock_foreground(&term);
     } else {
         /* TODO: handle other special characters here */
         term.backspace++;
@@ -158,7 +169,7 @@ void term_putch(unsigned char c) {
         move_csr();
     }
     if(term.full) {
-        task_unblock_foreground();
+        task_unblock_foreground(&term);
     }
 }
 
@@ -202,7 +213,7 @@ ssize_t term_read(struct file *fp, char *buf, size_t count, off_t *offset) {
 
     if(tb->delims == 0) {
         /* Block as a line has not been buffered yet */
-        task_block();
+        task_block(&term);
     }
 //    if(tb->delims == 0) {
 //        kpanic("Unblocked but still no input!!!\n");
