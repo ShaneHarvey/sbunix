@@ -19,12 +19,23 @@ struct task_struct kernel_task = {
         .state = TASK_RUNNABLE,
         .first_switch = 0,
         .foreground = 1, /* can read from the terminal */
+        .in_syscall = 0,
+        .timeslice = 0,  /* does not have timeslice */
+        .sleepts = {0, 0},
+        .pid = 0,
+        .exit_code = 0,
+        .blocked_on = NULL,
         .kernel_rsp = 0, /* Will be set on first call to schedule */
         .mm = &kernel_mm,
         .next_task = &kernel_task,
         .prev_task = &kernel_task,
         .next_rq = NULL,
-        .cmdline = "kmain"
+        .parent = NULL,
+        .chld = NULL,
+        .sib = NULL,
+        .files = {0},
+        .cmdline = "kmain",
+        .cwd = "/",
 };
 /* The currently running task */
 struct task_struct *curr_task = &kernel_task;
