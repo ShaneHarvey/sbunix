@@ -85,16 +85,13 @@ struct task_struct *rr_pick_next_task(void) {
 
     /* If no other tasks, but the current is still runnable, then run it! */
     if(!task && curr_task->state == TASK_RUNNABLE) {
-        /* TODO: reset timeslice */
         reset_timeslice(curr_task);
         task = curr_task;
     }
 
     if(!task) {
-        /* TODO: return idle task if no task */
-//        debug_queues();
-        kpanic("TODO: no task to run, return idle task\n");
-        return &kernel_task;
+        /* Return idle task if no task */
+        task = &kernel_task;
     }
     return task;
 }

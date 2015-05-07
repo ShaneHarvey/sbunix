@@ -24,6 +24,7 @@ struct task_struct {
     int foreground;       /* True if this task controls the terminal */
     int in_syscall;       /* Set to 1 if this task is in a system call */
     struct timespec sleepts; /* time left to sleep */
+    uint32_t timeslice;   /* User timeslices */
     uint64_t kernel_rsp;
     pid_t pid;            /* Process ID, monotonically increasing. 0 is not valid */
     int exit_code;        /* Exit code of a process, returned by wait() */
@@ -47,6 +48,9 @@ enum task_state {
     TASK_BLOCKED    = 8,  /* waiting for I/O */
     TASK_SLEEPING   = 16  /* sleeping */
 };
+
+#define EXIT_SEGV       139
+#define EXIT_ENOMEM     1
 
 /* Run-Queue */
 struct queue {

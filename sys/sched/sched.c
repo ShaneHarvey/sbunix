@@ -121,6 +121,9 @@ struct task_struct *fork_curr_task(void) {
     if(!task)
         goto out_stack;
 
+    /* Half the remaining timeslice (split between parent and child) */
+    curr_task->timeslice >>= 1;
+
     memcpy(task, curr_task, sizeof(*task));     /* Exact copy of parent */
 
     /* deep copy the current mm */
@@ -347,9 +350,9 @@ static inline void __attribute__((always_inline)) context_switch(struct task_str
  * Cleanup the last task, destroying or placing on a queue as needed.
  */
 static void __attribute__((noinline)) post_context_switch(void) {
-    /* Update the kernel stack in the tss */
-    tss.rsp0 = curr_task->kernel_rsp;
-    syscall_kernel_rsp = curr_task->kernel_rsp;
+    /* Update the kernel stack in the tss (these are always aligned minus 16) */
+    tss.rsp0 = ALIGN_UP(curr_task->kernel_rsp, PAGE_SIZE) - 16;
+    syscall_kernel_rsp = tss.rsp0;
     /* todo: ltr or ldtr to load the TSS again? */
 
     /* Clean up the previous task */
