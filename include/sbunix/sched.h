@@ -24,7 +24,7 @@ struct task_struct {
     int foreground;       /* True if this task controls the terminal */
     int in_syscall;       /* Set to 1 if this task is in a system call */
     struct timespec sleepts; /* time left to sleep */
-    uint32_t timeslice;   /* User timeslices */
+    int timeslice;        /* User timeslices */
     uint64_t kernel_rsp;
     pid_t pid;            /* Process ID, monotonically increasing. 0 is not valid */
     int exit_code;        /* Exit code of a process, returned by wait() */
@@ -49,8 +49,12 @@ enum task_state {
     TASK_SLEEPING   = 16  /* sleeping */
 };
 
+/* Exit Codes */
 #define EXIT_SEGV       139
 #define EXIT_ENOMEM     1
+
+/* Base timeslice in number of interrupts */
+#define TIMESLICE_BASE  40
 
 /* Run-Queue */
 struct queue {
@@ -68,10 +72,13 @@ void task_set_cmdline(struct task_struct *task, char *cmdline);
 pid_t get_next_pid(void);
 void scheduler_test(void);
 void debug_task(struct task_struct *task);
-void reset_timeslice(struct task_struct *task);
 void kill_curr_task(int exit_code);
 struct task_struct *fork_curr_task(void);
 int task_files_init(struct task_struct *task);
+
+static inline void reset_timeslice(struct task_struct *task) {
+    task->timeslice = TIMESLICE_BASE;
+}
 
 #define switch_to(prev, next)                                              \
 	__asm__ __volatile__ (                                                 \

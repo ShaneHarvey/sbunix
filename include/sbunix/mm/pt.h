@@ -128,4 +128,9 @@ void print_pml4e(void);
 void pt_test_map(void);
 void pt_test_copying(void);
 
+
+static inline void invalidate_page(uint64_t pgaddr) {
+    __asm__ __volatile__ ("invlpg (%0)" ::"r" (pgaddr) : "memory");
+}
+
 #endif //_SBUNIX_PT_H_

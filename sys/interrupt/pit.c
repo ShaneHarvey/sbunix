@@ -3,6 +3,7 @@
 #include <sbunix/interrupt/idt.h>
 #include <sbunix/interrupt/pic8259.h>
 #include <sbunix/console.h>
+#include <sbunix/sched.h>
 
 /* Programmable Interrupt Timer */
 struct timespec unix_time;         /* real (UNIX) time */
@@ -24,6 +25,13 @@ void ISR_HANDLER(32) {
     }
     /* Acknowledge interrupt */
     PIC_sendEOI(32);
+
+    /* Timeslicing */
+    if(curr_task->type & TASK_KERN && --curr_task->timeslice <= 0) {
+        schedule();
+    }
+
+    /* TODO: wake up sleeping tasks */
 }
 
 /**

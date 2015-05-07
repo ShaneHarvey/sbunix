@@ -511,6 +511,9 @@ int copy_cow_page(uint64_t virt_addr, uint64_t pte_flags) {
          * Just add write permission to the page. */
         new_pte = old_pte | PFLAG_RW;
         *magic = new_pte;
+
+        /* Invalidate this virt addr's TLB entry */
+        invalidate_page(virt_addr);
         debug("Updated PML4[%ld]->PDPT[%ld]->PD[%ld]->PT[%ld]=0x%lx\n",
               PML4_INDEX(virt_addr), PDPT_INDEX(virt_addr), PD_INDEX(virt_addr),
               PT_INDEX(virt_addr), new_pte);
@@ -528,6 +531,9 @@ int copy_cow_page(uint64_t virt_addr, uint64_t pte_flags) {
 
         new_pte = kvirt_to_phys(new_kvirt) | pte_flags | PFLAG_RW | PFLAG_P;
         *magic = new_pte;
+
+        /* Invalidate this virt addr's TLB entry */
+        invalidate_page(virt_addr);
         debug("Updated PML4[%ld]->PDPT[%ld]->PD[%ld]->PT[%ld]=0x%lx\n",
               PML4_INDEX(virt_addr), PDPT_INDEX(virt_addr), PD_INDEX(virt_addr),
               PT_INDEX(virt_addr), new_pte);
