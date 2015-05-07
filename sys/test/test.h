@@ -11,5 +11,6 @@
 void test_exec(void);
 void test_terminal(void);
 void test_pipe(void);
+void exec_preemptuser(void);
 
 #endif //_SBUNIX_TEST_H

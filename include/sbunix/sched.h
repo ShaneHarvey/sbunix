@@ -54,7 +54,7 @@ enum task_state {
 #define EXIT_ENOMEM     1
 
 /* Base timeslice in number of interrupts */
-#define TIMESLICE_BASE  40
+#define TIMESLICE_BASE  80
 
 /* Run-Queue */
 struct queue {

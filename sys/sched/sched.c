@@ -352,10 +352,13 @@ static void __attribute__((noinline)) post_context_switch(void) {
 
     /* Clean up the previous task */
 //    debug("Switched from %s --> %s\n", last_task->cmdline, curr_task->cmdline);
-    if(last_task->state == TASK_DEAD) {
-        task_destroy(last_task);
-    } else {
-        queue_add_by_state(last_task);
+    /* Do not destroy or add the Idle Task to the run queues */
+    if(last_task != &kernel_task) {
+        if (last_task->state == TASK_DEAD) {
+            task_destroy(last_task);
+        } else {
+            queue_add_by_state(last_task);
+        }
     }
 
     /* Refill the timeslice */
