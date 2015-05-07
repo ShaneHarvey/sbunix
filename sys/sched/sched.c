@@ -336,8 +336,23 @@ void send_signal(struct task_struct *task, int sig) {
     if(sig == 0)
         return;
     /* Fatal signals */
-    if(sig == SIGKILL || sig == SIGSEGV)
+    if(sig == SIGKILL || sig == SIGSEGV || sig == SIGTERM)
         kill_other_task(task, EXIT_FATALSIG + sig);
+}
+
+/**
+ * Returns the current task that controls the terminal
+ */
+struct task_struct *foreground_task(void) {
+    struct task_struct *task;
+    /* For all tasks on the system */
+    for(task = kernel_task.next_task; task != &kernel_task;
+        task = task->next_task) {
+        if(task->foreground)
+            return task;
+    }
+    kpanic("NO task is in the foreground!\n");
+    return NULL;
 }
 
 /**

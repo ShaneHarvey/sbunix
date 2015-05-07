@@ -66,6 +66,7 @@ struct queue {
     struct task_struct *tasks; /* task queue */
 };
 
+struct task_struct *foreground_task(void);
 void task_block(void *block_on);
 void task_unblock(void *blocked_on);
 void task_unblock_foreground(void *blocked_on);
