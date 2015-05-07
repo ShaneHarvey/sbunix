@@ -15,42 +15,58 @@
 * Divide by Zero Exception Handler (#DE)
 */
 void ISR_HANDLER(0) {
+    /* Divide by 0 is bad */
+    kill_curr_task(EXIT_FATALSIG + SIGFPE);
     kpanic("!! DIVIDE BY ZERO !!\n");
 }
 
 void ISR_HANDLER(1) {
+    /* Hardware debugging is not allowed */
+    kill_curr_task(EXIT_FATALSIG + SIGKILL);
     kpanic("!! Debug Exception (#DB) !!\n");
 }
 
 void ISR_HANDLER(2) {
-    kpanic("!! NMI Interrupt !!\n");
+    printk("!! NMI Interrupt, H/W Failure? Will resume... !!\n");
+    kill_curr_task(EXIT_FATALSIG + SIGKILL);
 }
 
 void ISR_HANDLER(3) {
+    /* The INT3 ? instruction is not allowed */
+    kill_curr_task(EXIT_FATALSIG + SIGKILL);
     kpanic("!! Breakpoint Exception (#BP) !!\n");
 }
 
 void ISR_HANDLER(4) {
+    /* The INTO instruction (traps on overflow) is not allowed */
+    kill_curr_task(EXIT_FATALSIG + SIGKILL);
     kpanic("!! Overflow Exception (#OF) !!\n");
 }
 
 void ISR_HANDLER(5) {
+    /* The BOUND instruction is not allowed */
+    kill_curr_task(EXIT_FATALSIG + SIGKILL);
     kpanic("!! BOUND Range Exceeded Exception (#BR) !!\n");
 }
 
 void ISR_HANDLER(6) {
+    kill_curr_task(EXIT_FATALSIG + SIGILL);
     kpanic("!! Invalid Opcode Exception (#UD) !!\n");
 }
 
 void ISR_HANDLER(7) {
+    /* Attempt to use the FPU, we don't allow floats (-msoft-float -mno-sse) */
+    kill_curr_task(EXIT_FATALSIG + SIGILL);
     kpanic("!! Device Not Available Exception (#NM) !!\n");
 }
 
 void ISR_HANDLER(8) {
+    kill_curr_task(EXIT_FATALSIG + SIGILL);
     kpanic("!! Double Fault Exception (#DF) !!\n");
 }
 
 void ISR_HANDLER(9) {
+    kill_curr_task(EXIT_FATALSIG + SIGILL);
     kpanic("!! Coprocessor Segment Overrun !!\n");
 }
 
@@ -59,10 +75,12 @@ void ISR_HANDLER(10) {
 }
 
 void ISR_HANDLER(11) {
+    kill_curr_task(EXIT_FATALSIG + SIGILL);
     kpanic("!! Segment Not Present (#NP) !!\n");
 }
 
 void ISR_HANDLER(12) {
+    kill_curr_task(EXIT_FATALSIG + SIGILL);
     kpanic("!! Stack Fault Exception (#SS) !!\n");
 }
 
@@ -70,6 +88,7 @@ void ISR_HANDLER(12) {
  * General Protection
  */
 void _isr_handler_13(uint64_t errorcode, uint64_t fault_rip) {
+    kill_curr_task(EXIT_FATALSIG + SIGILL);
     kpanic("General Protection (#GP) at RIP %p, errorcode %p!\n",
            (void*)fault_rip, (void*)errorcode);
 }
@@ -164,22 +183,28 @@ pf_enomem:
 /* 15 Reserved */
 
 void ISR_HANDLER(16) {
-    kpanic("!! x87 FPU Floating-Point Erro (#MF) !!\n");
+    kill_curr_task(EXIT_FATALSIG + SIGFPE);
+    kpanic("!! x87 FPU Floating-Point Exception (#MF) !!\n");
 }
 
 void ISR_HANDLER(17) {
+    kill_curr_task(EXIT_FATALSIG + SIGKILL);
     kpanic("!! Alignment Check Exception (#AC) !!\n");
 }
 
 void ISR_HANDLER(18) {
+    kill_curr_task(EXIT_FATALSIG + SIGKILL);
     kpanic("!! Machine-Check Exception (#MC) !!\n");
 }
 
 void ISR_HANDLER(19) {
+    kill_curr_task(EXIT_FATALSIG + SIGFPE);
     kpanic("!! SIMD Floating-Point Exception (#XM) !!\n");
 }
 
 void ISR_HANDLER(20) {
+    /* Virtualization is not allowed */
+    kill_curr_task(EXIT_FATALSIG + SIGKILL);
     kpanic("!! Virtualization Exception (#VE) !!\n");
 }
 

@@ -342,7 +342,7 @@ void send_signal(struct task_struct *task, int sig) {
     if(sig == 0)
         return;
     /* Fatal signals */
-    if(sig == SIGKILL || sig == SIGSEGV || sig == SIGTERM)
+    if(sig == SIGKILL || sig == SIGSEGV || sig == SIGTERM || sig == SIGFPE)
         kill_other_task(task, EXIT_FATALSIG + sig);
 }
 
