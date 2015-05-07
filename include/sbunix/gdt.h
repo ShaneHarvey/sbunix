@@ -7,6 +7,7 @@
 #define _KERNEL_DS	0x10
 #define _USER_CS	0x1B
 #define _USER_DS	0x23
+#define _USER64_CS	0x2B
 
 /* See http://forum.osdev.org/viewtopic.php?t=13678 for explanation */
 struct tss_t {

@@ -26,7 +26,6 @@
 # r11       eflags for syscall/sysret, temporary for C
 # r12-r15   rbp,rbx saved by C code, not touched.
 #
-.global return_from_fork
 .global syscall_entry
 syscall_entry:
     movq %rsp, syscall_user_rsp     # save user stack
@@ -39,10 +38,18 @@ syscall_entry:
     pushq %rax                      # 7th arg must be on stack for SYSV C
 
     call syscall_dispatch
-return_from_fork:                   # Child returns here from fork
     addq $0x8, %rsp                 # pop 7th arg
 
-    # Prepare for sysret
+    # Prepare for sysretq
+    popq %rcx                       # pop user return addr off kern stack
+    popq %r11                       # pop user RFLAGS
+    popq %rsp                       # restore user stack
+    sysretq
+
+.global child_ret_from_fork
+child_ret_from_fork:                # Child returns here from fork
+    xorq %rax, %rax                 # Child returns 0
+    # Prepare for sysretq
     popq %rcx                       # pop user return addr off kern stack
     popq %r11                       # pop user RFLAGS
     popq %rsp                       # restore user stack

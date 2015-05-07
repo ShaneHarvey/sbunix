@@ -389,6 +389,7 @@ void schedule(void) {
          */
         if(curr_task->first_switch) {
             curr_task->first_switch = 0;
+            curr_task->kernel_rsp = ALIGN_UP(curr_task->kernel_rsp, PAGE_SIZE) - 16;
             __asm__ __volatile__ ("retq;");
         }
     }

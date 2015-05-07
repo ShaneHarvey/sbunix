@@ -10,10 +10,10 @@
 #include "syscall_dispatch.h"
 
 void enter_usermode(uint64_t user_rsp, uint64_t user_rip) {
-    /* Set the kernel RSP to return to in syscall handler */
     cli();
-    syscall_kernel_rsp = ALIGN_UP(read_rsp(), PAGE_SIZE) - 16;
-    tss.rsp0 = syscall_kernel_rsp;
+    /* Set the kernel RSP to the same way as post_context_switch */
+    syscall_kernel_rsp = curr_task->kernel_rsp;
+    tss.rsp0 = curr_task->kernel_rsp;
     __asm__ __volatile__(
         "movq $0x23, %%rax;"
         "movq %%rax, %%ds;"
@@ -26,7 +26,7 @@ void enter_usermode(uint64_t user_rsp, uint64_t user_rip) {
         "popq %%rax;"
         "or $0x200, %%rax;"    /* Set the IF flag, for interrupts in ring3 */
         "pushq %%rax;"
-        "pushq $0x1B;"         /* ring3 cs, should be _USER_CS|RPL = 0x1B */
+        "pushq $0x2B;"         /* ring3 cs, should be _USER64_CS|RPL = 0x2B */
         "pushq %1;"            /* ring3 rip */
         "xorq %%rax, %%rax;"   /* zero the user registers */
         "xorq %%rbx, %%rbx;"
