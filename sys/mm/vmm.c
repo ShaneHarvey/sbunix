@@ -59,6 +59,8 @@ int add_heap(struct mm_struct *user) {
 
 int num_pointers(const char **array) {
     int len = 0;
+    if(!array)
+        return 0;
     while(*array++)
         len++;
     return len;
@@ -66,6 +68,8 @@ int num_pointers(const char **array) {
 
 int num_bytes(const char **array) {
     int bytes = 0, err = 0;
+    if(!array)
+        return 0;
     while(*array) {
         size_t len = strnlen(*array, PAGE_SIZE) + 1;   /* TODO: this could fault */
         /* TODO: testing exec... uncomment for security */
