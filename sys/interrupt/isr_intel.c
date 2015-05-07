@@ -108,7 +108,8 @@ void _isr_handler_14(uint64_t errorcode, uint64_t fault_rip) {
         /* We read a page and we didn't have permission. */
         goto pf_violation;
 
-    if(errorcode & PF_USER) {
+    /* If we're a user, or we are in a system call for a user. */
+    if(was_user || curr_task->in_syscall) {
         /* Find the vm area containing the faulting address */
         struct vm_area *vma;
         vma = vma_find_region(curr_task->mm->vmas, addr, 0);
@@ -137,36 +138,27 @@ void _isr_handler_14(uint64_t errorcode, uint64_t fault_rip) {
         return;
     }
 
-pf_violation:
-    /* todo: kill self, exit_code = SEGV, call schedule */
-    printk("%s%s%s%s%s\n",
-       pf_who[was_user == PF_USER],
-       pf_rsvd[was_rsrvd  == PF_RSVD],
-       pf_read[was_write  == PF_WRITE],
-       pf_inst[(errorcode & PF_INSTR) == PF_INSTR],
-       pf_prot[was_present == PF_PROT]);
-    printk("Page-Fault (#PF) at RIP %p, on ADDR %p!\n", (void*)fault_rip, (void*)addr);
-    kpanic("!! TODO: Page-Fault SEGV !!\n");
-pf_enomem:
-    /* todo: Kill self, exit_code = ENOMEM */
-    printk("%s%s%s%s%s\n",
-       pf_who[was_user == PF_USER],
-       pf_rsvd[was_rsrvd  == PF_RSVD],
-       pf_read[was_write  == PF_WRITE],
-       pf_inst[(errorcode & PF_INSTR) == PF_INSTR],
-       pf_prot[was_present == PF_PROT]);
-    printk("Page-Fault (#PF) at RIP %p, on ADDR %p!\n", (void*)fault_rip, (void*)addr);
-    kpanic("!! TODO: Page-Fault ENOMEM !!\n");
-    goto pf_kernel_oops;
-pf_kernel_oops:
-    printk("%s%s%s%s%s\n",
-      pf_who[was_user == PF_USER],
-      pf_rsvd[was_rsrvd  == PF_RSVD],
-      pf_read[was_write  == PF_WRITE],
-      pf_inst[(errorcode & PF_INSTR) == PF_INSTR],
-      pf_prot[was_present == PF_PROT]);
+    /* Reaching here is a Kernel OOPS */
+    printk("!! %s%s%s%s%s !!\n",
+           pf_who[was_user == PF_USER],
+           pf_rsvd[was_rsrvd  == PF_RSVD],
+           pf_read[was_write  == PF_WRITE],
+           pf_inst[(errorcode & PF_INSTR) == PF_INSTR],
+           pf_prot[was_present == PF_PROT]);
     printk("Page-Fault (#PF) at RIP %p, on ADDR %p!\n", (void*)fault_rip, (void*)addr);
     kpanic("KERNEL OOPS please reboot\n");
+
+pf_violation:
+    debug("Page-Fault (#PF) at RIP %p, on ADDR %p!\n", (void*)fault_rip, (void*)addr);
+    /* Kill current task */
+    kill_curr_task(EXIT_SEGV);
+    kpanic("!! kill_curr_task returned!! Page-Fault SEGV !!\n");
+
+pf_enomem:
+    debug("Page-Fault (#PF) at RIP %p, on ADDR %p!\n", (void*)fault_rip, (void*)addr);
+    /* Kill current task */
+    kill_curr_task(EXIT_ENOMEM);
+    kpanic("!! TODO: Page-Fault ENOMEM !!\n");
 }
 
 /* 15 Reserved */

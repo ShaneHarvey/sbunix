@@ -11,9 +11,9 @@
 
 void enter_usermode(uint64_t user_rsp, uint64_t user_rip) {
     cli();
-    /* Set the kernel RSP to the same way as post_context_switch */
-    syscall_kernel_rsp = curr_task->kernel_rsp;
-    tss.rsp0 = curr_task->kernel_rsp;
+    /* Same is in post_context_switch(), kernel stacks always aligned up minus 16 */
+    tss.rsp0 = ALIGN_UP(read_rsp(), PAGE_SIZE) - 16;
+    syscall_kernel_rsp = tss.rsp0;
     __asm__ __volatile__(
         "movq $0x23, %%rax;"
         "movq %%rax, %%ds;"
