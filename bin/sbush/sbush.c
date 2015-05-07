@@ -225,6 +225,10 @@ int procces_cmd(cmd_t *cmd, char **envp) {
                 printf("waitpid failed: %s\n", strerror(errno));
                 exit(1);
             }
+            if(WIFEXITED(status))
+                curcmd->status = WEXITSTATUS(status);
+            else
+                curcmd->status = 1;
         }
 
         /* Save info about previous command to the environment */
@@ -342,22 +346,7 @@ int build_path(char *prog, char *fullpath) {
 void save_cmd_info(cmd_t *cmd) {
     char str_status[4] = {0};
     cmd->status &= 0xFF;
-    if(cmd->status == 0) {
-        save_var("?", "0");
-    } else {
-        int i = 0, j = 1;
-        while(cmd->status != 0) {
-            str_status[i++] = '0' + (cmd->status % 10);
-            cmd->status /= 10;
-        }
-        if(cmd->status > 99) {
-            j = 2;
-        }
-        i = str_status[0];
-        str_status[0] = str_status[j];
-        str_status[j] = (char)i;
-        save_var("?", str_status);
-    }
+    save_var("?", uitoa((uint)cmd->status, 10, str_status, 4));
     save_var("_", cmd->argv[0]);
 }
 
