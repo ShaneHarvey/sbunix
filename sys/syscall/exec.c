@@ -10,7 +10,6 @@
 #include "syscall_dispatch.h"
 
 void enter_usermode(uint64_t user_rsp, uint64_t user_rip) {
-    /* Set the kernel RSP to return to in syscall handler */
     cli();
     /* Same is in post_context_switch(), kernel stacks always aligned up minus 16 */
     tss.rsp0 = ALIGN_UP(read_rsp(), PAGE_SIZE) - 16;
@@ -27,7 +26,7 @@ void enter_usermode(uint64_t user_rsp, uint64_t user_rip) {
         "popq %%rax;"
         "or $0x200, %%rax;"    /* Set the IF flag, for interrupts in ring3 */
         "pushq %%rax;"
-        "pushq $0x1B;"         /* ring3 cs, should be _USER_CS|RPL = 0x1B */
+        "pushq $0x2B;"         /* ring3 cs, should be _USER64_CS|RPL = 0x2B */
         "pushq %1;"            /* ring3 rip */
         "xorq %%rax, %%rax;"   /* zero the user registers */
         "xorq %%rbx, %%rbx;"
