@@ -29,9 +29,11 @@ pid_t do_fork(void) {
     schedule();
     /* this will never happen, but the label gets optimized out if we don't trick gcc */
     if(child_pid == 0) {
-        child_fork_ret: /* Child will retq to this label the first time it gets scheduled */
+child_fork_ret: /* Child will retq to this label the first time it gets scheduled */
+        printk("CHILD RETURNED FROM SCHEDULE\n");
         __asm__ __volatile__("xorq %rax, %rax; popq %rbx; retq;"); /* TODO: this is stupidly bad */
         return 0;
     }
+    printk("PARENT RETURNED FROM SCHEDULE\n");
     return child_pid;
 }

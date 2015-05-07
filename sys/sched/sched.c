@@ -9,6 +9,7 @@
 #include <sbunix/fs/terminal.h>
 #include <errno.h>
 #include "roundrobin.h"
+#include "../syscall/syscall_dispatch.h"
 
 /* All kernel tasks use this mm_struct */
 struct mm_struct kernel_mm = {0};
@@ -89,8 +90,8 @@ struct task_struct *ktask_create(void (*start)(void), char *name) {
     /* Put the start function on the stack for switch_to  */
     task->first_switch = 1;
     task->foreground = 1; /* all kernel threads can read input */
-    stack[511] = (uint64_t)start;
-    task->kernel_rsp = (uint64_t)&stack[511];
+    stack[510] = (uint64_t)start;
+    task->kernel_rsp = (uint64_t)&stack[510];
     task->mm = &kernel_mm;
     kernel_mm.mm_count++;
     task->pid = get_next_pid();
@@ -130,7 +131,7 @@ struct task_struct *fork_curr_task(void) {
     /* Copy the curr_task's kstack */
     curr_kstack = (uint64_t *)ALIGN_DOWN(read_rsp(), PAGE_SIZE);
     memcpy(kstack, curr_kstack, PAGE_SIZE);
-    task->kernel_rsp = (uint64_t)&kstack[511];  /* new kernel stack */
+    task->kernel_rsp = (uint64_t)&kstack[510];  /* new kernel stack */
     task->pid = get_next_pid();                 /* new pid */
     task->parent = curr_task;                   /* new parent */
     task->chld = task->sib = NULL;              /* no children/siblings yet */
@@ -348,6 +349,7 @@ static inline void __attribute__((always_inline)) context_switch(struct task_str
 static void __attribute__((noinline)) post_context_switch(void) {
     /* Update the kernel stack in the tss */
     tss.rsp0 = curr_task->kernel_rsp;
+    syscall_kernel_rsp = curr_task->kernel_rsp;
     /* todo: ltr or ldtr to load the TSS again? */
 
     /* Clean up the previous task */
