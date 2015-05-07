@@ -12,11 +12,11 @@ int main(int argc, char **argv, char **envp) {
     } else if(p == 0) {
         /* In child */
         printf("In child!\n");
-        sleep(2);
+        exit(2);
     } else {
         /* In parent */
-        sleep(3);
         printf("In parent, child pid=%d!\n", (int)p);
+        sleep(3);
     }
     return 0;
 }

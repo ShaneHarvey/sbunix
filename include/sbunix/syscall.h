@@ -9,6 +9,8 @@
 #include <dirent.h>
 #include <errno.h>
 
+pid_t do_fork(void);
+
 int do_execve(const char *filename, const char **argv, const char **envp);
 
 pid_t do_wait4(pid_t pid, int *status, int options, struct rusage *rusage);

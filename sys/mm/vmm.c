@@ -161,7 +161,6 @@ struct mm_struct *mm_create(void) {
 /**
  * Decrement the reference count of the mm, if mm_count goes to 0:
  *      * Free all the vma's and then mm struct itself.
- * Does NOT destroy the page tables!!
  */
 void mm_destroy(struct mm_struct *mm) {
     if(!mm)
@@ -178,7 +177,11 @@ void mm_destroy(struct mm_struct *mm) {
         }
         /* fixme: add other kfree()'s */
 
-        /* fixme: FREE the page_tables */
+        /* Free the page_tables, if it exists (could come here during a
+         * mm_deep_copy error) */
+        if(mm->pml4)
+            free_pml4(mm->pml4);
+
         kfree(mm);
     }
 }
@@ -202,6 +205,8 @@ struct mm_struct *mm_deep_copy(void) {
 
     /* Copy exactly from parent */
     memcpy(copy_mm, curr_mm, sizeof(*copy_mm));
+    /* set pml4 to NULL so we don't free the parent's */
+    curr_mm->pml4 = 0;
     /* Update the prev/next mm pointers */
     mm_list_add(copy_mm);
 
@@ -210,20 +215,12 @@ struct mm_struct *mm_deep_copy(void) {
     if(!copy_mm->vmas)
         goto out_copy_mm;
 
-    /* TODO: Copy-On-Write */
-    /* TODO: set all present pte's to read only, calling kphys_inc_mapcount on each */
-    //copy_on_write_pml4();
-
     /* Create a copy of the page tables that are now Copy-On-Write */
     curr_mm->pml4 = copy_current_pml4();
     if(!curr_mm->pml4)
-        goto out_cow_pml4;
+        goto out_copy_mm;
 
     return copy_mm;
-
-out_cow_pml4:
-    /* TODO: undo Copy-On-Write by calling kphys_dec_mapcount on each phys page */
-
 out_copy_mm:
     /* Destroy the vma's if any and the copy_mm */
     mm_destroy(copy_mm);

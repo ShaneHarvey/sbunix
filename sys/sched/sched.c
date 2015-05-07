@@ -122,6 +122,11 @@ struct task_struct *fork_curr_task(void) {
 
     memcpy(task, curr_task, sizeof(*task));     /* Exact copy of parent */
 
+    /* deep copy the current mm */
+    task->mm = mm_deep_copy();
+    if(task->mm == NULL)
+        goto out_task;
+
     /* Copy the curr_task's kstack */
     curr_kstack = (uint64_t *)ALIGN_DOWN(read_rsp(), PAGE_SIZE);
     memcpy(kstack, curr_kstack, PAGE_SIZE);
@@ -129,11 +134,7 @@ struct task_struct *fork_curr_task(void) {
     task->pid = get_next_pid();                 /* new pid */
     task->parent = curr_task;                   /* new parent */
     task->chld = task->sib = NULL;              /* no children/siblings yet */
-
-    /* Add this new child to the parent */
-    add_child(curr_task, task);
-
-    curr_task->foreground = 0; /* We steal our parent's foreground status */
+    task->next_task = task->prev_task = task->next_rq = NULL;
 
     /* Increment reference counts on any open files */
     for(i = 0; i < TASK_FILES_MAX; i++) {
@@ -143,13 +144,17 @@ struct task_struct *fork_curr_task(void) {
         }
     }
 
-    /* TODO: deep copy mm */
+    /* Add this new child to the parent */
+    add_child(curr_task, task);
 
-    /* TODO: COW stuff */
+    /* TODO: maybe we steal our parent's foreground status */
+    curr_task->foreground = 0;/* change to 1; to let all tasks read */
 
     task_add_new(task); /* add to run queue and task list */
 
     return task;
+out_task:
+    kfree(task);
 out_stack:
     free_page((uint64_t)kstack);
     return NULL;
@@ -297,16 +302,9 @@ void add_child(struct task_struct *parent, struct task_struct *chld) {
     if(!parent || !chld)
         return;
 
-    if(!parent->chld) {
-        /* First child */
-        parent->chld = chld;
-    } else {
-        /* Loop over all children (1st child, then the siblings) */
-        struct task_struct *prev = parent->chld;
-        for(;prev->sib != NULL; prev = prev->sib) {
-        }
-        prev->sib = chld;
-    }
+    /* Push new child onto the parent's list */
+    chld->sib = parent->chld;
+    parent->chld = chld;
 }
 
 /**
