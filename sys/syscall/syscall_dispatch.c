@@ -83,6 +83,10 @@ pid_t sys_wait4(pid_t pid, int *status, int options, struct rusage *rusage) {
     return do_wait4(pid, status, options, rusage);
 }
 
+int sys_kill(pid_t pid, int sig) {
+    return do_kill(pid, sig);
+}
+
 int sys_nanosleep(const struct timespec *req, struct timespec *rem) {
     int err;
 
@@ -267,6 +271,9 @@ int64_t syscall_dispatch(int64_t a1, int64_t a2, int64_t a3,
             break;
         case SYS_wait4:
             rv = sys_wait4((pid_t)a1, (int *)a2, (int)a3, (struct rusage *)a4);
+            break;
+        case SYS_kill:
+            rv = sys_kill((pid_t)a1, (int)a2);
             break;
         case SYS_uname:
             rv = sys_uname((struct utsname *)a1);

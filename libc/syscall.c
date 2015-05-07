@@ -173,6 +173,10 @@ pid_t wait4(pid_t pid, int *status, int options, struct rusage *rusage){
             (uint64_t)options, (uint64_t)rusage);
 }
 
+int kill(pid_t pid, int sig) {
+    return (int) syscall_2(SYS_kill, (uint64_t)pid, (uint64_t)sig);
+}
+
 int nanosleep(const struct timespec *req, struct timespec *rem) {
     return (int) syscall_2(SYS_nanosleep, (uint64_t)req, (uint64_t)rem);
 }

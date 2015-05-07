@@ -15,6 +15,8 @@ int do_execve(const char *filename, const char **argv, const char **envp);
 
 pid_t do_wait4(pid_t pid, int *status, int options, struct rusage *rusage);
 
+int do_kill(pid_t pid, int sig);
+
 int do_nanosleep(const struct timespec *req, struct timespec *rem);
 
 char *do_getcwd(char *buf, size_t size);
