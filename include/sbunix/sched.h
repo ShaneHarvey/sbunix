@@ -7,9 +7,12 @@
 #include <sbunix/fs/vfs.h>   /* file */
 #include <sbunix/time.h>
 
-extern struct queue         run_queue;
-extern struct queue         just_ran_queue;
-extern struct queue         block_queue;
+/* For description of queues see sched.c */
+extern struct queue run_queue;
+extern struct queue just_ran_queue;
+extern struct queue block_queue;
+extern struct queue sleep_queue;
+
 extern struct mm_struct     kernel_mm;
 extern struct task_struct   kernel_task;
 extern struct task_struct   *curr_task;
@@ -20,9 +23,9 @@ extern struct task_struct   *curr_task;
 
 /* Kernel thread or user process */
 struct task_struct {
-    int type;
-    int state;
-    int first_switch;
+    int type;             /* See enum task_type */
+    int state;            /* See enum task_state */
+    int first_switch;     /* Flag for tricks to kick start a task */
     int foreground;       /* True if this task controls the terminal */
     int in_syscall;       /* Set to 1 if this task is in a system call */
     int timeslice;        /* User timeslices */
@@ -30,10 +33,10 @@ struct task_struct {
     pid_t pid;            /* Process ID, monotonically increasing. 0 is not valid */
     int exit_code;        /* Exit code of a process, returned by wait() */
     void *blocked_on;     /* Pointer to data structure that this task is waiting on */
-    uint64_t kernel_rsp;
-    struct mm_struct *mm; /* virtual memory info, kernel tasks all share a global */
+    uint64_t kernel_rsp;  /* Kernel's 4KB stack */
+    struct mm_struct *mm; /* virtual memory info, kernel tasks all share &kernel_mm */
     struct task_struct *next_task, *prev_task; /* for traversing all tasks */
-    struct task_struct *next_rq;    /* for traversing a run queue */
+    struct task_struct *next_rq;               /* for traversing a queue */
     struct task_struct *parent, *chld, *sib;   /* parent/child/sibling pointers */
     struct file *files[TASK_FILES_MAX];
     char cmdline[TASK_CMDLINE_MAX + 1];

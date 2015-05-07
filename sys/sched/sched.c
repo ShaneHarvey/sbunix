@@ -40,20 +40,31 @@ struct task_struct kernel_task = {
 /* The currently running task */
 struct task_struct *curr_task = &kernel_task;
 /* The last (previous) task to run, may need to be reaped */
-struct task_struct *last_task = NULL;
+static struct task_struct *last_task = NULL;
 
+/* Holds a singly linked list of tasks in the state TASK_RUNNABLE.
+ * When depleted it grabs the list from the just_ran_queue. */
 struct queue run_queue = {
         .num_switches = 0,
         .tasks = NULL,
 };
 
+/* Holds a singly linked list of tasks in the state TASK_RUNNABLE */
 struct queue just_ran_queue = {
         .num_switches = 0,
         .tasks = NULL,
 
 };
 
+/* Hold's tasks in the state TASK_BLOCKED, could be waiting on terminals or
+ * children */
 struct queue block_queue = {
+        .num_switches = 0,
+        .tasks = NULL,
+};
+
+/* Hold's tasks in the state TASK_SLEEPING, from call to nanosleep(2) */
+struct queue sleep_queue = {
         .num_switches = 0,
         .tasks = NULL,
 };
@@ -164,7 +175,7 @@ struct task_struct *fork_curr_task(void) {
     /* Add this new child to the parent */
     add_child(curr_task, task);
 
-    /* TODO: maybe we steal our parent's foreground status */
+    /* TODO: Here we steal our parent's foreground status */
     curr_task->foreground = 0;/* change to 1; to let all tasks read */
 
     task_add_new(task); /* add to run queue and task list */
@@ -197,6 +208,7 @@ void task_destroy(struct task_struct *task) {
             task->files[i] = NULL;
         }
     }
+    /* TODO: Notify parent of child's termination */
 
     /* Give terminal control back to the parent */
     if(task->foreground && task->parent) {
@@ -265,6 +277,8 @@ void queue_add_by_state(struct task_struct *task) {
         rr_queue_add(&just_ran_queue, task);
     } else if(task->state == TASK_BLOCKED) {
         rr_queue_add(&block_queue, task);
+    } else if(task->state == TASK_SLEEPING) {
+        rr_queue_add(&sleep_queue, task);
     } else {
         kpanic("Don't know which queue to put task into: state=%d\n", task->state);
     }
@@ -280,6 +294,8 @@ void queue_remove_by_state(struct task_struct *task) {
         rr_queue_remove(&just_ran_queue, task);
     } else if(task->state == TASK_BLOCKED) {
         rr_queue_remove(&block_queue, task);
+    } else if(task->state == TASK_SLEEPING) {
+        rr_queue_remove(&sleep_queue, task);
     } else {
         kpanic("Don't know which queue to remvoe task from: state=%d\n", task->state);
     }
@@ -293,7 +309,6 @@ void queue_remove_by_state(struct task_struct *task) {
 void task_add_new(struct task_struct *task) {
     if(!task)
         return;
-
     task_list_add(task);
     queue_add_by_state(task);
 }
@@ -409,13 +424,6 @@ void task_unblock_foreground(void *blocked_on) {
             /* TODO: break; ???? */
         }
     }
-}
-
-/**
- * @return: 1 if sleeping, 0 if not sleeping
- */
-int task_sleeping(struct task_struct *task) {
-    return task->sleepts.tv_nsec || task->sleepts.tv_sec;
 }
 
 /**
