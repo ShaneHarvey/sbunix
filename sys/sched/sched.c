@@ -97,6 +97,8 @@ struct task_struct *ktask_create(void (*start)(void), char *name) {
     task->pid = get_next_pid();
     task_set_cmdline(task, name);
 
+    task->timeslice = TIMESLICE_BASE;
+
     task_add_new(task); /* add to run queue and task list */
     return task;
 
@@ -293,13 +295,6 @@ int task_sleeping(struct task_struct *task) {
 }
 
 /**
- * Reset the timeslice.
- */
-void reset_timeslice(struct task_struct *task) {
-    /* TODO */
-}
-
-/**
  * Add chld to parent's list of children.
  */
 void add_child(struct task_struct *parent, struct task_struct *chld) {
@@ -362,6 +357,9 @@ static void __attribute__((noinline)) post_context_switch(void) {
     } else {
         queue_add_by_state(last_task);
     }
+
+    /* Refill the timeslice */
+    reset_timeslice(curr_task);
 }
 
 /**
