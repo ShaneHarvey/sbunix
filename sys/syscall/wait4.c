@@ -1,4 +1,5 @@
 #include <sbunix/syscall.h>
+#include <sys/wait.h> /* W* defines */
 
 /**
  * TODO: this

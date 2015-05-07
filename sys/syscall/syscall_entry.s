@@ -35,20 +35,46 @@ syscall_entry:
     pushq %rcx                      # save user RIP onto kern stack
     movq %r10, %rcx                 # switch syscall convention to SYSV C convention
 
-    pushq %rax                      # 7th arg must be on stack for SYSV C
+# Save user regs, except rax, rcx, and r11
+    pushq %rbx
+    pushq %rdx
+    pushq %rsi
+    pushq %rdi
+    pushq %r8
+    pushq %r9
+    pushq %r10
+    pushq %r12
+    pushq %r13
+    pushq %r14
+    pushq %r15
+    pushq %rbp
 
+    pushq %rax                      # 7th arg must be on stack for SYSV C
     call syscall_dispatch
     addq $0x8, %rsp                 # pop 7th arg
 
-    # Prepare for sysretq
-    popq %rcx                       # pop user return addr off kern stack
-    popq %r11                       # pop user RFLAGS
-    popq %rsp                       # restore user stack
-    sysretq
+    jmp restore_and_sysret
 
+# Child returns here from fork, we need to store 0 in rax
 .global child_ret_from_fork
-child_ret_from_fork:                # Child returns here from fork
+child_ret_from_fork:
     xorq %rax, %rax                 # Child returns 0
+
+restore_and_sysret:
+# Restore user regs, except rax, rcx, and r11
+    popq %rbp
+    popq %r15
+    popq %r14
+    popq %r13
+    popq %r12
+    popq %r10
+    popq %r9
+    popq %r8
+    popq %rdi
+    popq %rsi
+    popq %rdx
+    popq %rbx
+
     # Prepare for sysretq
     popq %rcx                       # pop user return addr off kern stack
     popq %r11                       # pop user RFLAGS

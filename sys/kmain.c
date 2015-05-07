@@ -12,9 +12,10 @@
 void kmain(void) {
     clear_console();
     printk("*** Welcome to SBUnix ***\n");
+    /* IRQs off in kernel */
+    cli();
 
     ktask_create(test_exec, "TestExec");
-
 
     /* idle task */
     while(1){
