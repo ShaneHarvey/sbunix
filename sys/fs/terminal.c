@@ -122,6 +122,17 @@ static int term_poplast(void) {
  * @c:  Character to enqueue
  */
 void term_putch(unsigned char c) {
+    /* Special kill character */
+    if(c == CTRL_C) {
+        /* Flush terminal buffer and kill current task */
+        printk("^C\n");
+        term_reset();
+        /* TODO: kill controlling task NOT current task */
+        if(curr_task->pid >= 2) {
+            printk("killing %s\n", curr_task->cmdline);
+            kill_curr_task(130);
+        }
+    }
     /* handle backspace here */
     if(c == '\b') {
         if(term.backspace == 0)

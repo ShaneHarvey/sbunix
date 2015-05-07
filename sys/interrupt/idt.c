@@ -372,10 +372,9 @@ REAL_INTERRUPT(32);  /* Programmable Interrupt Timer Interrupt */
 REAL_INTERRUPT(33);    /* Keyboard Interrupt */
 void ISR_HANDLER(33) {
     uint8_t scan_code = inb(0x60);
-    sc_add(scan_code);
-//    printk("%x, ", (uint32_t)scan_code);
     /* Acknowledge interrupt */
     PIC_sendEOI(33);
+    sc_add(scan_code);
 }
 
 DUMMY_INTERRUPT(34); /* Cascade (used internally by the two PICs. never raised) */

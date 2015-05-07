@@ -3,6 +3,8 @@
 
 #include <sbunix/fs/vfs.h>
 
+#define ETX  3
+#define CTRL_C ETX
 #define EOT  4
 #define EOF  -1
 
