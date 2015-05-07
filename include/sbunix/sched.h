@@ -2,6 +2,7 @@
 #define _SBUNIX_SCHED_H
 
 #include <sys/defs.h>
+#include <sys/signal.h>
 #include <sbunix/mm/types.h> /* mm_struct */
 #include <sbunix/fs/vfs.h>   /* file */
 #include <sbunix/time.h>
@@ -50,7 +51,7 @@ enum task_state {
 };
 
 /* Exit Codes */
-#define EXIT_SEGV       139
+#define EXIT_FATALSIG   128  /* Added to fatal signal for exit codes */
 #define EXIT_ENOMEM     1
 
 /* Base timeslice in number of interrupts */
@@ -72,9 +73,12 @@ void task_set_cmdline(struct task_struct *task, char *cmdline);
 pid_t get_next_pid(void);
 void scheduler_test(void);
 void debug_task(struct task_struct *task);
-void kill_curr_task(int exit_code);
 struct task_struct *fork_curr_task(void);
 int task_files_init(struct task_struct *task);
+int cleanup_child(struct task_struct *task);
+void kill_curr_task(int exit_code);
+void kill_other_task(struct task_struct *task, int exit_code);
+void send_signal(struct task_struct *task, int signal);
 
 static inline void reset_timeslice(struct task_struct *task) {
     task->timeslice = TIMESLICE_BASE;

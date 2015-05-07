@@ -151,7 +151,7 @@ void _isr_handler_14(uint64_t errorcode, uint64_t fault_rip) {
 pf_violation:
     debug("Page-Fault (#PF) at RIP %p, on ADDR %p!\n", (void*)fault_rip, (void*)addr);
     /* Kill current task */
-    kill_curr_task(EXIT_SEGV);
+    kill_curr_task(EXIT_FATALSIG + SIGSEGV);
     kpanic("!! kill_curr_task returned!! Page-Fault SEGV !!\n");
 
 pf_enomem:
