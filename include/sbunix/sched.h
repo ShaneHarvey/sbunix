@@ -71,15 +71,14 @@ struct queue {
 
 struct task_struct *foreground_task(void);
 void task_block(void *block_on);
+void task_wakeup(struct queue *from_queue, struct task_struct *task);
 void task_unblock(void *blocked_on);
 void task_unblock_foreground(void *blocked_on);
-int task_sleeping(struct task_struct *task);
 void schedule(void);
 void scheduler_init(void);
 struct task_struct *ktask_create(void (*start)(void), const char *name);
 void task_set_cmdline(struct task_struct *task, const char *cmdline);
 pid_t get_next_pid(void);
-void scheduler_test(void);
 void debug_task(struct task_struct *task);
 struct task_struct *fork_curr_task(void);
 int task_files_init(struct task_struct *task);
