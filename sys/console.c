@@ -97,7 +97,9 @@ void putch(char c) {
 
     /* Row 25 is the end, this means we need to scroll up */
     if(cursor_y >= SCRN_HEIGHT) {
-        memmove(SCRN_BASE, SCRN_XY(0, 1), 2 * (SCRN_WIDTH * (SCRN_HEIGHT - 1)));
+        /* Don't overwrite time in top right corner */
+        memmove(SCRN_BASE, SCRN_XY(0, 1), 2 * (SCRN_WIDTH - 7));
+        memmove(SCRN_XY(0, 1), SCRN_XY(0, 2), 2 * (SCRN_WIDTH * (SCRN_HEIGHT - 2)));
         clear_line(SCRN_HEIGHT - 1);
         cursor_y = SCRN_HEIGHT - 1;
     }
