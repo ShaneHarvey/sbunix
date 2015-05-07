@@ -5,6 +5,8 @@
 
 #include "test/test.h"
 
+void run_init(void);
+
 /**
  * The entry point of our kernel. Here we have access to a page allocator and
  * interrupts are enabled.
@@ -15,8 +17,7 @@ void kmain(void) {
     /* IRQs off in kernel */
     cli();
 
-//    ktask_create(test_exec, "TestExec");
-    ktask_create(test_terminal, "TestPreemeptuser");
+    ktask_create(run_init, "[init]");
 
     /* idle task */
     while(1){
@@ -25,4 +26,21 @@ void kmain(void) {
     }
 
     kpanic("\nReturned to kmain!!!\n");
+}
+
+void run_init(void) {
+    int err;
+
+    /* Init stdout/stdin/stderr */
+    err = task_files_init(curr_task);
+    if(err)
+        kpanic("init: failed to create terminal: %s\n", strerror(-err));
+
+    /* Start the init process, this should not return */
+    err = do_execve("/bin/init", NULL, NULL);
+    if(err)
+        kpanic("init: '/bin/init' failed: %s\n", strerror(-err));
+
+    /* cleanup if do_execve fails */
+    kill_curr_task(0);
 }

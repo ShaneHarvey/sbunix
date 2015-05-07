@@ -225,7 +225,6 @@ int procces_cmd(cmd_t *cmd, char **envp) {
             wpid = waitpid(curcmd->pid, &status, 0);
             if (wpid == (pid_t)-1) {
                 printf("waitpid failed: %s\n", strerror(errno));
-                exit(1);
             }
             if(WIFEXITED(status))
                 curcmd->status = WEXITSTATUS(status);

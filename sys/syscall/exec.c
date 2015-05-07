@@ -95,8 +95,7 @@ int do_execve(const char *filename, const char **argv, const char **envp) {
     }
     curr_task->mm = mm;
     /* Update curr_task->cmdline  */
-    strncpy(curr_task->cmdline, filename, TASK_CMDLINE_MAX);
-    /* TODO: Copy on write stuff????? */
+    task_set_cmdline(curr_task, filename);
     debug("new mm->usr_rsp=%p, mm->user_rip=%p\n", mm->user_rsp, mm->user_rip);
     enter_usermode(mm->user_rsp, mm->user_rip);
     return -ENOEXEC;

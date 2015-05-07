@@ -82,7 +82,7 @@ void scheduler_start(void) {
  * the type will be TASK_KERN.
  * @start: function the task will start at, no arguments and returns void
  */
-struct task_struct *ktask_create(void (*start)(void), char *name) {
+struct task_struct *ktask_create(void (*start)(void), const char *name) {
     struct task_struct *task;
     uint64_t *stack;
 
@@ -228,7 +228,7 @@ int cleanup_child(struct task_struct *task) {
 /**
  * Set the task cmdline to the string cmdline
  */
-void task_set_cmdline(struct task_struct *task, char *cmdline) {
+void task_set_cmdline(struct task_struct *task, const char *cmdline) {
     if(!task)
         return;
     strncpy(task->cmdline, cmdline, TASK_CMDLINE_MAX);
