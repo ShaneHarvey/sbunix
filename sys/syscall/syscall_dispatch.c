@@ -62,7 +62,7 @@ pid_t sys_getppid(void) {
         return curr_task->parent->pid;
 }
 
-int sys_execve(const char *filename, const char **argv, const char **envp) {
+long sys_execve(const char *filename, const char **argv, const char **envp) {
     /* TODO: validate unbounded pointers ???? */
     return do_execve(filename, argv, envp);
 }
@@ -184,6 +184,8 @@ int sys_getdents(unsigned int fd, struct dirent *dirp, unsigned int count) {
     int err;
     if(!dirp)
         return -EFAULT;
+    if(!count)
+        return -EINVAL;
     err = valid_userptr_write(curr_task->mm, dirp, count);
     if(err)
         return err;

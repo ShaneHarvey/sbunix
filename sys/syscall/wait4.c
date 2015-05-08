@@ -5,7 +5,7 @@
 
 /**
  *
- * @pid: < -1  TODO meaning  wait  for any child process whose process group ID
+ * @pid: < -1  meaning  wait  for any child process whose process group ID
  *             is equal to the absolute value of pid.
  *
  *    0 or -1  meaning wait for any child process.

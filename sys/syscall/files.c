@@ -192,11 +192,15 @@ int do_dup2(int oldfd, int newfd) {
  * @count: the number of bytes in dirp
  */
 int do_getdents(unsigned int fd, struct dirent *dirp, unsigned int count) {
-    if(!dirp)
-        return -EFAULT;
-
+    struct file *filep;
     if(INVALID_FD(fd))
         return -EBADF;
+
+    filep = curr_task->files[fd];
+    if(!filep)
+        return -EBADFD;
+
+    /* TODO: call filep->readdir() */
 
     return -ENOSYS;
 }

@@ -173,9 +173,17 @@ struct file *tarfs_open(const char *path, int flags, mode_t mode, int *err) {
  */
 off_t tarfs_lseek(struct file *fp, off_t offset, int whence) {
     off_t new_off;
+    struct posix_header_ustar *hd;
     /* Error checking */
     if(!fp)
         return -EBADF;
+    hd = (struct posix_header_ustar *)fp->private_data;
+    if(hd->typeflag == TARFS_DIRECTORY)
+        return -EISDIR;
+
+    if(!tarfs_normal_type(hd))
+        return -EINVAL;
+
     switch(whence) {
         case SEEK_SET:
             if(offset < 0 || offset >= fp->f_size)
@@ -223,7 +231,6 @@ ssize_t tarfs_read(struct file *fp, char *buf, size_t count, off_t *offset) {
     if(hd->typeflag == TARFS_DIRECTORY)
         return -EISDIR;
 
-    /* TODO: change this to check flags */
     if(!tarfs_normal_type(hd) || *offset >= fp->f_size)
         return -EINVAL;
     /* Do read */
@@ -249,11 +256,19 @@ ssize_t tarfs_write(struct file *fp, const char *buf, size_t count,
 }
 
 /**
- * Return the next directory in a directory listing.
+ * Return the next file in a directory listing.
+ * Read one dirent from filep into buf, if the size permits.
+ *
+ * @filep: validated in sys_getdents/do_getdents
+ * @buf:   validated in sys_getdents/do_getdents
+ * @count: size of buf
  */
-//int tarfs_readdir(struct file *fp, void *dirent, filldir_t filldir) {
-//    return 0;
-//}
+int tarfs_readdir(struct file *filep, void *buf, unsigned int count) {
+    struct linux_dirent *nuxdirent;
+
+
+    return -1;
+}
 
 /**
  * Called while closing a file descriptor to free any information related
