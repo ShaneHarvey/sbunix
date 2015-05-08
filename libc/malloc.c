@@ -2,7 +2,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
-#include <debug.h>
 
 #define MAX(a, b)           (((a)>(b))?(a):(b))
 #define INC_PTR(ptr, inc)   ((void*)(((char*)(ptr)) + (inc)))

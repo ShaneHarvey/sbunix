@@ -24,9 +24,9 @@ int64_t syscall_0(int64_t n) {
         "movq %1, %%rax;"
         "syscall;"
         "movq %%rax, %0;"
-        : "=g"(rv)  /* output */
+        :"=g"(rv)  /* output */
         :"g"(n)     /* input */
-        : "%rax"    /* clobbered registers */
+        :"%rax", "memory"    /* clobbered registers */
     );
     SYSCALL_ERROR_RETURN(rv);
 }
@@ -38,9 +38,9 @@ int64_t syscall_1(int64_t n, int64_t a1) {
         "movq %2, %%rdi;"
         "syscall;"
         "movq %%rax, %0;"
-        : "=g"(rv)
+        :"=g"(rv)
         :"g"(n), "g"(a1)
-        : "%rax", "%rdi"
+        :"%rax", "%rdi", "memory"
     );
     SYSCALL_ERROR_RETURN(rv);
 }
@@ -53,9 +53,9 @@ int64_t syscall_2(int64_t n, int64_t a1, int64_t a2) {
         "movq %3, %%rsi;"
         "syscall;"
         "movq %%rax, %0;"
-        : "=g"(rv)
+        :"=g"(rv)
         :"g"(n), "g"(a1), "g"(a2)
-        : "%rax", "%rdi", "%rsi"
+        :"%rax", "%rdi", "%rsi", "memory"
     );
     SYSCALL_ERROR_RETURN(rv);
 }
@@ -69,9 +69,9 @@ int64_t syscall_3(int64_t n, int64_t a1, int64_t a2, int64_t a3) {
         "movq %4, %%rdx;"
         "syscall;"
         "movq %%rax, %0;"
-        : "=g"(rv)
+        :"=g"(rv)
         :"g"(n), "g"(a1), "g"(a2), "g"(a3)
-        : "%rax", "%rdi", "%rsi", "%rdx"
+        :"%rax", "%rdi", "%rsi", "%rdx", "memory"
     );
     SYSCALL_ERROR_RETURN(rv);
 }
@@ -86,9 +86,9 @@ int64_t syscall_4(int64_t n, int64_t a1, int64_t a2, int64_t a3, int64_t a4) {
         "movq %5, %%r10;"
         "syscall;"
         "movq %%rax, %0;"
-        : "=g"(rv)
+        :"=g"(rv)
         :"g"(n), "g"(a1), "g"(a2), "g"(a3), "g"(a4)
-        : "%rax", "%rdi", "%rsi", "%rdx", "%r10"
+        :"%rax", "%rdi", "%rsi", "%rdx", "%r10", "memory"
     );
     SYSCALL_ERROR_RETURN(rv);
 }
@@ -105,9 +105,9 @@ int64_t syscall_5(int64_t n, int64_t a1, int64_t a2, int64_t a3, int64_t a4,
         "movq %6, %%r8;"
         "syscall;"
         "movq %%rax, %0;"
-        : "=g"(rv)
+        :"=g"(rv)
         :"g"(n), "g"(a1), "g"(a2), "g"(a3), "g"(a4), "g"(a5)
-        : "%rax", "%rdi", "%rsi", "%rdx", "%r10", "%r8"
+        :"%rax", "%rdi", "%rsi", "%rdx", "%r10", "%r8", "memory"
     );
     SYSCALL_ERROR_RETURN(rv);
 }
@@ -125,9 +125,9 @@ int64_t syscall_6(int64_t n, int64_t a1, int64_t a2, int64_t a3, int64_t a4,
         "movq %7, %%r9;"
         "syscall;"
         "movq %%rax, %0;"
-        : "=g"(rv)
+        :"=g"(rv)
         :"g"(n), "g"(a1), "g"(a2), "g"(a3), "g"(a4), "g"(a5), "g"(a6)
-        : "%rax", "%rdi", "%rsi", "%rdx", "%r10", "%r8", "%r9"
+        :"%rax", "%rdi", "%rsi", "%rdx", "%r10", "%r8", "%r9", "memory"
     );
     SYSCALL_ERROR_RETURN(rv);
 }

@@ -4,8 +4,6 @@
 #include <string.h>
 #include <errno.h>
 
-#include <debug.h>
-
 /**
 * Usage:
 * $ ls
@@ -17,7 +15,7 @@ int main(int argc, char *argv[]) {
     struct dirent *dent = NULL;
     void *dir = opendir((argc == 1)?("."):(argv[1]));
     if(!dir) {
-        error("opendir failed: %s\n", strerror(errno));
+        printf("opendir failed: %s\n", strerror(errno));
         return 1;
     }
 
@@ -26,7 +24,7 @@ int main(int argc, char *argv[]) {
         dent = readdir(dir);
         if(!dent) {
             if(errno != 0){
-                error("readdir failed: %s\n", strerror(errno));
+                printf("readdir failed: %s\n", strerror(errno));
                 retval = 1;
                 break;
             }

@@ -9,9 +9,8 @@
 #include <fcntl.h>        /* open */
 #include <errno.h>        /* errno */
 
-const char *sbush_argv[] = {NULL};
-const char *sbush_envp[] = {"PATH=/bin/:", "HOME=/root/", "USER=root", NULL};
-char *sbush_path = "/bin/sbush";
+char *const sbush_argv[] = {"/bin/sbush", NULL};
+char *const sbush_envp[] = {"PATH=/bin/:", "HOME=/root/", "USER=root", NULL};
 
 int main(int argc, char **argv, char **envp) {
     pid_t sbush_pid;
@@ -23,8 +22,8 @@ int main(int argc, char **argv, char **envp) {
     } else if(sbush_pid == 0) {
         /* change to root's home dir and exec shell */
         chdir("/root");
-        execve(sbush_path, argv, envp);
-        printf("\n/bin/init: execve '%s': %s\n", sbush_path, strerror(errno));
+        execve(sbush_argv[0], sbush_argv, sbush_envp);
+        printf("\n/bin/init: execve '%s': %s\n", sbush_argv[0], strerror(errno));
         exit(1);
     }
 //    printf("/bin/init: sbush pid=%d!\n", (int)sbush_pid);
