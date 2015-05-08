@@ -203,18 +203,21 @@ uint64_t find_mmap_space(struct mm_struct *mm, size_t length) {
     if(!mm)
         return 0;
 
-    length = ALIGN_UP(length, PAGE_SIZE);
-
     /* for each vm area */
-    for(vma = mm->vmas; vma != NULL; vma = vma->vm_next) {
+    for(vma = mm->vmas; vma->vm_next != NULL; vma = vma->vm_next) {
 
-        if(vma->vm_end <= USER_MMAP_START)
-            continue;
-        /* Now we're past the USER_MMAP_START limit */
+        /* Try to start at USER_MMAP_START */
         avail_start = ALIGN_UP(vma->vm_end + 1, PAGE_SIZE);
-        if(!vma->vm_next || vma->vm_next->vm_start > avail_start + length)
+        avail_start = MAX(avail_start, USER_MMAP_START);
+
+        if(vma->vm_next->vm_start < avail_start)
+            continue;  /* We must pass the USER_MMAP_START threshold */
+
+        if(avail_start + length < vma->vm_next->vm_start && avail_start > vma->vm_end)
             return avail_start;
     }
+    /* Trying to add above the stack, immediately after here is the
+     * non-canonical address whole in x86_64. Just return 0 */
     return 0;
 }
 
@@ -601,7 +604,7 @@ int vma_contains_region(struct vm_area *vma, uint64_t addr, size_t size) {
         return 0;
     if(vma->vm_start == vma->vm_end)
         return vma->vm_start == addr;
-    return (vma->vm_start <= addr && (addr+size) < vma->vm_end);
+    return (vma->vm_start <= addr && (addr+size) <= vma->vm_end); /* todo: is the second <= wrong? */
 }
 
 /**
