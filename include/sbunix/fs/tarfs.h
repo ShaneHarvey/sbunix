@@ -60,9 +60,6 @@ struct posix_header_ustar {
 uint64_t aotoi(char *optr, int length);
 void test_aotoi(void);
 
-/**
- * Return the first tarfs header in the file system
- */
 static inline int tarfs_isfile(struct posix_header_ustar *hd) {
     if(!hd)
         return 0;
@@ -114,5 +111,7 @@ ssize_t tarfs_write(struct file *fp, const char *buf, size_t count,
 int tarfs_close(struct file *fp);
 
 long tarfs_isdir(const char *rpath);
+
+long tarfs_init(void);
 
 #endif

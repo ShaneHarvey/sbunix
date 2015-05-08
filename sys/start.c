@@ -50,6 +50,8 @@ void start(uint32_t* modulep, uint64_t physbase, uint64_t physfree)
 	physmem_init();
 	physmem_report();
 
+	tarfs_init();
+
 	scheduler_init();
 
 	enable_syscalls();

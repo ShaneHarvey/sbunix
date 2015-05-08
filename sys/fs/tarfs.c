@@ -264,6 +264,34 @@ int tarfs_close(struct file *fp) {
  * Return 0 if the absolute path is a directory
  */
 long tarfs_isdir(const char *abspath) {
+    struct posix_header_ustar *hd;
+
+    for(hd = tarfs_first(); hd != NULL; hd = tarfs_next(hd)) {
+        size_t len = strnlen(hd->name, sizeof(hd->name));
+        if(hd->name[len-1] == '/')
+        if(strncmp(abspath+1, hd->name, sizeof(hd->name)) == 0) {
+
+        }
+    }
     //return -ENOENT;
     return -ENOTDIR;
+}
+
+
+/**
+ * removes all the trailing slashes from tar file names
+ */
+long tarfs_init(void) {
+    struct posix_header_ustar *hd;
+    size_t len;
+
+    for(hd = tarfs_first(); hd != NULL; hd = tarfs_next(hd)) {
+        if(hd->typeflag != TARFS_DIRECTORY)
+            continue;
+        /* remove trailing slash */
+        len = strnlen(hd->name, sizeof(hd->name));
+        if(hd->name[len-1] == '/')
+            hd->name[len-1] = '\0';
+    }
+    return 0;
 }
