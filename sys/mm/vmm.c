@@ -1,6 +1,4 @@
 #include <sbunix/mm/vmm.h>
-#include <sbunix/mm/pt.h>
-#include <sbunix/fs/vfs.h>
 #include <sbunix/string.h>
 #include <sbunix/sched.h>
 #include <errno.h>
@@ -21,12 +19,10 @@
 
 
 /* Private functions */
-int mm_add_vma(struct mm_struct *mm, struct vm_area *vma);
 void mm_list_add(struct mm_struct *mm);
 int vma_intersects(struct vm_area *vma, struct vm_area *other);
 int vma_contains(struct vm_area *vma, uint64_t addr);
 int vma_contains_region(struct vm_area *vma, uint64_t addr, size_t size);
-int vma_grow_up(struct vm_area *vma, uint64_t new_end);
 
 
 /**
@@ -194,6 +190,36 @@ out_vma:
 }
 
 /**
+ * Search for an unused region of length bytes in the virtual memory of mm.
+ * The region must be above USER_MMAP_START.
+ * NOTE: Right now it is possible for this to return a region past our stack.
+ *
+ * @length: must be aligned to PAGE_SIZE
+ * @return: the start of a region of lngth bytes that can be given to mmap_area.
+ *          0 on error
+ */
+uint64_t find_mmap_space(struct mm_struct *mm, size_t length) {
+    struct vm_area *vma;
+    uint64_t avail_start;
+    if(!mm)
+        return 0;
+
+    length = ALIGN_UP(length, PAGE_SIZE);
+
+    /* for each vm area */
+    for(vma = mm->vmas; vma != NULL; vma = vma->vm_next) {
+
+        if(vma->vm_end <= USER_MMAP_START)
+            continue;
+        /* Now we're past the USER_MMAP_START limit */
+        avail_start = ALIGN_UP(vma->vm_end + 1, PAGE_SIZE);
+        if(!vma->vm_next || vma->vm_next->vm_start > avail_start + length)
+            return avail_start;
+    }
+    return 0;
+}
+
+/**
  * Add a new vma into the mm struct. It is either a mmapped area
  * with a file backing, or an anon mmapped region.
  * @filep: NULL in anon mmap
@@ -203,7 +229,7 @@ out_vma:
  * @vm_start: start of vma
  * @vm_end: end of vma
  *
- * @return: 0 on error, 1 on success
+ * @return: 0 on success, or non-zero error
  */
 int mmap_area(struct mm_struct *mm, struct file *filep,
               off_t fstart, size_t fsize, uint64_t prot,
@@ -336,30 +362,6 @@ out_copy_mm:
     return NULL;
 }
 
-
-/**
- * Real work for brk()
- *    new break     -- on success
- *    current break -- on failure
- */
-uint64_t do_brk(struct mm_struct *mm, uint64_t newbrk) {
-    if(!mm)
-        kpanic("Null mm in do_brk!\n");
-    if(newbrk <= mm->brk)
-        return mm->brk;
-    else {
-        /* find the heap vma */
-        struct vm_area *heap = vma_find_region(mm->vmas, mm->start_brk, 0);
-        if(!heap)
-            kpanic("No heap vm area found!\n");
-        if(-1 == vma_grow_up(heap, ALIGN_UP(newbrk, PAGE_SIZE)))
-            return mm->brk;
-        else
-            return newbrk;
-    }
-}
-
-
 /**
  * Add the mm to the list of ALL mm_structs in the system.
  */
@@ -419,6 +421,27 @@ int mm_add_vma(struct mm_struct *mm, struct vm_area *vma) {
         }
     }
     return -1;
+}
+
+/**
+ * Remove the vma from mm's list of vm areas.
+ * NOTE: Use vma_destroy to free a vma
+ */
+void mm_remove_vma(struct mm_struct *mm, struct vm_area *vma) {
+    if(!mm || !vma)
+        return;
+    if(mm->vmas == vma) {
+        mm->vmas = vma->vm_next;
+        return;
+    } else {
+        struct vm_area *prev = mm->vmas;
+        for(; prev->vm_next != NULL; prev = prev->vm_next) {
+            if(prev->vm_next == vma) {
+                prev->vm_next = vma->vm_next;
+                return;
+            }
+        }
+    }
 }
 
 /**

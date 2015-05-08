@@ -10,4 +10,6 @@
 /* Same as above but rounds up. */
 #define ALIGN_UP(ptr, almt)   ALIGN_MASK(ptr, ( ((__typeof__(ptr))(almt) - 1) ))
 
+#define IS_ALIGNED(ptr, almt) (ptr & ((__typeof__(ptr))(almt) - 1))
+
 #endif

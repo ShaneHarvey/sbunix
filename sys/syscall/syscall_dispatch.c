@@ -202,12 +202,10 @@ int sys_uname(struct utsname *buf) {
 
 void *sys_mmap(void *addr, size_t length, int prot, int flags, int fd,
                off_t offset) {
-    /* TODO: validate user pointer */
     return do_mmap(addr,length, prot, flags, fd, offset);
 }
 
 int sys_munmap(void *addr, size_t length) {
-    /* TODO: validate user pointer */
     return do_munmap(addr, length);
 }
 

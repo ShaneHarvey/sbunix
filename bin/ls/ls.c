@@ -5,7 +5,6 @@
 #include <errno.h>
 
 #include <debug.h>
-#include "../../include/dirent.h"
 
 /**
 * Usage:
@@ -16,7 +15,7 @@
 int main(int argc, char *argv[]) {
     int retval = 0;
     struct dirent *dent = NULL;
-    DIR *dir = opendir((argc == 1)?("."):(argv[1]));
+    void *dir = opendir((argc == 1)?("."):(argv[1]));
     if(!dir) {
         error("opendir failed: %s\n", strerror(errno));
         return 1;

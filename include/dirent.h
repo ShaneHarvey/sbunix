@@ -5,7 +5,7 @@
 
 /* Directories */
 
-typedef struct dirstream DIR;
+//typedef struct dirstream DIR;
 struct dirstream {
     int fd;         /* Directory descriptor */
     size_t space;   /* Size of buf */
