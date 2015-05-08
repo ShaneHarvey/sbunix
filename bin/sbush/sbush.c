@@ -21,7 +21,6 @@ typedef struct cmd {
     struct cmd *next;
 }cmd_t;
 
-cmd_t *bg_cmds = NULL;
 
 int ignore_line(char *line);
 void print_prompt(char *ps1);
@@ -35,9 +34,9 @@ void exec_cmd(cmd_t *cmd, int infile, int outfile, char **envp);
 int procces_cmd(cmd_t *cmd, char **envp, int background);
 int eval_assignment(cmd_t *cmd);
 void save_cmd_info(cmd_t *cmd);
-void copy_cmd_to_bgs(cmd_t *old);
+void save_cmd_status(int status);
 void waitpid_bg_cmds(void);
-void waitpid_cmds(cmd_t *cmds, int background, int copy_to_bgs, int rm_from_bg);
+void waitpid_cmds(cmd_t *cmds, int background);
 
 /* TODO: change print prompt */
 char *ps1_default =  "[\\u@\\h \\w]$ ";
@@ -105,7 +104,7 @@ int main(int argc, char **argv, char **envp) {
         line[i] = '\0';
 
         /* Wait for background cmds */
-        waitpid_cmds(bg_cmds, 1, 0, 1);
+        waitpid_bg_cmds();
 
         if(ignore_line(line)) {
             continue;
@@ -154,45 +153,6 @@ int ignore_line(char *line) {
         return 1;
     }
     return 0;
-}
-
-/**
- * Puts a copy of cmd onto the bg list, bg_cmds.
- */
-void copy_cmd_to_bgs(cmd_t *old) {
-    cmd_t *new = malloc(sizeof(*new));
-    if(!new) {
-        printf("malloc failed: %s\n", strerror(errno));
-        exit(1);
-    }
-    memcpy(new, old, sizeof(*new));
-    new->next = bg_cmds;
-    bg_cmds = new;
-    printf("[1] %d\n", new->pid);
-}
-
-/**
- * Free a bg cmd
- */
-void rm_cmd_from_bgs(cmd_t *tofree) {
-    if(!bg_cmds)
-        return;
-
-    if(tofree == bg_cmds) {
-        printf("[1] + %d done\n", tofree->pid);
-        bg_cmds = tofree->next;
-        free(tofree);
-    } else {
-        cmd_t *prev = bg_cmds;
-        for(; prev->next != NULL; prev = prev->next) {
-            if(prev->next == tofree) {
-                printf("[1] + %d done\n", tofree->pid);
-                prev->next = tofree->next;
-                free(tofree);
-                return;
-            }
-        }
-    }
 }
 
 /**
@@ -280,17 +240,17 @@ int procces_cmd(cmd_t *cmd, char **envp, int background) {
 
     }
     /* wait for cmds */
-    waitpid_cmds(cmd, background, background, 0);
+    waitpid_cmds(cmd, background);
     return 1;
 }
 
 /**
- * cmds to wait on, are they background cmds? Should we copy them?
+ * cmds to wait on, are they background cmds?
  */
-void waitpid_cmds(cmd_t *cmds, int background, int copy_to_bgs, int rm_from_bg) {
+void waitpid_cmds(cmd_t *cmds, int background) {
     cmd_t *curcmd;
     pid_t wpid;
-    int options = 0, did_exit = 0;
+    int options = 0;
     if(background)
         options = WNOHANG;
     /* wait for pid */
@@ -300,19 +260,15 @@ void waitpid_cmds(cmd_t *cmds, int background, int copy_to_bgs, int rm_from_bg) 
         if (curcmd->pid != 0) {
             wpid = waitpid(curcmd->pid, &status, options);
             if (wpid == (pid_t) -1) {
-//                printf("waitpid failed: %s\n", strerror(errno));
-                if(copy_to_bgs)
-                    copy_cmd_to_bgs(curcmd); /* save into bg_cmds */
+                printf("waitpid failed: %s\n", strerror(errno));
                 continue;
             } else if (wpid == 0) {
-                if(copy_to_bgs)
-                    copy_cmd_to_bgs(curcmd); /* save into bg_cmds */
+                printf("[1] %d\n", curcmd->pid);
                 continue;                /* WNOHANG, would block */
             } else if (WIFEXITED(status)) {
                 curcmd->status = WEXITSTATUS(status);
-                did_exit = 1;
+                printf("[1] + %d done\n", curcmd->pid);
             } else if (WIFSIGNALED(status)) {
-                did_exit = 1;
                 curcmd->status = WTERMSIG(status);
                 if (curcmd->status != SIGINT) /* Don't print killed by ^C */
                     printf("[1] %d killed by signal %d, %s\n",
@@ -323,12 +279,36 @@ void waitpid_cmds(cmd_t *cmds, int background, int copy_to_bgs, int rm_from_bg) 
         }
         /* Save info about previous command to the environment */
         save_cmd_info(curcmd);
-
-        if(did_exit && rm_from_bg) {
-            rm_cmd_from_bgs(curcmd);
-            did_exit = 0;
-        }
     }
+}
+
+/**
+ * cmds to wait on, are they background cmds? Should we copy them?
+ */
+void waitpid_bg_cmds(void) {
+    pid_t wpid;
+    int status;
+
+    do {
+        wpid = waitpid(-1, &status, WNOHANG);
+        if (wpid == (pid_t) -1) {
+//            printf("waitpid failed: %s\n", strerror(errno));
+            break;
+        } else if (wpid == 0) {
+            /* WNOHANG, would block so break */
+            break;
+        } else if (WIFEXITED(status)) {
+            status = WEXITSTATUS(status);
+            printf("[1] + %d done\n", wpid);
+        } else if (WIFSIGNALED(status)) {
+            status = WTERMSIG(status);
+            if(status != SIGINT) /* Don't print killed by ^C */
+                printf("[1] %d killed by signal %d\n", wpid, status);
+        } else {
+            status = 1; /* ? Didn't exit or get killed by signal? */
+        }
+    } while (1);
+    save_cmd_status(status);
 }
 
 /**
@@ -436,9 +416,16 @@ int build_path(char *prog, char *fullpath) {
 */
 void save_cmd_info(cmd_t *cmd) {
     char str_status[4] = {0};
-    cmd->status &= 0xFF;
     save_var("?", uitoa((uint)cmd->status, 10, str_status, 4));
     save_var("_", cmd->argv[0]);
+}
+
+/**
+* Saves info about the previous command.
+*/
+void save_cmd_status(int status) {
+    char str_status[4] = {0};
+    save_var("?", uitoa((uint)status, 10, str_status, 4));
 }
 
 /**
