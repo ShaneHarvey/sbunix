@@ -212,7 +212,9 @@ ssize_t tarfs_read(struct file *fp, char *buf, size_t count, off_t *offset) {
     hd = (struct posix_header_ustar *)fp->private_data;
     if(hd->typeflag == TARFS_DIRECTORY)
         return -EISDIR;
-    if(!tarfs_isfile(hd) || *offset >= fp->f_size)
+
+    /* TODO: change this to check flags */
+    if(!tarfs_normal_type(hd) || *offset >= fp->f_size)
         return -EINVAL;
     /* Do read */
     if(count == 0)
@@ -259,6 +261,51 @@ int tarfs_close(struct file *fp) {
     return 0;
 }
 
+/**
+ * Return 0 if the absolute path is a supported normal file
+ */
+long tarfs_isnormal(const char *abspath) {
+    struct posix_header_ustar *hd;
+
+    if(abspath[0] == '/' && abspath[1] == '\0')
+        return -EISDIR;
+
+    for(hd = tarfs_first(); hd != NULL; hd = tarfs_next(hd)) {
+        if(strncmp(abspath+1, hd->name, sizeof(hd->name)) == 0) {
+            if(hd->typeflag == TARFS_DIRECTORY)
+                return -EISDIR;
+            else if(tarfs_normal_type(hd))
+                return 0;
+            else
+                /* file type not supported */
+                return -EACCES;
+        }
+    }
+    return -ENOENT;
+}
+
+/**
+ * Return 0 if the absolute path is a supported file or directory
+ */
+long tarfs_isfile(const char *abspath) {
+    struct posix_header_ustar *hd;
+
+    if(abspath[0] == '/' && abspath[1] == '\0')
+        return 0;
+
+    for(hd = tarfs_first(); hd != NULL; hd = tarfs_next(hd)) {
+        if(strncmp(abspath+1, hd->name, sizeof(hd->name)) == 0) {
+            if(hd->typeflag == TARFS_DIRECTORY)
+                return 0;
+            else if(tarfs_normal_type(hd))
+                return 0;
+            else
+                /* file type not supported */
+                return -EACCES;
+        }
+    }
+    return -ENOENT;
+}
 
 /**
  * Return 0 if the absolute path is a directory
@@ -266,17 +313,19 @@ int tarfs_close(struct file *fp) {
 long tarfs_isdir(const char *abspath) {
     struct posix_header_ustar *hd;
 
-    for(hd = tarfs_first(); hd != NULL; hd = tarfs_next(hd)) {
-        size_t len = strnlen(hd->name, sizeof(hd->name));
-        if(hd->name[len-1] == '/')
-        if(strncmp(abspath+1, hd->name, sizeof(hd->name)) == 0) {
+    if(abspath[0] == '/' && abspath[1] == '\0')
+        return 0;
 
+    for(hd = tarfs_first(); hd != NULL; hd = tarfs_next(hd)) {
+        if(strncmp(abspath+1, hd->name, sizeof(hd->name)) == 0) {
+            if(hd->typeflag == TARFS_DIRECTORY)
+                return 0;
+            else
+                return -ENOTDIR;
         }
     }
-    //return -ENOENT;
-    return -ENOTDIR;
+    return -ENOENT;
 }
-
 
 /**
  * removes all the trailing slashes from tar file names
