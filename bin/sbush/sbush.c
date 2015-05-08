@@ -88,6 +88,7 @@ int main(int argc, char **argv, char **envp) {
                     exit(1);
                 }
             }
+            /* TODO: change to read more than 1 at a time */
             rv = read(inputfd, line + i, 1);
             if(rv <= 0) {
                 finished = 1;
@@ -317,6 +318,8 @@ int build_path(char *prog, char *fullpath) {
     if(slash == NULL) {
         char *path = load_var("PATH");
         int len = 0;
+        if(!path)
+            return 0;
         while(*path != '\0') {
             int fd;
             len = 0;
@@ -339,15 +342,10 @@ int build_path(char *prog, char *fullpath) {
                 path++;
             }
         }
-    } else if(prog[0] == '/' || (prog[0] == '.' && prog[1] == '/')) {
+    } else {
         strcpy(fullpath, prog);
         return 1;
-    } else {
-        strcpy(fullpath, "./");
-        strcpy(fullpath+2, prog);
-        return 1;
     }
-
     return 0;
 }
 
@@ -427,7 +425,6 @@ char **build_argv(char *line, int argc) {
     }
     /* ignore leading whitespace */
     strip(line);
-    argc = arg_count(line);
     argv = malloc((argc + 1) * sizeof(char *));
     if(argv == NULL) {
         printf("malloc failed: %s\n", strerror(errno));

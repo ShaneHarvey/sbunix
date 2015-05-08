@@ -29,9 +29,11 @@ int next_fd(struct task_struct *task) {
 /**
  * @mode: unused
  */
-int do_open(const char *pathname, int flags, mode_t mode) {
-    int newfd, err;
+long do_open(const char *pathname, int flags, mode_t mode) {
+    int newfd, ierr;
     struct file *newfilep;
+    char *rpath;
+    long err;
 
     if(!pathname)
         return -EFAULT;
@@ -40,10 +42,16 @@ int do_open(const char *pathname, int flags, mode_t mode) {
     newfd = next_fd(curr_task);
     if(newfd < 0)
         return newfd; /* too many files */
-    /* TODO: Resolve pathname to an absolute path */
-    newfilep = tarfs_open(pathname, flags, mode, &err);
-    if(err)
+
+    /* Resolve pathname to an absolute path */
+    rpath = resolve_path(curr_task->cwd, pathname, &err);
+    if(!rpath)
         return err;
+
+    newfilep = tarfs_open(rpath, flags, mode, &ierr);
+    kfree(rpath);
+    if(ierr)
+        return (long)ierr;
     /* success */
     curr_task->files[newfd] = newfilep;
     return newfd;
@@ -235,7 +243,10 @@ void *do_mmap(void *addr, size_t length, int prot, int flags, int fd,
         if(IS_ALIGNED(offset, PAGE_SIZE))
             return (void*)-EINVAL;  /* Offset not aligned to PAGE_SIZE */
 
-        /*TODO: also EACCES if filep is not regular ! */
+        /* Can the user mmap this file */
+        err = filep->f_op->can_mmap(filep);
+        if(err)
+            return (void*)(int64_t)err;
     }
 
     if(prot & PROT_WRITE && shared)

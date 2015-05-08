@@ -25,6 +25,7 @@ struct file_ops {
     ssize_t (*write) (struct file *, const char *, size_t, off_t *);
 //    int (*readdir) (struct file *, void *, filldir_t);
     int (*close) (struct file *);
+    int (*can_mmap) (struct file *);
 };
 
 char *resolve_path(const char *cwd, const char *path, long *err);

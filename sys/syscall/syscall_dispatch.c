@@ -125,7 +125,7 @@ long sys_chdir(const char *path) {
     return do_chdir(path);
 }
 
-int sys_open(const char *pathname, int flags, mode_t mode) {
+long sys_open(const char *pathname, int flags, mode_t mode) {
     /* TODO: validate unbounded pointer ???? */
     return do_open(pathname, flags, mode);
 }

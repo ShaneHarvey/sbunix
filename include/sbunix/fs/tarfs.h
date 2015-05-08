@@ -60,7 +60,7 @@ struct posix_header_ustar {
 uint64_t aotoi(char *optr, int length);
 void test_aotoi(void);
 
-static inline int tarfs_isfile(struct posix_header_ustar *hd) {
+static inline int tarfs_normal_type(struct posix_header_ustar *hd) {
     if(!hd)
         return 0;
     else
@@ -109,7 +109,10 @@ ssize_t tarfs_write(struct file *fp, const char *buf, size_t count,
                     off_t *offset);
 //int tarfs_readdir(struct file *fp, void *dirent, filldir_t filldir);
 int tarfs_close(struct file *fp);
+int tarfs_can_mmap(struct file *fp);
 
+long tarfs_isfile(const char *abspath);
+long tarfs_isnormal(const char *abspath);
 long tarfs_isdir(const char *rpath);
 
 long tarfs_init(void);

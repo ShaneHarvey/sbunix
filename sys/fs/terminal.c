@@ -277,3 +277,10 @@ int term_close(struct file *fp) {
     fp->f_count--;
     return 0;
 }
+
+/**
+ * Can user mmap this file? no..
+ */
+int term_can_mmap(struct file *fp) {
+    return -EACCES;
+}
