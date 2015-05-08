@@ -23,7 +23,7 @@ struct file_ops {
     off_t (*lseek) (struct file *, off_t, int);
     ssize_t (*read) (struct file *, char *, size_t, off_t *);
     ssize_t (*write) (struct file *, const char *, size_t, off_t *);
-//    int (*readdir) (struct file *, void *, filldir_t);
+//    int (*readdir) (struct file *, void *, unsigned int);
     int (*close) (struct file *);
     int (*can_mmap) (struct file *);
 };
