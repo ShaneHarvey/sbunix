@@ -37,13 +37,15 @@ int main(int argc, char **argv, char **envp) {
         if (wpid == (pid_t)-1) {
             printf("\n/bin/init: waitpid failed: %s\n", strerror(errno));
             break;
+        } else if(WIFEXITED(status)) {
+            status = WEXITSTATUS(status);
+        } else if(WIFSIGNALED(status)) {
+            status = WTERMSIG(status);
+            printf("\n/bin/init: reaped pid %d, killed by signal %d\n", (int)wpid, status);
         } else {
-            if(WIFEXITED(status))
-                status = WEXITSTATUS(status);
-            else
-                status = 1;
-            printf("\n/bin/init: reaped pid %d, exit status: %d\n", (int)wpid, status);
+            status = 1;  /* ? Didn't exit or get killed by signal? */
         }
+        printf("\n/bin/init: reaped pid %d, exit status: %d\n", (int)wpid, status);
     }
     printf("\n/bin/init: no more child processes: please reboot SBUnix\n");
     return EXIT_FAILURE;
