@@ -23,7 +23,7 @@ int do_nanosleep(const struct timespec *req, struct timespec *rem) {
     }
     schedule();
 
-    printk("Task %s: waking up from sleep!\n", curr_task->cmdline);
+    debug("Task %s: waking up from sleep!\n", curr_task->cmdline);
     if(rem) {
         rem->tv_sec = 0;
         rem->tv_nsec = 0;

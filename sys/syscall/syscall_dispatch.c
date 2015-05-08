@@ -64,7 +64,7 @@ pid_t sys_getppid(void) {
 
 long sys_execve(const char *filename, const char **argv, const char **envp) {
     /* TODO: validate unbounded pointers ???? */
-    return do_execve(filename, argv, envp);
+    return do_execve(filename, argv, envp, 0);
 }
 
 pid_t sys_wait4(pid_t pid, int *status, int options, struct rusage *rusage) {

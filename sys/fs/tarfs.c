@@ -267,10 +267,10 @@ ssize_t tarfs_read(struct file *fp, char *buf, size_t count, off_t *offset) {
     if(hd->typeflag == TARFS_DIRECTORY)
         return -EISDIR;
 
-    if(!tarfs_normal_type(hd) || *offset >= fp->f_size)
+    if(!tarfs_normal_type(hd) || *offset > fp->f_size)
         return -EINVAL;
     /* Do read */
-    if(count == 0)
+    if(count == 0 ||  *offset == fp->f_size)
         return 0;
     bytes_left = fp->f_size - *offset;
     num_read = MIN(bytes_left, count);
@@ -306,9 +306,11 @@ int tarfs_readdir(struct file *filep, void *buf, unsigned int count) {
     size_t len, elen;
     const char *entryname;
     unsigned char type;
+    int is_root;
 
 
     fhdr = filep->private_data;
+    is_root = &fs_root_hdr == fhdr;
     len = strlen(fhdr->name);
 //    printk("READDIR: %s\n", fhdr->name);
 
@@ -316,11 +318,11 @@ int tarfs_readdir(struct file *filep, void *buf, unsigned int count) {
     for( ;next != NULL; next = tarfs_next(next)) {
 //        printk("READDIR: next header: %s\n", next->name);
         /* check in next's name begins with this dir name */
-        if(strncmp(fhdr->name, next->name, len) != 0)
+        if(!is_root && strncmp(fhdr->name, next->name, len) != 0)
             break; /* no more entries */
 
         /* filename on potential entry */
-        entryname = next->name + len + 1;
+        entryname = next->name + len + 1 - is_root;
         if(strchr(entryname, '/'))
             continue; /* skip to next header */
 

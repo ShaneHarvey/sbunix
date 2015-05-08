@@ -265,6 +265,8 @@ int pipe_open(struct file **read_end, struct file **write_end) {
     new_write->f_size = 0;
     new_write->f_error = 0;
     new_write->private_data = new_buf;
+    *read_end = new_read;
+    *write_end = new_write;
     return 0;
 out_write:
     kfree(new_write);
