@@ -21,7 +21,7 @@ void *opendir(const char *name) {
     if(fd < 0) {
         return NULL;
     }
-    dirp = malloc(sizeof(DIR));
+    dirp = malloc(sizeof(dirp));
     if(!dirp) {
         return NULL;
     }
