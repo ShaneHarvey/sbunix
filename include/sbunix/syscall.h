@@ -52,4 +52,6 @@ void *do_mmap(void *addr, size_t length, int prot, int flags, int fd,
 
 int do_munmap(void *addr, size_t length);
 
+ssize_t do_getprocs(void *procbuf, size_t length);
+
 #endif //_SBUNIX_SYSCALL_H

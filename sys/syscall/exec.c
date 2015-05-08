@@ -85,6 +85,9 @@ int do_execve(const char *filename, const char **argv, const char **envp) {
     if(err)
         goto cleanup_mm;
 
+    /* Update curr_task->cmdline  */
+    task_set_cmdline(curr_task, filename);
+
     write_cr3(mm->pml4);
     /* If current task is a user, destroy it's mm_struct  */
     if(curr_task->type == TASK_KERN) {
@@ -94,8 +97,6 @@ int do_execve(const char *filename, const char **argv, const char **envp) {
         mm_destroy(curr_task->mm);
     }
     curr_task->mm = mm;
-    /* Update curr_task->cmdline  */
-    task_set_cmdline(curr_task, filename);
     debug("new mm->usr_rsp=%p, mm->user_rip=%p\n", mm->user_rsp, mm->user_rip);
     enter_usermode(mm->user_rsp, mm->user_rip);
     return -ENOEXEC;

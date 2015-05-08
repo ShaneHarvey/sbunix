@@ -209,6 +209,16 @@ int sys_munmap(void *addr, size_t length) {
     return do_munmap(addr, length);
 }
 
+ssize_t sys_getprocs(void *procbuf, size_t length) {
+    ssize_t err;
+    if(!procbuf || !length)
+        return -EFAULT;
+    err = valid_userptr_write(curr_task->mm, procbuf, length);
+    if(err)
+        return err;
+    return do_getprocs(procbuf, length);
+}
+
 int64_t syscall_dispatch(int64_t a1, int64_t a2, int64_t a3,
                          int64_t a4, int64_t a5, int64_t a6, int64_t sysnum) {
     int64_t rv;
@@ -288,6 +298,9 @@ int64_t syscall_dispatch(int64_t a1, int64_t a2, int64_t a3,
             break;
         case SYS_getppid:
             rv = sys_getppid();
+            break;
+        case SYS_getprocs:
+            rv = sys_getprocs((void*)a1, (size_t)a2);
             break;
         default: rv = -ENOSYS;
     }

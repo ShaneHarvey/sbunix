@@ -248,3 +248,8 @@ void *mmap(void *addr, size_t length, int prot, int flags, int fd,
 int munmap(void *addr, size_t length) {
     return (int) syscall_2(SYS_munmap, (uint64_t)addr, (uint64_t)length);
 }
+
+/* procbuf is a buffer that will contain struct proc_struct's */
+ssize_t getprocs(void *procbuf, size_t length) {
+    return (int) syscall_2(SYS_getprocs, (uint64_t)procbuf, (uint64_t)length);
+}

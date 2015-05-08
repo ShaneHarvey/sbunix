@@ -323,5 +323,6 @@
 #define SYS_memfd_create 319
 #define SYS_kexec_file_load 320
 #define SYS_bpf 321
+#define SYS_getprocs 322
 
 #endif
