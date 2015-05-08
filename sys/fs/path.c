@@ -64,25 +64,20 @@ static long _resolve_path(char *rpath) {
         switch(next_file(cur)) {
             case F_NONE:
                 /* Revert vaild */
-                printk("NONE: valid '%s', cur '%s'\n", valid, cur);
                 return 0; /* DONE! */
             case F_SLASH: /* / and . are the same case */
             case F_DOT:   /* just increment to next file */
-                printk("SLASH/DOT: valid '%s', cur '%s'\n", valid, cur);
                 *cur++ = '\0';
                 continue;
             case F_DOTDOT:
-                printk("DOTDOT: valid '%s', cur '%s'\n", valid, cur);
                 /* need to go back one dir (until previous '/') */
                 while(valid > rpath && *--valid != '/'); /* nothing */;
                 valid[1] = '\0';
                 /* cur skips 2 spaces */
                 *cur++ = '\0';
                 *cur++ = '\0';
-                printk("DOTDOT: valid '%s', cur '%s'\n", valid, cur);
                 break;
             case F_DIR:
-                printk("DIR: valid '%s', cur '%s'\n", valid, cur);
                 if(valid + 1 == cur) {
                     /* valid and cur are contiguous */
                     valid = strchr(cur, '/');
@@ -107,7 +102,6 @@ static long _resolve_path(char *rpath) {
                 *valid = '/';
                 break;
             case F_FILE:
-                printk("FILE: valid '%s', cur '%s'\n", valid, cur);
                 /* reached the end of the path! */
                 if(valid + 1 == cur) {
                     /* valid and cur are contiguous */
