@@ -86,7 +86,7 @@ void test_all_tarfs(const char *path) {
     char buf[10];
 
     printk("Tarfs test: open/read/close on %s\n", path);
-    fp = tarfs_open(path, 0, 0, &err);
+    fp = tarfs_open(path, O_RDONLY, 0, &err);
     if(err) {
         printk("Error open: %s\n", strerror(-err));
         return;
@@ -120,10 +120,19 @@ struct file *tarfs_open(const char *path, int flags, mode_t mode, int *err) {
     struct file *fp;
 
     if(!path || *path != '/')
-        kpanic("path must start with / !!!\n");
+        kpanic("path invalid '%s'!!!\n", path);
+
+    if(flags & (O_WRONLY | O_RDWR | O_CREAT)) {
+        *err = -EACCES;
+        return NULL;
+    }
 
     for(hd = tarfs_first(); hd != NULL; hd = tarfs_next(hd)) {
         if(strncmp(path+1, hd->name, sizeof(hd->name)) == 0) {
+            if(flags & O_DIRECTORY && hd->typeflag != TARFS_DIRECTORY) {
+                *err = -ENOTDIR;
+                return NULL;
+            }
             fp = kmalloc(sizeof(struct file));
             if(!fp) {
                 *err = -ENOMEM;

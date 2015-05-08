@@ -56,15 +56,22 @@ void enter_usermode(uint64_t user_rsp, uint64_t user_rip) {
  * TODO: MUST support #! scripts
  * "./script.sh" -->> "/bin/sbush script.sh"
  */
-int do_execve(const char *filename, const char **argv, const char **envp) {
+long do_execve(const char *filename, const char **argv, const char **envp) {
     struct file *fp;
     struct mm_struct *mm;
-    int err;
+    char *rpath;
+    int ierr;
+    long err;
 
-    /* TODO: resolve filename to absolute path */
-    fp = tarfs_open(filename, 0, 0, &err);
-    if(err)
+    /* Resolve pathname to an absolute path */
+    rpath = resolve_path(curr_task->cwd, filename, &err);
+    if(!rpath)
         return err;
+
+    fp = tarfs_open(filename, O_RDONLY, 0, &ierr);
+    kfree(rpath);
+    if(ierr)
+        return ierr;
     err = elf_validiate_exec(fp);
     if(err)
         goto cleanup_file;

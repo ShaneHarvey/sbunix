@@ -172,7 +172,7 @@ void elf_test_load(char *filename) {
     struct file *fp;
     int err;
 
-    fp = tarfs_open(filename, 0, 0, &err);
+    fp = tarfs_open(filename, O_RDONLY, 0, &err);
     if(err) {
         printk("Error opening: %s: %s\n", filename, strerror(-err));
         return;
