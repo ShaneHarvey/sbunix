@@ -68,7 +68,7 @@ long do_execve(const char *filename, const char **argv, const char **envp) {
     if(!rpath)
         return err;
 
-    fp = tarfs_open(filename, O_RDONLY, 0, &ierr);
+    fp = tarfs_open(rpath, O_RDONLY, 0, &ierr);
     kfree(rpath);
     if(ierr)
         return ierr;
