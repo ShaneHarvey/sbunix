@@ -40,7 +40,7 @@ void run_init(void) {
         kpanic("init: failed to create terminal: %s\n", strerror(-err));
 
     /* Start the init process, this should not return */
-    err = do_execve("/bin/init", NULL, NULL);
+    err = (int)do_execve("/bin/init", NULL, NULL);
     if(err)
         kpanic("init: '/bin/init' failed: %s\n", strerror(-err));
 

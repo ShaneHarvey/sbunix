@@ -42,7 +42,7 @@ int main(int argc, char **argv, char **envp) {
     ssize_t rv;
     char *ps1;
     char *line;
-    size_t line_size = 8;
+    size_t line_size = 1024;
     int inputfd = STDIN_FILENO;
 
     if(argc > 1) {
@@ -80,7 +80,7 @@ int main(int argc, char **argv, char **envp) {
         i = 0;
         last_char = '\0';
         for(i = last_char = 0; last_char != '\n'; last_char = line[i++]) {
-            if(i == line_size - 1) {
+            if(i >= line_size - 2) {
                 line_size *= 2;
                 line = realloc(line, line_size);
                 if(line == NULL) {
@@ -100,7 +100,7 @@ int main(int argc, char **argv, char **envp) {
         if(ignore_line(line)) {
             continue;
         }
-        line = swap_vars(line, line_size);
+        line = swap_vars(line, line_size - 1);
         cmd = parse_line(line);
         if(cmd == NULL) {
             continue;
