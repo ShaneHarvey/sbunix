@@ -29,12 +29,7 @@ int main(int argc, char **argv, char **envp) {
         usage_exit();
 
     for( ;pidi < argc; pidi++) {
-        pid_t pid;
-        if(!isdigit(argv[pidi][0])) {
-            printf("kill: skipping invalid pid: %s\n", argv[pidi]);
-            continue;
-        }
-        pid = (pid_t)atoi(argv[pidi]);
+        pid_t pid = (pid_t)atoi(argv[pidi]);
         err = kill(pid, sig);
         if(err)
             printf("kill: failed to kill pid %d: %s\n", (int)pid, strerror(errno));

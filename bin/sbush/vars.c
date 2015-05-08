@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <ctype.h>
-#include <debug.h>
 #include "vars.h"
 
 struct var {
@@ -35,7 +34,7 @@ static void _insert_var(struct var *newvar) {
         int rv = strcmp(newvar->key, cur->key);
         if(rv == 0) {
             /* already exists! */
-            error("var %s already exists in the list!\n", newvar->key);
+            printf("var %s already exists in the list!\n", newvar->key);
         } else if (rv < 0) {
             /* Insert before this  */
             newvar->next = cur;
