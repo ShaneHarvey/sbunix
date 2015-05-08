@@ -44,12 +44,14 @@ void ISR_HANDLER(32) {
     struct task_struct *task;
 
     timer_ticks++;
+
     if(timer_ticks == timer_hz) {
         timer_ticks = 1;
         system_time++;
         unix_time.tv_sec++;
         /* Print Seconds since boot in upper right corner of the console */
-        writec_time(system_time);
+        write_time(system_time);
+        write_used_mem();
     }
     /* Acknowledge interrupt */
     PIC_sendEOI(32);

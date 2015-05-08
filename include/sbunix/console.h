@@ -7,7 +7,8 @@ void move_csr(void);
 void putch(char c);
 void puts(const char *text, size_t count);
 void puts_xy(const char *text, size_t count, int x, int y);
-void writec_time(uint64_t seconds);
+void write_time(uint64_t seconds);
+void write_used_mem(void);
 void writec_glyph(char c);
 void clear_console(void);
 

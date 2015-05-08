@@ -116,3 +116,7 @@ void freemem_report(void) {
     ulong percent = freepagehd.nfree * 100 / freepagehd.maxfree;
     printk("Free pages: %lu/%lu  ~%lu%%\n", freepagehd.nfree, freepagehd.maxfree, percent);
 }
+
+int percent_mem_used(void) {
+    return 100 - (int)(freepagehd.nfree * 100 / (freepagehd.maxfree + 1));
+}

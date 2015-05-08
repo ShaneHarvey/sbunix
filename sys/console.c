@@ -2,6 +2,7 @@
 #include <sbunix/sbunix.h>
 #include <sbunix/console.h>
 #include <sbunix/fs/terminal.h>
+#include <sbunix/mm/page_alloc.h>
 
 #define SCRN_BASE ((uint16_t *)kphys_to_virt(0xb8000))
 #define SCRN_WIDTH 80U
@@ -9,9 +10,15 @@
 #define SCRN_XY(X, Y) (SCRN_BASE + ((X) + (Y) * SCRN_WIDTH))
 #define SCRN_CHAR(ch) (((uint8_t)ch)|((cursor_color)<<8))
 
+#define BR_RED    0x0C
+#define BR_YELLOW 0x0E
+#define BR_GREEN  0x0A
+
+#define LT_GRAY   0x07
+
 static int cursor_x = 0;
 static int cursor_y = 0;
-static uint16_t cursor_color = 0x07;
+static uint16_t cursor_color = LT_GRAY;
 
 void clear_line(uint8_t lineno) {
     uint16_t *v = SCRN_XY(0, lineno);
@@ -92,8 +99,9 @@ void putch(char c) {
     /* Need to scroll up */
     if(cursor_y >= SCRN_HEIGHT) {
         /* Don't overwrite time in top right corner */
-        memmove(SCRN_BASE, SCRN_XY(0, 1), 2 * (SCRN_WIDTH - 7));
-        memmove(SCRN_XY(0, 1), SCRN_XY(0, 2), 2 * (SCRN_WIDTH * (SCRN_HEIGHT - 2)));
+        memmove(SCRN_BASE, SCRN_XY(0, 1), 2 * (SCRN_WIDTH - 12));
+        memmove(SCRN_XY(0, 1), SCRN_XY(0, 2), 2 * (SCRN_WIDTH - 12));
+        memmove(SCRN_XY(0, 2), SCRN_XY(0, 3), 2 * (SCRN_WIDTH * (SCRN_HEIGHT - 3)));
         clear_line(SCRN_HEIGHT - 1);
         cursor_y = SCRN_HEIGHT - 1;
     }
@@ -123,15 +131,38 @@ void puts_xy(const char *text, size_t count, int x, int y) {
     cursor_y = oldy;
 }
 
-void writec_time(uint64_t seconds) {
+/**
+ * Write seconds since boot in the top right, then write memory usage below
+ */
+void write_time(uint64_t seconds) {
     char strsec[22] = {0};
-    uint8_t len;
+    size_t len;
     /* Convert to string */
-    uitoa(seconds, 10, strsec + 1, sizeof(strsec));
     strsec[0] = ' ';
-    len = (uint8_t)strlen(strsec);
+    uitoa(seconds, 10, strsec + 1, sizeof(strsec));
+    len = strlen(strsec);
     /* Write the the top right of the screen */
     puts_xy(strsec, len, SCRN_WIDTH - 3 - len, 0);
+}
+
+/* Current memory usage , 12 characters */
+void write_used_mem(void) {
+    char mem[] = " Mem Use:    ";
+    char percent[4] = {0};
+    int used = percent_mem_used();
+    size_t len;
+    puts_xy(mem, sizeof(mem) - 1, SCRN_WIDTH - sizeof(mem) + 1, 1);
+    itoa(used, 10, percent, sizeof(percent));
+    len = strlen(percent);
+    percent[len] = '%';
+    if(used < 25)
+        cursor_color = BR_GREEN;
+    else if(used < 80)
+        cursor_color = BR_YELLOW;
+    else
+        cursor_color = BR_RED;
+    puts_xy(percent, sizeof(percent), SCRN_WIDTH - sizeof(percent), 1);
+    cursor_color = LT_GRAY;
 }
 
 void writec_glyph(char c) {

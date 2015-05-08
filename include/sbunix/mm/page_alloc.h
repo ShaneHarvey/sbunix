@@ -22,5 +22,6 @@ uint64_t get_phys_page(void);
 uint64_t get_zero_page(void);
 void free_page(uint64_t virt_page_addr);
 void freemem_report(void);
+int percent_mem_used(void);
 
 #endif
