@@ -267,10 +267,10 @@ ssize_t tarfs_read(struct file *fp, char *buf, size_t count, off_t *offset) {
     if(hd->typeflag == TARFS_DIRECTORY)
         return -EISDIR;
 
-    if(!tarfs_normal_type(hd) || *offset >= fp->f_size)
+    if(!tarfs_normal_type(hd) || *offset > fp->f_size)
         return -EINVAL;
     /* Do read */
-    if(count == 0)
+    if(count == 0 ||  *offset == fp->f_size)
         return 0;
     bytes_left = fp->f_size - *offset;
     num_read = MIN(bytes_left, count);

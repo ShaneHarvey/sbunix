@@ -51,12 +51,34 @@ void enter_usermode(uint64_t user_rsp, uint64_t user_rip) {
     kpanic("FAILED to enter user mode!");
 }
 
+int is_interpreter(struct file *fp) {
+    struct posix_header_ustar *hdr;
+    char *file_start;
+
+    hdr = fp->private_data;
+    /* Hack: we know it's a tarfs file in memory, so just get the data pointer */
+    file_start = (char *)(hdr + 1);
+    return (file_start[0] == '#' &&  file_start[1] == '!');
+}
+
+//int resolve_interpreter(struct file *fp) {
+//    struct posix_header_ustar *hdr;
+//    char *file_start;
+//    char *path;
+//
+//    hdr = fp->private_data;
+//    /* Hack: we know it's a tarfs file in memory, so just get the data pointer */
+//    file_start = (char *)(hdr + 1);
+//    if(file_start[0] != '#' || file_start[1] != '!')
+//        return 1; /* NOT an interpreter file */
+//
+//}
 
 /**
  * TODO: MUST support #! scripts
  * "./script.sh" -->> "/bin/sbush script.sh"
  */
-long do_execve(const char *filename, const char **argv, const char **envp) {
+long do_execve(const char *filename, const char **argv, const char **envp, int rec) {
     struct file *fp;
     struct mm_struct *mm;
     char *rpath;
@@ -72,6 +94,12 @@ long do_execve(const char *filename, const char **argv, const char **envp) {
     kfree(rpath);
     if(ierr)
         return ierr;
+
+    if(is_interpreter(fp)) {
+        /* filename needs to be launched as a exec(interpreter, argv, evnp) */
+
+    }
+
     err = elf_validiate_exec(fp);
     if(err)
         goto cleanup_file;
