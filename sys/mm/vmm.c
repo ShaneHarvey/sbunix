@@ -1,6 +1,4 @@
 #include <sbunix/mm/vmm.h>
-#include <sbunix/mm/pt.h>
-#include <sbunix/fs/vfs.h>
 #include <sbunix/string.h>
 #include <sbunix/sched.h>
 #include <errno.h>
@@ -193,6 +191,36 @@ out_vma:
 }
 
 /**
+ * Search for an unused region of length bytes in the virtual memory of mm.
+ * The region must be above USER_MMAP_START.
+ * NOTE: Right now it is possible for this to return a region past our stack.
+ *
+ * @length: must be aligned to PAGE_SIZE
+ * @return: the start of a region of lngth bytes that can be given to mmap_area.
+ *          0 on error
+ */
+uint64_t find_mmap_space(struct mm_struct *mm, size_t length) {
+    struct vm_area *vma;
+    uint64_t avail_start;
+    if(!mm)
+        return 0;
+
+    length = ALIGN_UP(length, PAGE_SIZE);
+
+    /* for each vm area */
+    for(vma = mm->vmas; vma != NULL; vma = vma->vm_next) {
+
+        if(vma->vm_end <= USER_MMAP_START)
+            continue;
+        /* Now we're past the USER_MMAP_START limit */
+        avail_start = ALIGN_UP(vma->vm_end + 1, PAGE_SIZE);
+        if(!vma->vm_next || vma->vm_next->vm_start > avail_start + length)
+            return avail_start;
+    }
+    return 0;
+}
+
+/**
  * Add a new vma into the mm struct. It is either a mmapped area
  * with a file backing, or an anon mmapped region.
  * @filep: NULL in anon mmap
@@ -202,7 +230,7 @@ out_vma:
  * @vm_start: start of vma
  * @vm_end: end of vma
  *
- * @return: 0 on error, 1 on success
+ * @return: 0 on success, or non-zero error
  */
 int mmap_area(struct mm_struct *mm, struct file *filep,
               off_t fstart, size_t fsize, uint64_t prot,

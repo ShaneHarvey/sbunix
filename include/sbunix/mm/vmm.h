@@ -3,15 +3,17 @@
 
 #include <sbunix/sbunix.h>
 #include <sbunix/mm/types.h>
+#include <sbunix/mm/pt.h>
+#include <sbunix/fs/vfs.h>
+
 
 /* Start stack for users, maps to pml4[255]->pdpt[511]->pd[511]->pt[511] */
 /* TODO: fix this alignment */
 #define USER_STACK_START 0x00007ffffffffff8ULL
 #define USER_STACK_END   (USER_STACK_START - (20ULL * PAGE_SIZE))
 
-#define USER_MMAP_START
+#define USER_MMAP_START  ALIGN_DOWN((USER_STACK_END/2), PAGE_SIZE)
 
-#define USER_HEAP_MAX
 
 /* mm_struct functions */
 
@@ -34,7 +36,8 @@ void            vma_destroy(struct vm_area *vma);
 void            vma_destroy_all(struct mm_struct *mm);
 struct vm_area *vma_find_region(struct vm_area *vma, uint64_t addr, size_t size);
 struct vm_area *vma_deep_copy(struct mm_struct *mm_old, struct mm_struct *mm_new);
-int vma_grow_up(struct vm_area *vma, uint64_t new_end);
+int             vma_grow_up(struct vm_area *vma, uint64_t new_end);
+uint64_t        find_mmap_space(struct mm_struct *mm, size_t length);
 
 /* onfault's */
 int onfault_mmap_file(struct vm_area *vma, uint64_t addr);

@@ -3,6 +3,8 @@
 #include <sbunix/fs/pipe.h>
 #include <sbunix/sched.h>
 #include <sbunix/syscall.h>
+#include <sbunix/mm/vmm.h>
+#include <sys/mman.h>
 
 #define INVALID_FD(fd) ((fd) < 0 || (fd) >= TASK_FILES_MAX)
 
@@ -204,9 +206,56 @@ int do_getdents(unsigned int fd, struct dirent *dirp, unsigned int count) {
  */
 void *do_mmap(void *addr, size_t length, int prot, int flags, int fd,
               off_t offset) {
-    return (void *)-ENOSYS;
+    uint64_t vm_prot = 0;
+    struct file *filep;
+    uint64_t mmap_start;
+    int err, shared, private;
 
-    /* TODO: if not regular file, -EACCES*/
+    shared = flags & MAP_SHARED;
+    private = flags & MAP_PRIVATE;
+    if((!shared && !private) || (shared && private))
+        return (void*)-EINVAL;  /* Must contain exactly one */
+
+    /* We won't support MAP_FIXED, or user choosing mmap location */
+    if(length == 0 || flags & MAP_FIXED || addr != NULL)
+        return (void*)-EINVAL;
+
+
+    if(flags & MAP_ANONYMOUS) {
+        /* Don't even look at fd */
+        filep = NULL;
+    } else {
+        /* Get the user's open file */
+        if(INVALID_FD(fd))
+            return (void*)-EBADF;
+        filep = curr_task->files[fd];
+        if(!filep)
+            return (void*)-EBADF;
+
+        if(offset & ~(PAGE_SIZE-1))
+            return (void*)-EINVAL;  /* Offset not aligned to PAGE_SIZE */
+
+        /*TODO: also EACCES if filep is not regular ! */
+    }
+
+    if(prot & PROT_WRITE && shared)
+        return (void*)-EACCES;  /*  Writing into tarfs (our only fs) */
+
+    if(prot & PROT_WRITE)
+        vm_prot |= PFLAG_RW; /* Only need flag, users can always EXEC*/
+
+    /* Find a region big enough */
+    mmap_start = find_mmap_space(curr_task->mm, length);
+    if(!mmap_start)
+        return (void*)-ENOMEM;  /* No mmap space! */
+
+    /* Finally! The call to mmap the area! */
+    err = mmap_area(curr_task->mm, filep, offset, filep->f_size, vm_prot,
+                    mmap_start, mmap_start + length);
+    if(err)
+        return (void*)(int64_t)err;
+
+    return 0;
 }
 
 /**
