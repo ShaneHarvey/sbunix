@@ -19,9 +19,9 @@ int do_kill(pid_t pid, int sig);
 
 int do_nanosleep(const struct timespec *req, struct timespec *rem);
 
-char *do_getcwd(char *buf, size_t size);
+long do_getcwd(char *buf, size_t size);
 
-int do_chdir(const char *path);
+long do_chdir(const char *path);
 
 int do_open(const char *pathname, int flags, mode_t mode);
 

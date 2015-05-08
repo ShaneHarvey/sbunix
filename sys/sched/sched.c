@@ -123,7 +123,7 @@ struct task_struct *ktask_create(void (*start)(void), const char *name) {
     kernel_mm.mm_count++;
     task->pid = get_next_pid();
     task_set_cmdline(task, name);
-
+    strcpy(task->cwd, "/"); /* set cwd to root for ktasks */
     task->timeslice = TIMESLICE_BASE;
 
     task_add_new(task); /* add to run queue and task list */

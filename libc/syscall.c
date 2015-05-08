@@ -185,16 +185,10 @@ unsigned int alarm(unsigned int seconds) {
     return (unsigned int) syscall_1(SYS_alarm, (uint64_t)seconds);
 }
 
-/**
- * TODO:
- * As an extension to the POSIX.1-2001 standard, Linux (libc4, libc5, glibc)
- * getcwd() allocates the buffer dynamically using malloc(3) if buf is NULL.
- * In this case, the allocated buffer has the length size unless size is zero,
- * when buf is allocated as big as necessary. The caller should free(3) the
- * returned buffer.
- */
 char *getcwd(char *buf, size_t size) {
-    return (char*) syscall_2(SYS_getcwd, (uint64_t)buf, (uint64_t)size);
+    if(syscall_2(SYS_getcwd, (uint64_t)buf, (uint64_t)size) < 0)
+        return NULL;
+    return buf;
 }
 
 int chdir(const char *path) {

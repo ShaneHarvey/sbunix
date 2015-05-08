@@ -27,4 +27,6 @@ struct file_ops {
     int (*close) (struct file *);
 };
 
+char *resolve_path(const char *cwd, const char *path, long *err);
+
 #endif //_SBUNIX_VFS_VFS_H
