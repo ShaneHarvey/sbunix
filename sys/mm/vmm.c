@@ -67,9 +67,8 @@ int num_bytes(const char **array) {
     if(!array)
         return 0;
     while(*array) {
-        size_t len = strnlen(*array, PAGE_SIZE) + 1;   /* TODO: this could fault */
-        /* TODO: testing exec... uncomment for security */
-//        err = valid_userptr_read(curr_task->mm, *array, len);
+        size_t len = strnlen(*array, PAGE_SIZE) + 1;
+        err = valid_userptr_read(curr_task->mm, *array, len);
         if(err)
             return err;
 

@@ -185,13 +185,13 @@ int do_dup2(int oldfd, int newfd) {
 }
 
 /**
- * TODO: this
+ * Read directory entries from an open dir
  *
  * @fd:  file descriptor of a opened directory file
  * @dirp: pointer to count bytes
  * @count: the number of bytes in dirp
  */
-int do_getdents(unsigned int fd, struct dirent *dirp, unsigned int count) {
+int do_getdents(unsigned int fd, struct linux_dirent *dirp, unsigned int count) {
     struct file *filep;
     if(INVALID_FD(fd))
         return -EBADF;
@@ -200,9 +200,7 @@ int do_getdents(unsigned int fd, struct dirent *dirp, unsigned int count) {
     if(!filep)
         return -EBADFD;
 
-    /* TODO: call filep->readdir() */
-
-    return -ENOSYS;
+    return filep->f_op->readdir(filep, dirp, count);
 }
 
 

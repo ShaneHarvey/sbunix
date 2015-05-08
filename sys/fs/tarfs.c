@@ -1,6 +1,7 @@
 #include <sbunix/fs/tarfs.h>
 #include <sbunix/string.h>
 #include <sbunix/sbunix.h>
+#include <dirent.h>
 #include <errno.h>
 
 
@@ -11,7 +12,7 @@ struct file_ops tarfs_file_ops = {
     .lseek = tarfs_lseek,
     .read = tarfs_read,
     .write = tarfs_write,
-//    .readdir = tarfs_readdir,
+    .readdir = tarfs_readdir,
     .close = tarfs_close,
     .can_mmap = tarfs_can_mmap
 };
@@ -109,7 +110,7 @@ void test_all_tarfs(const char *path) {
 
 /**
  * Creates a new file object for the given path
- * TODO: flags
+ *
  * @path: The absolute path of the file to open (MUST start with '/')
  * @flags: user open flags
  * @mode: unused
@@ -133,6 +134,7 @@ struct file *tarfs_open(const char *path, int flags, mode_t mode, int *err) {
                 *err = -ENOTDIR;
                 return NULL;
             }
+
             fp = kmalloc(sizeof(struct file));
             if(!fp) {
                 *err = -ENOMEM;
@@ -140,7 +142,11 @@ struct file *tarfs_open(const char *path, int flags, mode_t mode, int *err) {
             }
             fp->private_data = hd;
             fp->f_size = aotoi(hd->size, sizeof(hd->size));
-            fp->f_pos = 0;
+            /* save index of next header (used by readdir) */
+            if(hd->typeflag == TARFS_DIRECTORY)
+                fp->f_pos = (uint64_t)tarfs_next(hd);
+            else
+                fp->f_pos = 0;
             fp->f_error = 0;
             fp->f_op = &tarfs_file_ops;
             fp->f_flags = flags;
@@ -265,9 +271,54 @@ ssize_t tarfs_write(struct file *fp, const char *buf, size_t count,
  */
 int tarfs_readdir(struct file *filep, void *buf, unsigned int count) {
     struct linux_dirent *nuxdirent;
+    struct posix_header_ustar *next, *fhdr;
+    unsigned int size;
+    size_t len, elen;
+    const char *entryname;
+    char type;
 
 
-    return -1;
+    fhdr = filep->private_data;
+    len = strlen(fhdr->name);
+    printk("READDIR: %s\n", fhdr->name);
+
+    next = (struct posix_header_ustar *)filep->f_pos;
+    for( ;next != NULL; next = tarfs_next(next)) {
+        printk("READDIR: next: %s\n", next->name);
+        /* check in next's name begins with this dir name */
+        if(strncmp(fhdr->name, next->name, len) != 0)
+            break; /* no more entries */
+
+        /* filename on potential entry */
+        entryname = next->name + len + 1;
+        if(strchr(entryname, '/'))
+            continue; /* skip to next header */
+
+        elen = strlen(entryname); /* need to copy this name to buf dirent */
+        nuxdirent = buf;
+        size = (__builtin_offsetof(struct linux_dirent, d_name) + elen + 1 + 2);
+        if(count < size) {
+            filep->f_pos = (uint64_t) next; /* save for next call */
+            return -EINVAL;
+        }
+        nuxdirent->d_ino = (ulong)next; /* unique "inode" for this file */
+        nuxdirent->d_off = size - sizeof(unsigned long);
+        nuxdirent->d_reclen = (unsigned short) size;
+        strcpy(nuxdirent->d_name, entryname);
+        nuxdirent->d_name[elen + 1] = '\0';  /* Zero padding byte */
+        if(next->typeflag == TARFS_DIRECTORY)
+            type = DT_DIR;
+        else if(tarfs_normal_type(next))
+            type = DT_REG;
+        else
+            type = DT_UNKNOWN;
+        nuxdirent->d_name[elen + 2] = type ;  /* File type byte */
+        filep->f_pos = (uint64_t) tarfs_next(next); /* save for next call */
+        return size;
+    }
+    /* no more entries */
+    filep->f_pos = 0;
+    return 0;
 }
 
 /**

@@ -33,11 +33,11 @@ struct terminal_buf term = {
 
 /* File hooks for standard terminal input */
 struct file_ops term_ops = {
-        .lseek = term_lseek,
-        .read = term_read,
-        .write = term_write,
-//    .readdir = term_readdir,
-        .close = term_close
+    .lseek = term_lseek,
+    .read = term_read,
+    .write = term_write,
+    .readdir = term_readdir,
+    .close = term_close
 };
 
 /* There is only one terminal ever for the system */
@@ -179,6 +179,10 @@ void term_putch(unsigned char c) {
  */
 off_t term_lseek(struct file *fp, off_t offset, int whence) {
     return -ESPIPE; /* illegal seek */
+}
+
+int term_readdir(struct file *filep, void *buf, unsigned int count) {
+    return -ESPIPE; /* illegal readdir */
 }
 
 /**

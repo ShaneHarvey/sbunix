@@ -8,6 +8,7 @@ int pipe_open(struct file **read_end, struct file **write_end);
 int pipe_can_mmap(struct file *fp);
 
 off_t pipe_lseek(struct file *fp, off_t offset, int whence);
+int pipe_readdir(struct file *filep, void *buf, unsigned int count);
 
 /* Read end operations */
 ssize_t read_end_read(struct file *fp, char *buf, size_t count,

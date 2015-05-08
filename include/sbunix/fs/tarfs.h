@@ -104,6 +104,7 @@ void test_all_tarfs(const char *path);
 /* Tarfs file operations */
 struct file *tarfs_open(const char *path, int flags, mode_t mode, int *err);
 off_t tarfs_lseek(struct file *fp, off_t offset, int origin);
+int tarfs_readdir(struct file *filep, void *buf, unsigned int count);
 ssize_t tarfs_read(struct file *fp, char *buf, size_t count, off_t *offset);
 ssize_t tarfs_write(struct file *fp, const char *buf, size_t count,
                     off_t *offset);

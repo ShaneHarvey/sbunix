@@ -180,7 +180,7 @@ int sys_dup2(int oldfd, int newfd) {
  * @dirp: pointer to count bytes
  * @count: the number of bytes in dirp
  */
-int sys_getdents(unsigned int fd, struct dirent *dirp, unsigned int count) {
+int sys_getdents(unsigned int fd, struct linux_dirent *dirp, unsigned int count) {
     int err;
     if(!dirp)
         return -EFAULT;
@@ -290,7 +290,7 @@ int64_t syscall_dispatch(int64_t a1, int64_t a2, int64_t a3,
             rv = sys_uname((struct utsname *)a1);
             break;
         case SYS_getdents:
-            rv = sys_getdents((unsigned int)a1, (struct dirent *)a2, (unsigned int)a3);
+            rv = sys_getdents((unsigned int)a1, (struct linux_dirent *)a2, (unsigned int)a3);
             break;
         case SYS_getcwd:
             rv = sys_getcwd((char *)a1, (size_t)a2);

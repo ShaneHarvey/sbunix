@@ -10,7 +10,7 @@
 #include <errno.h>        /* errno */
 
 char *const sbush_argv[] = {"/bin/sbush", NULL};
-char *const sbush_envp[] = {"PATH=/bin/:", "HOME=/root/", "USER=root", NULL};
+char *const sbush_envp[] = {"PATH=/bin:", "HOME=/root", "USER=root", NULL};
 
 int main(int argc, char **argv, char **envp) {
     pid_t sbush_pid;

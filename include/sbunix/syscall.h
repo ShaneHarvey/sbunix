@@ -45,7 +45,7 @@ int do_dup2(int oldfd, int newfd);
 
 int do_uname(struct utsname *buf);
 
-int do_getdents(unsigned int fd, struct dirent *dirp, unsigned int count);
+int do_getdents(unsigned int fd, struct linux_dirent *dirp, unsigned int count);
 
 void *do_mmap(void *addr, size_t length, int prot, int flags, int fd,
               off_t offset);

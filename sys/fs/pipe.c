@@ -27,7 +27,7 @@ struct file_ops read_end_ops = {
     .lseek = pipe_lseek,
     .read = read_end_read,
     .write = read_end_write,
-//  .readdir = pipe_readdir,
+    .readdir = pipe_readdir,
     .close = read_end_close,
     .can_mmap = pipe_can_mmap
 };
@@ -36,7 +36,7 @@ struct file_ops write_end_ops = {
     .lseek = pipe_lseek,
     .read = write_end_read,
     .write = write_end_write,
-//  .readdir = pipe_readdir,
+    .readdir = pipe_readdir,
     .close = write_end_close,
     .can_mmap = pipe_can_mmap
 };
@@ -45,6 +45,10 @@ struct file_ops write_end_ops = {
  * Cannot seek on a pipe
  */
 off_t pipe_lseek(struct file *fp, off_t offset, int whence) {
+    return -ESPIPE;
+}
+
+int pipe_readdir(struct file *filep, void *buf, unsigned int count) {
     return -ESPIPE;
 }
 

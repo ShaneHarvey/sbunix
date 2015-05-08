@@ -12,6 +12,7 @@ void term_putch(unsigned char c);
 
 struct file *term_open(void);
 off_t term_lseek(struct file *fp, off_t offset, int whence);
+int term_readdir(struct file *filep, void *buf, unsigned int count);
 ssize_t term_read(struct file *fp, char *buf, size_t count, off_t *offset);
 ssize_t term_write(struct file *fp, const char *buf, size_t count,
                    off_t *offset);
