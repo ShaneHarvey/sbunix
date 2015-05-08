@@ -260,17 +260,17 @@ void *do_mmap(void *addr, size_t length, int prot, int flags, int fd,
         vm_prot |= PFLAG_RW; /* Only need flag, users can always EXEC*/
 
     /* Find a region big enough */
-    mmap_start = find_mmap_space(curr_task->mm, length);
+    mmap_start = find_mmap_space(curr_task->mm, ALIGN_UP(length, PAGE_SIZE));
     if(!mmap_start)
         return (void*)-ENOMEM;  /* No mmap space! */
 
     /* Finally! The call to mmap the area! */
-    err = mmap_area(curr_task->mm, filep, offset, filep->f_size, vm_prot,
-                    mmap_start, mmap_start + length);
+    err = mmap_area(curr_task->mm, filep, offset, length, vm_prot,
+                    mmap_start, mmap_start + ALIGN_UP(length, PAGE_SIZE));
     if(err)
         return (void*)(int64_t)err;
 
-    return 0;
+    return (void*)mmap_start;
 }
 
 /**
