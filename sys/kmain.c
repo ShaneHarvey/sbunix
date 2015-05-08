@@ -7,6 +7,9 @@
 
 void run_init(void);
 
+/* Initialized by kmain, it is PID 1 and /bin/init */
+struct task_struct *init_task;
+
 /**
  * The entry point of our kernel. Here we have access to a page allocator and
  * interrupts are enabled.
@@ -17,7 +20,7 @@ void kmain(void) {
     /* IRQs off in kernel */
     cli();
 
-    ktask_create(run_init, "[init]");
+    init_task = ktask_create(run_init, "[init]");
 
     /* idle task */
     while(1){
