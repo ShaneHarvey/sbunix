@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <stdio.h>
 
 #define MAX(a, b)           (((a)>(b))?(a):(b))
 #define INC_PTR(ptr, inc)   ((void*)(((char*)(ptr)) + (inc)))
@@ -168,12 +169,12 @@ void _append_freelist(struct _freeblk *newblock) {
 void _printfreelist(void) {
 #ifdef _DEBUG_MALLOC
     struct _freeblk *curr = _freehd;
-    printf(_RED"Printing freelist:\n"_RESET);
+    printf("Printing freelist:\n");
     for(; curr != NULL; curr = curr->next) {
-        printf("       ------ %d ------\n", curr);
-        printf("       | size: %d\n", curr->blocklen);
-        printf("       | next: %d\n", curr->next);
-        printf("       | prev: %d\n", curr->prev);
+        printf("       ------ %p ------\n", curr);
+        printf("       | size: %lu\n", curr->blocklen);
+        printf("       | next: %p\n", curr->next);
+        printf("       | prev: %p\n", curr->prev);
         printf("       ---------------------\n");
     }
 #endif
