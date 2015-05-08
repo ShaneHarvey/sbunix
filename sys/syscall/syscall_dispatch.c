@@ -62,7 +62,7 @@ pid_t sys_getppid(void) {
         return curr_task->parent->pid;
 }
 
-long sys_execve(const char *filename, const char **argv, const char **envp) {
+long sys_execve(char *filename, const char **argv, const char **envp) {
     /* TODO: validate unbounded pointers ???? */
     return do_execve(filename, argv, envp, 0);
 }
@@ -274,7 +274,7 @@ int64_t syscall_dispatch(int64_t a1, int64_t a2, int64_t a3,
             rv = sys_fork();
             break;
         case SYS_execve:
-            rv = sys_execve((const char *)a1, (const char **)a2, (const char **)a3);
+            rv = sys_execve((char *)a1, (const char **)a2, (const char **)a3);
             break;
         case SYS_exit:
             sys_exit((int)a1); /* Exit should not return to the user */

@@ -63,17 +63,19 @@ int num_pointers(const char **array) {
 }
 
 int num_bytes(const char **array) {
-    int bytes = 0, err = 0;
+    int bytes = 0, err = 0, i;
     if(!array)
         return 0;
-    while(*array) {
-        size_t len = strnlen(*array, PAGE_SIZE) + 1;
-        err = valid_userptr_read(curr_task->mm, *array, len);
-        if(err)
-            return err;
+    for(i = 0; array[i]; i++) {
+        size_t len = strnlen(array[i], PAGE_SIZE);// + 1;
+        /* Skipping first arg because it may have been an interpreter */
+        if(i != 0) {
+            err = valid_userptr_read(curr_task->mm, array[i], len);
+            if(err)
+                return err;
+        }
 
         bytes += len;
-        array++;
     }
     return bytes;
 }
