@@ -267,7 +267,8 @@ void waitpid_cmds(cmd_t *cmds, int background) {
                 continue;                /* WNOHANG, would block */
             } else if (WIFEXITED(status)) {
                 curcmd->status = WEXITSTATUS(status);
-                printf("[1] + %d done\n", curcmd->pid);
+                if(background)
+                    printf("[1] + %d done\n", curcmd->pid);
             } else if (WIFSIGNALED(status)) {
                 curcmd->status = WTERMSIG(status);
                 if (curcmd->status != SIGINT) /* Don't print killed by ^C */
