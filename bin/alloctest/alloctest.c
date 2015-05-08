@@ -37,6 +37,7 @@ int simpletest(void) {
 int malloctest(int malloc_num, size_t malloc_size) {
     void **ptrs;
     int i;
+    printf("calling malloc(%lu), %d times\n", malloc_size, malloc_num);
     ptrs = malloc((size_t)malloc_num * sizeof(void *));
     if(!ptrs){
         printf("malloc failed: %s\n", strerror(errno));
