@@ -115,6 +115,8 @@ int main(int argc, char **argv, char **envp) {
     if(inputfd != STDIN_FILENO) {
         close(inputfd);
     }
+    if(interactive)
+        printf("sbush: exiting on ^D\n");
     return 0;
 }
 

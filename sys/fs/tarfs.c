@@ -258,3 +258,12 @@ int tarfs_close(struct file *fp) {
     }
     return 0;
 }
+
+
+/**
+ * Return 0 if the absolute path is a directory
+ */
+long tarfs_isdir(const char *abspath) {
+    //return -ENOENT;
+    return -ENOTDIR;
+}

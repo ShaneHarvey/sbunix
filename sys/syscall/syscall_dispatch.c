@@ -106,17 +106,17 @@ unsigned int sys_alarm(unsigned int seconds)  {
     return 0;
 }
 
-char *sys_getcwd(char *buf, size_t size) {
+long sys_getcwd(char *buf, size_t size) {
     int err;
     if(!buf)
-        return (void *)-EFAULT;
+        return -EFAULT;
     err = valid_userptr_write(curr_task->mm, buf, size);
     if(err)
-        return (void *)(int64_t)err;
+        return err;
     return do_getcwd(buf, size);
 }
 
-int sys_chdir(const char *path) {
+long sys_chdir(const char *path) {
     if(!path)
         return -EFAULT;
 
@@ -282,7 +282,7 @@ int64_t syscall_dispatch(int64_t a1, int64_t a2, int64_t a3,
             rv = sys_getdents((unsigned int)a1, (struct dirent *)a2, (unsigned int)a3);
             break;
         case SYS_getcwd:
-            rv = (int64_t)sys_getcwd((char *)a1, (size_t)a2);
+            rv = sys_getcwd((char *)a1, (size_t)a2);
             break;
         case SYS_chdir:
             rv = sys_chdir((const char *)a1);

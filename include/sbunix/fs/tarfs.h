@@ -113,4 +113,6 @@ ssize_t tarfs_write(struct file *fp, const char *buf, size_t count,
 //int tarfs_readdir(struct file *fp, void *dirent, filldir_t filldir);
 int tarfs_close(struct file *fp);
 
+long tarfs_isdir(const char *rpath);
+
 #endif
