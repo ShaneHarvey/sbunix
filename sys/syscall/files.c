@@ -202,7 +202,7 @@ int do_getdents(unsigned int fd, struct dirent *dirp, unsigned int count) {
  * @fd:     the file to mmap, if not MAP_ANONYMOUS
  * @offset: offset into file to start at (must be multiple of PAGE_SIZE)
  *
- * @return: the actual start of the new mapping
+ * @return: the actual start of the new mapping (aligned to PAGE_SIZE)
  */
 void *do_mmap(void *addr, size_t length, int prot, int flags, int fd,
               off_t offset) {
@@ -232,7 +232,7 @@ void *do_mmap(void *addr, size_t length, int prot, int flags, int fd,
         if(!filep)
             return (void*)-EBADF;
 
-        if(offset & ~(PAGE_SIZE-1))
+        if(IS_ALIGNED(offset, PAGE_SIZE))
             return (void*)-EINVAL;  /* Offset not aligned to PAGE_SIZE */
 
         /*TODO: also EACCES if filep is not regular ! */
@@ -259,9 +259,26 @@ void *do_mmap(void *addr, size_t length, int prot, int flags, int fd,
 }
 
 /**
- * TODO: this
+ * Un-map a mmap'd area, it is not an error if the indicated range
+ * does not contain any mapped pages.
+ *
+ * @addr:   returned from call to mmap
+ * @length: non-zero size of region
  */
 int do_munmap(void *addr, size_t length) {
-    /* TODO: CALL free_pagetbl_range_and_pages (only for munmap) */
-    return -ENOSYS;
+    struct vm_area *vma;
+    if(IS_ALIGNED((uint64_t)addr, PAGE_SIZE) || length == 0) {
+        return -EINVAL;
+    }  /* addr not aligned to PAGE_SIZE */
+
+    vma = vma_find_region(curr_task->mm->vmas, (uint64_t)addr, length);
+    if(!vma) {
+        return 0;
+    }
+    /* TODO: call free_pagetbl_range_and_pages (only for munmap) */
+
+    mm_remove_vma(curr_task->mm, vma);
+    vma_destroy(vma);
+
+    return 0;
 }

@@ -10,9 +10,9 @@
 /* Start stack for users, maps to pml4[255]->pdpt[511]->pd[511]->pt[511] */
 /* TODO: fix this alignment */
 #define USER_STACK_START 0x00007ffffffffff8ULL
-#define USER_STACK_END   (USER_STACK_START - (20ULL * PAGE_SIZE))
+#define USER_STACK_END   0x0000555555554000ULL /* 2/3 of USER_STACK_START */
 
-#define USER_MMAP_START  ALIGN_DOWN((USER_STACK_END/2), PAGE_SIZE)
+#define USER_MMAP_START  0x00002aaaaaaaa000ULL /* 1/3 of USER_STACK_START */
 
 
 /* mm_struct functions */
@@ -23,7 +23,8 @@ struct mm_struct *mm_deep_copy(void);
 int               mmap_area(struct mm_struct *mm, struct file *filep,
                             off_t fstart, size_t fsize, uint64_t prot,
                             uint64_t vm_start, uint64_t vm_end);
-uint64_t          do_brk(struct mm_struct *mm, uint64_t newbrk);
+int  mm_add_vma(struct mm_struct *mm, struct vm_area *vma);
+void mm_remove_vma(struct mm_struct *mm, struct vm_area *vma);
 
 int add_heap(struct mm_struct *user);
 int add_stack(struct mm_struct *user, const char **argv, const char **envp);

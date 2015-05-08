@@ -19,7 +19,6 @@
 
 
 /* Private functions */
-int mm_add_vma(struct mm_struct *mm, struct vm_area *vma);
 void mm_list_add(struct mm_struct *mm);
 int vma_intersects(struct vm_area *vma, struct vm_area *other);
 int vma_contains(struct vm_area *vma, uint64_t addr);
@@ -422,6 +421,27 @@ int mm_add_vma(struct mm_struct *mm, struct vm_area *vma) {
         }
     }
     return -1;
+}
+
+/**
+ * Remove the vma from mm's list of vm areas.
+ * NOTE: Use vma_destroy to free a vma
+ */
+void mm_remove_vma(struct mm_struct *mm, struct vm_area *vma) {
+    if(!mm || !vma)
+        return;
+    if(mm->vmas == vma) {
+        mm->vmas = vma->vm_next;
+        return;
+    } else {
+        struct vm_area *prev = mm->vmas;
+        for(; prev->vm_next != NULL; prev = prev->vm_next) {
+            if(prev->vm_next == vma) {
+                prev->vm_next = vma->vm_next;
+                return;
+            }
+        }
+    }
 }
 
 /**

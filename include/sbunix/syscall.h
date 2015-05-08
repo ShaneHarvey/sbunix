@@ -9,7 +9,11 @@
 #include <dirent.h>
 #include <errno.h>
 
+struct mm_struct; /* forward declarations (from vmm.h) */
+
 pid_t do_fork(void);
+
+uint64_t do_brk(struct mm_struct *mm, uint64_t newbrk);
 
 int do_execve(const char *filename, const char **argv, const char **envp);
 
