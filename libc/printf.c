@@ -20,7 +20,7 @@ char *strinsert(char *dest, size_t *dlen, const char *src, size_t slen, size_t *
     if(!dest || !src || !dlen || !off)
         return dest;
 
-    newlen = *off + slen;
+    newlen = *off + slen + 1;
     if(newlen > *dlen) {
         /* reallocate dest to twice the required size */
         char *newdest;
@@ -178,18 +178,18 @@ int printf(const char *format, ...) {
     char *printstr;
     int written;
 
-    va_start(ap, format);
 
     if(format == NULL || *format == '\0')
         return 0;
 
+    va_start(ap, format);
     printstr = strprintf(format, ap);
+    va_end(ap);
     if(!printstr)
         return -1;
 
     written = (int)write(STDOUT_FILENO, printstr, strlen(printstr));
     free(printstr); /* free the constructed string */
 
-    va_end(ap);
     return written;
 }

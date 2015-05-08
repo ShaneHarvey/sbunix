@@ -5,6 +5,7 @@
 #include <stdio.h>
 
 #define MAX(a, b)           (((a)>(b))?(a):(b))
+#define MIN(a, b)           (((a)<(b))?(a):(b))
 #define INC_PTR(ptr, inc)   ((void*)(((char*)(ptr)) + (inc)))
 
 /*#define _DEBUG_MALLOC*/
@@ -266,32 +267,20 @@ void *calloc(size_t nmemb, size_t size) {
 */
 void *realloc(void *ptr, size_t size) {
     size_t oldsize, reqsize;
-    if(!ptr) {
+    if(!ptr)
         return malloc(size);
-    }
+
     reqsize = MAX(sizeof(struct _freeblk), size + sizeof(size_t));
     oldsize = *(size_t*)INC_PTR(ptr, (-1 * sizeof(size_t)));
 
     if(reqsize == oldsize) {
         return ptr;
-    } else if(reqsize < oldsize) {
-        /* Getting smaller */
-        if(oldsize - reqsize >= sizeof(struct _freeblk)) {
-            struct _freeblk *newblock = INC_PTR(ptr, reqsize - sizeof(size_t));
-            newblock->blocklen = oldsize - reqsize;
-            _append_freelist(newblock);
-            *(size_t*)INC_PTR(ptr, (-1 * sizeof(size_t))) = reqsize;
-        }
-        _printfreelist();
-        return ptr;
     } else {
-        /* todo: we could improve to only malloc() if needed */
         void *newptr = malloc(size); /* Should be size not reqsize */
-        if(!newptr) {
-            free(ptr);
+        if(!newptr)
             return NULL;
-        }
-        memcpy(newptr, ptr, oldsize);
+
+        memcpy(newptr, ptr, MIN(oldsize, size));
         free(ptr);
         return newptr;
     }
