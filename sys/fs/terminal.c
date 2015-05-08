@@ -131,7 +131,7 @@ void term_putch(unsigned char c) {
         fg = foreground_task();
         /* kill controlling task */
         if(fg && fg->pid > 2)
-            send_signal(fg, SIGTERM);
+            send_signal(fg, SIGINT);
         c = '\n'; /* send a newline instead of ^C */
     }
     /* handle backspace here */

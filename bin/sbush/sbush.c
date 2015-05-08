@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/signal.h>
 #include <ctype.h>        /* isspace */
 #include <unistd.h>       /* write */
 #include <sys/types.h>    /* waitpid */
@@ -227,13 +228,18 @@ int procces_cmd(cmd_t *cmd, char **envp) {
         if(curcmd->pid != 0) {
             wpid = waitpid(curcmd->pid, &status, 0);
             if (wpid == (pid_t)-1) {
-                /* TODO: to print error once wait is implemented */
-//                printf("waitpid failed: %s\n", strerror(errno));
+                printf("waitpid failed: %s\n", strerror(errno));
             }
             if(WIFEXITED(status))
                 curcmd->status = WEXITSTATUS(status);
-            else
-                curcmd->status = 1;
+            else if(WIFSIGNALED(status)) {
+                curcmd->status = WTERMSIG(status);
+                if(curcmd->status != SIGINT) /* Don't print killed by ^C */
+                    printf("[1] %d killed by signal %d, %s\n",
+                           curcmd->status, curcmd->pid, curcmd->argv[0]);
+            } else {
+                curcmd->status = 1; /* ? Didn't exit or get killed by signal? */
+            }
         }
 
         /* Save info about previous command to the environment */
