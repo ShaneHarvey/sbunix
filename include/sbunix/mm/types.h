@@ -3,7 +3,7 @@
 
 #include <sys/types.h>
 
-/* Maybe don't use this and just add vm_ops inside vma struct */
+/* TODO: Remove all of these and just add VM_NO_CLOBBER*/
 typedef enum {
     VM_CODE,
     VM_RODATA,

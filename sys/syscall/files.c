@@ -193,11 +193,20 @@ int do_getdents(unsigned int fd, struct dirent *dirp, unsigned int count) {
 
 
 /**
- * TODO: this
+ * @addr:   start of new mapping (can be changed), if NULL kerenel choose start
+ * @length: length of new mapping
+ * @prot:   PROT_NONE or bitwise or of: PROT_EXEC, PROT_READ, PROT_WRITE
+ * @flags:  MAP_ANONYMOUS no file, initially zero
+ * @fd:     the file to mmap, if not MAP_ANONYMOUS
+ * @offset: offset into file to start at (must be multiple of PAGE_SIZE)
+ *
+ * @return: the actual start of the new mapping
  */
 void *do_mmap(void *addr, size_t length, int prot, int flags, int fd,
               off_t offset) {
     return (void *)-ENOSYS;
+
+    /* TODO: if not regular file, -EACCES*/
 }
 
 /**

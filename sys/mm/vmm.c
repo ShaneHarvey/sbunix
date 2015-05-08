@@ -26,7 +26,6 @@ void mm_list_add(struct mm_struct *mm);
 int vma_intersects(struct vm_area *vma, struct vm_area *other);
 int vma_contains(struct vm_area *vma, uint64_t addr);
 int vma_contains_region(struct vm_area *vma, uint64_t addr, size_t size);
-int vma_grow_up(struct vm_area *vma, uint64_t new_end);
 
 
 /**
@@ -335,30 +334,6 @@ out_copy_mm:
     mm_destroy(copy_mm);
     return NULL;
 }
-
-
-/**
- * Real work for brk()
- *    new break     -- on success
- *    current break -- on failure
- */
-uint64_t do_brk(struct mm_struct *mm, uint64_t newbrk) {
-    if(!mm)
-        kpanic("Null mm in do_brk!\n");
-    if(newbrk <= mm->brk)
-        return mm->brk;
-    else {
-        /* find the heap vma */
-        struct vm_area *heap = vma_find_region(mm->vmas, mm->start_brk, 0);
-        if(!heap)
-            kpanic("No heap vm area found!\n");
-        if(-1 == vma_grow_up(heap, ALIGN_UP(newbrk, PAGE_SIZE)))
-            return mm->brk;
-        else
-            return newbrk;
-    }
-}
-
 
 /**
  * Add the mm to the list of ALL mm_structs in the system.

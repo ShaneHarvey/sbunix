@@ -9,6 +9,10 @@
 #define USER_STACK_START 0x00007ffffffffff8ULL
 #define USER_STACK_END   (USER_STACK_START - (20ULL * PAGE_SIZE))
 
+#define USER_MMAP_START
+
+#define USER_HEAP_MAX
+
 /* mm_struct functions */
 
 struct mm_struct *mm_create(void);
@@ -30,6 +34,7 @@ void            vma_destroy(struct vm_area *vma);
 void            vma_destroy_all(struct mm_struct *mm);
 struct vm_area *vma_find_region(struct vm_area *vma, uint64_t addr, size_t size);
 struct vm_area *vma_deep_copy(struct mm_struct *mm_old, struct mm_struct *mm_new);
+int vma_grow_up(struct vm_area *vma, uint64_t new_end);
 
 /* onfault's */
 int onfault_mmap_file(struct vm_area *vma, uint64_t addr);
