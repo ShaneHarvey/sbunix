@@ -10,44 +10,36 @@ static int do_setup = 1;
 */
 static int setup_environ(void) {
     char **new_environ, *new_str;
-    size_t len = 0, size = 1, i;
-    int set_empty = 0;
+    size_t len, envc, i;
 
-    if(!__environ) {
-        /* setup an empty environ */
-        set_empty = 1;
-    }
+    envc = 0;
+    while(__environ[envc++] != NULL);/* nothing */;
 
-    while(__environ[size++] != NULL);/* nothing */;
-
-    new_environ = calloc(size, sizeof(char *));
+    new_environ = calloc(envc, sizeof(char *));
     if(new_environ == NULL) {
         return -1;
     }
-    if(set_empty)
-        return 0;
-    for(i = 0; i < size; i++) {
+
+    for(i = 0; i < envc - 1; i++) {
         len = strlen(__environ[i]);
         new_str = malloc(len + 1);
-        if(new_str == NULL) {
-            break;
-        }
+        if(new_str == NULL)
+            goto out_environ;
+
         strcpy(new_str, __environ[i]);
         new_environ[i] = new_str;
-    }
-    if(i < size) {
-        /* Malloc failed so free all mem */
-        while(i >= 0) {
-            free(new_environ[i--]);
-        }
-        free(new_environ);
-        return -1;
     }
     new_environ[i] = NULL;
 
     __environ = new_environ;
     do_setup = 0;
     return 0;
+out_environ:
+    /* Malloc failed so free all mem */
+    while(i-- >= 0)
+        free(new_environ[i]);
+    free(new_environ);
+    return -1;
 }
 
 int setenv(const char *envname, const char *envval, int overwrite) {

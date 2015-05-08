@@ -2,6 +2,7 @@
 #include <string.h>
 #include <dirent.h>
 #include <errno.h>
+#include <stdio.h>
 
 
 /**
@@ -18,22 +19,14 @@ void *opendir(const char *name) {
     }
     /* TODO could add O_CLOEXEC */
     fd = open(name, O_RDONLY | O_DIRECTORY);
-    if(fd < 0) {
+    if(fd < 0)
         return NULL;
-    }
-    dirp = malloc(sizeof(dirp));
-    if(!dirp) {
+
+    dirp = malloc(sizeof(*dirp));
+    if(!dirp)
         return NULL;
-    }
     dirp->fd = fd;
-    dirp->buf = malloc(BUFSIZ); /* buf for dirents */
-    if(!dirp->buf) {
-        free(dirp);
-        return NULL;
-    }
-    dirp->space = BUFSIZ;
     dirp->offset = dirp->size = 0;
-    dirp->filepos = 0;
     return dirp;
 }
 
@@ -43,34 +36,35 @@ void *opendir(const char *name) {
 * the end of the directory stream or if an error occurred.
 */
 struct dirent *readdir(void *dirp) {
-    struct linux_dirent *ldp = NULL;
     struct dirent *dp = NULL;
     struct dirstream *dir = dirp;
-    unsigned char d_type;
     int bytesread = 0;
+    printf("BEFORE readdir\n");
+    printf("dir->fd = %d\n",  dir->fd);
+    printf("dir->size = %d\n", (int)dir->size);
+    printf("dir->offset = %d\n", (int)dir->offset);
 
-    do {
-        if(dir->offset >= dir->size) {
-            /* Must call getdents */
-            bytesread = getdents((uint) dir->fd, (struct dirent*) dir->buf, (uint) dir->space);
-            if(bytesread <= 0) {
-                return NULL; /* End of dir, or error (errno set) */
-            }
-            dir->size = (size_t)bytesread;
-            dir->offset = 0;
-        }
-        ldp = (struct linux_dirent*)(dir->buf + dir->offset);
-        dir->offset += ldp->d_reclen;
+    if(dir->offset >= dir->size) {
+        /* Must call getdents */
+        errno = 0;
+        bytesread = getdents((uint) dir->fd, (struct dirent*) dir->buf, (uint) sizeof(dir->buf));
+        if(bytesread <= 0)
+            return NULL; /* End of dir, or error (errno set) */
 
-    } while(ldp->d_ino == 0); /* Means file dirent was deleted */
-
-    dir->filepos = (off_t)ldp->d_off;
-    dp = (struct dirent *)ldp;
-
-    /* convert linux_dirent to dirent */
-    d_type = *((unsigned char*)ldp + ldp->d_reclen - 1); /* save */
-    memmove(dp->d_name, ldp->d_name, LDIR_NAMELEN(ldp) + 1); /* shift down 1 */
-    dp->d_type = d_type; /* put infront of d_name*/
+        dir->size = (size_t)bytesread;
+        dir->offset = 0;
+    }
+    dp = (struct dirent*)(dir->buf + dir->offset);
+    dir->offset += dp->d_reclen;
+    printf("AFTER readdir\n");
+    printf("dir->fd = %d\n",  dir->fd);
+    printf("dir->size = %d\n", (int)dir->size);
+    printf("dir->offset = %d\n", (int)dir->offset);
+//
+//    /* convert linux_dirent to dirent */
+//    d_type = *((unsigned char*)ldp + ldp->d_reclen - 1); /* save */
+//    memmove(dp->d_name, ldp->d_name, LDIR_NAMELEN(ldp) + 1); /* shift down 1 */
+//    dp->d_type = d_type; /* put infront of d_name*/
     /*  *((unsigned char*)ldp + ldp->d_reclen) = '\0'; */
     return dp;
 }
@@ -88,7 +82,6 @@ int closedir(void *dirp) {
         return -1;
     }
     fd = dir->fd;
-    free(dir->buf);
     free(dir);
     return close(fd);
 }

@@ -8,11 +8,9 @@
 //typedef struct dirstream DIR;
 struct dirstream {
     int fd;         /* Directory descriptor */
-    size_t space;   /* Size of buf */
     size_t size;    /* Valid portion of buf, return of getdents(2) */
     size_t offset;  /* Current offset into buf */
-    off_t filepos;  /* Offset of next entry to read, linux_dirent.d_off */
-    char *buf;      /* buffer of size space */
+    char buf[2048]; /* buffer of size space (holds  dirent structs) */
 };
 
 #define NAME_MAX 255

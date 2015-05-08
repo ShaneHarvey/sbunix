@@ -17,6 +17,27 @@ struct file_ops tarfs_file_ops = {
     .can_mmap = tarfs_can_mmap
 };
 
+/* open "/" for use with readdir */
+struct posix_header_ustar fs_root_hdr = {
+        .name = "", /* or "/"? */
+        .mode = {0},
+        .uid = {0},
+        .gid = {0},
+        .size = {0},
+        .mtime = {0},
+        .checksum = {0},
+        .typeflag = TARFS_DIRECTORY,
+        .linkname = {0},
+        .magic = "ustar",
+        .version = {0},
+        .uname = {0},
+        .gname = {0},
+        .devmajor = {0},
+        .devminor = {0},
+        .prefix = {0},
+        .pad = {0}
+};
+
 /**
  * Ascii Octal To 64-bit unsigned Integer
  * @optr: octal string to parse
@@ -119,6 +140,7 @@ void test_all_tarfs(const char *path) {
 struct file *tarfs_open(const char *path, int flags, mode_t mode, int *err) {
     struct posix_header_ustar *hd;
     struct file *fp;
+    int is_root = 0;
 
     if(!path || *path != '/')
         kpanic("path invalid '%s'!!!\n", path);
@@ -127,6 +149,11 @@ struct file *tarfs_open(const char *path, int flags, mode_t mode, int *err) {
         *err = -EACCES;
         return NULL;
     }
+    if(path[1] == '\0') { /* path is "/" */
+        is_root = 1;
+        hd = &fs_root_hdr;
+        goto found_it;
+    }
 
     for(hd = tarfs_first(); hd != NULL; hd = tarfs_next(hd)) {
         if(strncmp(path+1, hd->name, sizeof(hd->name)) == 0) {
@@ -134,29 +161,32 @@ struct file *tarfs_open(const char *path, int flags, mode_t mode, int *err) {
                 *err = -ENOTDIR;
                 return NULL;
             }
-
-            fp = kmalloc(sizeof(struct file));
-            if(!fp) {
-                *err = -ENOMEM;
-                return NULL;
-            }
-            fp->private_data = hd;
-            fp->f_size = aotoi(hd->size, sizeof(hd->size));
-            /* save index of next header (used by readdir) */
-            if(hd->typeflag == TARFS_DIRECTORY)
-                fp->f_pos = (uint64_t)tarfs_next(hd);
-            else
-                fp->f_pos = 0;
-            fp->f_error = 0;
-            fp->f_op = &tarfs_file_ops;
-            fp->f_flags = flags;
-            fp->f_count = 1;
-            *err = 0;
-            return fp;
+            goto found_it;
         }
     }
     *err = -ENOENT;
     return NULL;
+found_it:
+    fp = kmalloc(sizeof(struct file));
+    if(!fp) {
+        *err = -ENOMEM;
+        return NULL;
+    }
+    fp->private_data = hd;
+    fp->f_size = aotoi(hd->size, sizeof(hd->size));
+    /* save index of next header (used by readdir) */
+    if(is_root)
+        fp->f_pos = (uint64_t)tarfs_first();  /* root points to first header */
+    else if(hd->typeflag == TARFS_DIRECTORY)
+        fp->f_pos = (uint64_t)tarfs_next(hd); /* other dirs point to next header */
+    else
+        fp->f_pos = 0;
+    fp->f_error = 0;
+    fp->f_op = &tarfs_file_ops;
+    fp->f_flags = flags;
+    fp->f_count = 1;
+    *err = 0;
+    return fp;
 }
 
 /**
@@ -270,21 +300,21 @@ ssize_t tarfs_write(struct file *fp, const char *buf, size_t count,
  * @count: size of buf
  */
 int tarfs_readdir(struct file *filep, void *buf, unsigned int count) {
-    struct linux_dirent *nuxdirent;
+    struct dirent *dent;
     struct posix_header_ustar *next, *fhdr;
     unsigned int size;
     size_t len, elen;
     const char *entryname;
-    char type;
+    unsigned char type;
 
 
     fhdr = filep->private_data;
     len = strlen(fhdr->name);
-    printk("READDIR: %s\n", fhdr->name);
+//    printk("READDIR: %s\n", fhdr->name);
 
     next = (struct posix_header_ustar *)filep->f_pos;
     for( ;next != NULL; next = tarfs_next(next)) {
-        printk("READDIR: next: %s\n", next->name);
+//        printk("READDIR: next header: %s\n", next->name);
         /* check in next's name begins with this dir name */
         if(strncmp(fhdr->name, next->name, len) != 0)
             break; /* no more entries */
@@ -294,25 +324,26 @@ int tarfs_readdir(struct file *filep, void *buf, unsigned int count) {
         if(strchr(entryname, '/'))
             continue; /* skip to next header */
 
+//        printk("READDIR: found entry: %s\n", entryname);
         elen = strlen(entryname); /* need to copy this name to buf dirent */
-        nuxdirent = buf;
-        size = (__builtin_offsetof(struct linux_dirent, d_name) + elen + 1 + 2);
+        dent = buf;
+        size = (__builtin_offsetof(struct dirent, d_name) + elen + 1);
         if(count < size) {
             filep->f_pos = (uint64_t) next; /* save for next call */
             return -EINVAL;
         }
-        nuxdirent->d_ino = (ulong)next; /* unique "inode" for this file */
-        nuxdirent->d_off = size - sizeof(unsigned long);
-        nuxdirent->d_reclen = (unsigned short) size;
-        strcpy(nuxdirent->d_name, entryname);
-        nuxdirent->d_name[elen + 1] = '\0';  /* Zero padding byte */
+        dent->d_ino = (ulong)next; /* unique "inode" for this file */
+        dent->d_off = 0;
+        dent->d_reclen = (unsigned short) size;
+        strcpy(dent->d_name, entryname);
+
         if(next->typeflag == TARFS_DIRECTORY)
             type = DT_DIR;
         else if(tarfs_normal_type(next))
             type = DT_REG;
         else
             type = DT_UNKNOWN;
-        nuxdirent->d_name[elen + 2] = type ;  /* File type byte */
+        dent->d_type = type ;  /* File type byte */
         filep->f_pos = (uint64_t) tarfs_next(next); /* save for next call */
         return size;
     }
