@@ -236,7 +236,7 @@ int procces_cmd(cmd_t *cmd, char **envp) {
                 curcmd->status = WTERMSIG(status);
                 if(curcmd->status != SIGINT) /* Don't print killed by ^C */
                     printf("[1] %d killed by signal %d, %s\n",
-                           curcmd->status, curcmd->pid, curcmd->argv[0]);
+                           curcmd->pid, curcmd->status, curcmd->argv[0]);
             } else {
                 curcmd->status = 1; /* ? Didn't exit or get killed by signal? */
             }

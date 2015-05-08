@@ -67,7 +67,6 @@ enum task_state {
 
 /* Exit Codes */
 #define EXIT_FATALSIG   128  /* Added to fatal signal for exit codes */
-#define EXIT_ENOMEM     1
 
 /* Base timeslice in number of interrupts */
 #define TIMESLICE_BASE  80

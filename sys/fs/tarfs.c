@@ -264,7 +264,7 @@ ssize_t tarfs_write(struct file *fp, const char *buf, size_t count,
  * @count: size of buf
  */
 int tarfs_readdir(struct file *filep, void *buf, unsigned int count) {
-    struct linux_dirent *nuxdirent;
+//    struct linux_dirent *nuxdirent;
 
 
     return -1;
