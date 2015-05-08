@@ -56,8 +56,7 @@ struct queue just_ran_queue = {
 
 };
 
-/* Hold's tasks in the state TASK_BLOCKED, could be waiting on terminals or
- * children */
+/* Hold's tasks in the state TASK_BLOCKED, blocked on terminals or pipes */
 struct queue block_queue = {
         .num_switches = 0,
         .tasks = NULL,
@@ -65,6 +64,12 @@ struct queue block_queue = {
 
 /* Hold's tasks in the state TASK_SLEEPING, from call to nanosleep(2) */
 struct queue sleep_queue = {
+        .num_switches = 0,
+        .tasks = NULL,
+};
+
+/* Hold's tasks in the state TASK_WAITING, from call to waitpid(2) */
+struct queue wait_queue = {
         .num_switches = 0,
         .tasks = NULL,
 };
@@ -208,18 +213,37 @@ void task_destroy(struct task_struct *task) {
             task->files[i] = NULL;
         }
     }
-    /* TODO: Notify parent of child's termination */
 
     /* Give terminal control back to the parent */
     if(task->foreground && task->parent) {
         task->parent->foreground = 1;
     }
     task->foreground = 0; /* remove the foreground from the dead task */
+
+    /* If we have children give them to init */
+    if(task->chld) {
+        /* Give all children to init */
+        struct task_struct *prevchld, *nextchld;
+        for(prevchld = task->chld; prevchld != NULL; prevchld = nextchld) {
+            nextchld = prevchld->sib;
+            add_child(init_task, prevchld);
+        }
+    }
+
+    if(task->parent) {
+        /* Notify parent of child's termination */
+        if(task->parent->state == TASK_WAITING) {
+            task_wakeup(&wait_queue, task->parent);
+        }
+    } else {
+        /* We have no parent so add ourself to init */
+        add_child(init_task, task);
+    }
 }
 
 /**
  * Do the final cleanup of a task struct.
- * return: the exit code of the task
+ * @return: the exit code of the task
  */
 int cleanup_child(struct task_struct *task) {
     int rv;
@@ -231,6 +255,20 @@ int cleanup_child(struct task_struct *task) {
         task->next_task->prev_task = task->prev_task;
     if(task->prev_task)
         task->prev_task->next_task = task->next_task;
+
+    if(!task->parent)
+        kpanic("Reaping a child that has no parent!\n");
+
+    /* Remove task from list of children in parent*/
+    if(task->parent->chld == task) {
+        /* task was first child */
+        task->parent->chld = task->sib;
+    } else {
+        struct task_struct *prev = task->parent->chld;
+        for(; prev->sib != task; prev = prev->sib) {
+        }
+        prev->sib = task->sib; /* remove task */
+    }
 
     rv = task->exit_code;
     kfree(task);
@@ -279,6 +317,8 @@ void queue_add_by_state(struct task_struct *task) {
         rr_queue_add(&block_queue, task);
     } else if(task->state == TASK_SLEEPING) {
         rr_queue_add(&sleep_queue, task);
+    } else if(task->state == TASK_WAITING) {
+        rr_queue_add(&wait_queue, task);
     } else {
         kpanic("Don't know which queue to put task into: state=%d\n", task->state);
     }
@@ -296,6 +336,8 @@ void queue_remove_by_state(struct task_struct *task) {
         rr_queue_remove(&block_queue, task);
     } else if(task->state == TASK_SLEEPING) {
         rr_queue_remove(&sleep_queue, task);
+    } else if(task->state == TASK_WAITING) {
+        rr_queue_remove(&wait_queue, task);
     } else {
         kpanic("Don't know which queue to remvoe task from: state=%d\n", task->state);
     }
@@ -440,6 +482,7 @@ void add_child(struct task_struct *parent, struct task_struct *chld) {
     /* Push new child onto the parent's list */
     chld->sib = parent->chld;
     parent->chld = chld;
+    chld->parent = parent;
 }
 
 /**

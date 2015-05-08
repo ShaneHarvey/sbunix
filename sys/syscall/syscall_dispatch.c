@@ -38,7 +38,8 @@ void enable_syscalls(void) {
 }
 
 void sys_exit(int status) {
-    kill_curr_task(status);
+    /* The exit status is shifted over */
+    kill_curr_task((status & 0xff) << 8);
     return;
 }
 

@@ -12,9 +12,17 @@ extern struct queue run_queue;
 extern struct queue just_ran_queue;
 extern struct queue block_queue;
 extern struct queue sleep_queue;
+extern struct queue wait_queue;
 
+/* These two are the kernel's, after exec'ing /bin/init these describe
+ * the idle task, because kmain just calls halt. */
 extern struct mm_struct     kernel_mm;
 extern struct task_struct   kernel_task;
+
+/* The init task is created in kmain, it is PID 1 */
+extern struct task_struct   *init_task;
+
+/* The current task that we are executing */
 extern struct task_struct   *curr_task;
 
 #define TASK_CMDLINE_MAX 128
@@ -53,7 +61,8 @@ enum task_state {
     TASK_RUNNABLE   = 2,  /* able to be scheduled */
     TASK_DEAD       = 4,  /* after a context-switch the task is cleaned-up, set on exit() */
     TASK_BLOCKED    = 8,  /* waiting for I/O */
-    TASK_SLEEPING   = 16  /* sleeping */
+    TASK_SLEEPING   = 16, /* sleeping */
+    TASK_WAITING    = 32  /* waiting on children */
 };
 
 /* Exit Codes */

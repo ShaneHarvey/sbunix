@@ -6,7 +6,7 @@
 /* Maybe we should move protos of wait* to here */
 
 #define WNOHANG    1
-#define WUNTRACED  2
+//#define WUNTRACED  2
 
 #define WSTOPPED   2
 #define WEXITED    4
