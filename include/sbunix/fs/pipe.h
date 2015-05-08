@@ -5,6 +5,8 @@
 
 int pipe_open(struct file **read_end, struct file **write_end);
 
+int pipe_can_mmap(struct file *fp);
+
 off_t pipe_lseek(struct file *fp, off_t offset, int whence);
 
 /* Read end operations */
@@ -20,6 +22,5 @@ ssize_t write_end_read(struct file *fp, char *buf, size_t count,
 ssize_t write_end_write(struct file *fp, const char *buf, size_t count,
                        off_t *offset);
 int write_end_close(struct file *fp);
-
 
 #endif //_SBUNIX_PIPE_H

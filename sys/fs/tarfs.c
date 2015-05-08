@@ -12,7 +12,8 @@ struct file_ops tarfs_file_ops = {
     .read = tarfs_read,
     .write = tarfs_write,
 //    .readdir = tarfs_readdir,
-    .close = tarfs_close
+    .close = tarfs_close,
+    .can_mmap = tarfs_can_mmap
 };
 
 /**
@@ -258,6 +259,20 @@ int tarfs_close(struct file *fp) {
         memset(fp, 0, sizeof(struct file));
         kfree(fp);
     }
+    return 0;
+}
+
+/**
+ * Can user mmap this file?
+ */
+int tarfs_can_mmap(struct file *fp) {
+    if(!fp)
+        kpanic("file is NULL!!!\n");
+
+    if(!tarfs_normal_type(fp->private_data)) {
+        return -EACCES;
+    }
+
     return 0;
 }
 

@@ -24,19 +24,21 @@ struct pipe_buf {
 
 /* File hooks for read end of a pipe */
 struct file_ops read_end_ops = {
-        .lseek = pipe_lseek,
-        .read = read_end_read,
-        .write = read_end_write,
-//    .readdir = pipe_readdir,
-        .close = read_end_close
+    .lseek = pipe_lseek,
+    .read = read_end_read,
+    .write = read_end_write,
+//  .readdir = pipe_readdir,
+    .close = read_end_close,
+    .can_mmap = pipe_can_mmap
 };
 /* File hooks for read end of a pipe */
 struct file_ops write_end_ops = {
-        .lseek = pipe_lseek,
-        .read = write_end_read,
-        .write = write_end_write,
-//    .readdir = pipe_readdir,
-        .close = write_end_close
+    .lseek = pipe_lseek,
+    .read = write_end_read,
+    .write = write_end_write,
+//  .readdir = pipe_readdir,
+    .close = write_end_close,
+    .can_mmap = pipe_can_mmap
 };
 
 /**
@@ -266,4 +268,11 @@ out_read:
     kfree(new_read);
 out_nomem:
     return -ENOMEM;
+}
+
+/**
+ * Can user mmap this file? no..
+ */
+int pipe_can_mmap(struct file *fp) {
+    return -EACCES;
 }

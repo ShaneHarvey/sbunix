@@ -27,7 +27,7 @@ long do_getcwd(char *buf, size_t size);
 
 long do_chdir(const char *path);
 
-int do_open(const char *pathname, int flags, mode_t mode);
+long do_open(const char *pathname, int flags, mode_t mode);
 
 ssize_t do_read(int fd, void *buf, size_t count);
 
