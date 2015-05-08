@@ -230,10 +230,9 @@ int procces_cmd(cmd_t *cmd, char **envp) {
             wpid = waitpid(curcmd->pid, &status, 0);
             if (wpid == (pid_t)-1) {
                 printf("waitpid failed: %s\n", strerror(errno));
-            }
-            if(WIFEXITED(status))
+            } else if(WIFEXITED(status)) {
                 curcmd->status = WEXITSTATUS(status);
-            else if(WIFSIGNALED(status)) {
+            } else if(WIFSIGNALED(status)) {
                 curcmd->status = WTERMSIG(status);
                 if(curcmd->status != SIGINT) /* Don't print killed by ^C */
                     printf("[1] %d killed by signal %d, %s\n",
