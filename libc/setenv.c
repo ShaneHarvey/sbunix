@@ -10,16 +10,22 @@ static int do_setup = 1;
 */
 static int setup_environ(void) {
     char **new_environ, *new_str;
-    size_t len = 0, size = 0, i;
+    size_t len = 0, size = 1, i;
+    int set_empty = 0;
 
-    while(__environ[size] != NULL) {
-        size++;
+    if(!__environ) {
+        /* setup an empty environ */
+        set_empty = 1;
     }
 
-    new_environ = malloc((size + 1) * sizeof(char *));
+    while(__environ[size++] != NULL);/* nothing */;
+
+    new_environ = calloc(size, sizeof(char *));
     if(new_environ == NULL) {
         return -1;
     }
+    if(set_empty)
+        return 0;
     for(i = 0; i < size; i++) {
         len = strlen(__environ[i]);
         new_str = malloc(len + 1);
