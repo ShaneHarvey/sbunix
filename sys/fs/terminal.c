@@ -158,12 +158,20 @@ void term_putch(unsigned char c) {
         term.delims++;
         term.backspace = 0;
         task_unblock_foreground(&term);
+        /* Add c to the buffer */
+        term_push(c);
+    } else if(c == '\t') {
+        int spaces = curr_tab_to_spaces();
+        term.backspace += spaces;
+        while(spaces--) {
+            term_push(' ');
+        }
     } else {
         /* TODO: handle other special characters here */
         term.backspace++;
+        /* Add c to the buffer */
+        term_push(c);
     }
-    /* Add c to the buffer */
-    term_push(c);
     /* Local echo, print the last char and move the cursor */
     if(term.echo && c && c != EOT) {
         putch(c);

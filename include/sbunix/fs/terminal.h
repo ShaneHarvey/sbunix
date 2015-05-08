@@ -8,6 +8,8 @@
 #define EOT  4
 #define EOF  -1
 
+int curr_tab_to_spaces(void);
+
 void term_putch(unsigned char c);
 
 struct file *term_open(void);

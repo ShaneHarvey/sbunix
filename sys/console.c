@@ -22,24 +22,20 @@ void clear_line(uint8_t lineno) {
     }
 }
 
-/* Updates the hardware cursor: the little blinking line
-*  on the screen under the last character pressed! */
+/* void update_cursor(int row, int col)
+ * by Dark Fiber
+ */
 void move_csr(void) {
     uint16_t temp;
 
-    temp = cursor_y * SCRN_WIDTH + cursor_x;
+    temp = (uint16_t)((cursor_y * SCRN_WIDTH) + cursor_x);
 
-    /* This sends a command to indexes 14 and 15 in the
-    *  CRT Control Register of the VGA controller. These
-    *  are the high and low bytes of the index that show
-    *  where the hardware cursor is to be 'blinking'. To
-    *  learn more, you should look up some VGA specific
-    *  programming documents. A great start to graphics:
-    *  http://www.brackeen.com/home/vga */
-    outb(0x3D4, 14);
-    outb(0x3D5, temp >> 8);
-    outb(0x3D4, 15);
-    outb(0x3D5, temp);
+    // cursor LOW port to vga INDEX register
+    outb(0x3D4, 0x0F);
+    outb(0x3D5, (uint8_t)(temp&0xFF));
+    // cursor HIGH port to vga INDEX register
+    outb(0x3D4, 0x0E);
+    outb(0x3D5, (uint8_t)((temp>>8)&0xFF));
 }
 
 void clear_console(void) {
@@ -54,9 +50,16 @@ void clear_console(void) {
     move_csr();
 }
 
-/* Puts a single character on the screen */
+int curr_tab_to_spaces(void) {
+    return ((cursor_x + 4) & ~3) - cursor_x;
+}
+
+/*
+ * Put a character at the current cursor
+ * does not update the VGA cursor
+ */
 void putch(char c) {
-    /* Handle a backspace, by moving the cursor back one space */
+    /* Move cursor back one space */
     if(c == '\b') {
         if(!cursor_x && !cursor_y)
             return;
@@ -65,21 +68,13 @@ void putch(char c) {
             cursor_x = 79;
             cursor_y--;
         }
-    }
-    /* Handles a tab by incrementing the cursor's x, but only
-    *  to a point that will make it divisible by 4 */
-    else if(c == '\t') {
-        cursor_x = (cursor_x + 4) & ~3;
-    }
-        /* Handles a 'Carriage Return', which simply brings the
-        *  cursor back to the margin */
-    else if(c == '\r') {
+    } else if(c == '\t') {
+        int spaces = curr_tab_to_spaces();
+        while(spaces--)
+            putch(' ');
+    } else if(c == '\r') {
         cursor_x = 0;
-    }
-        /* We handle our newlines the way DOS and the BIOS do: we
-        *  treat it as if a 'CR' was also there, so we bring the
-        *  cursor to the margin and we increment the 'y' value */
-    else if(c == '\n') {
+    } else if(c == '\n') {
         cursor_x = 0;
         cursor_y++;
     } else {
@@ -88,14 +83,13 @@ void putch(char c) {
         cursor_x++;
     }
 
-    /* If the cursor has reached the edge of the screen's width, we
-    *  insert a new line in there */
     if(cursor_x >= 80) {
+        /* wrap to new line */
         cursor_x = 0;
         cursor_y++;
     }
 
-    /* Row 25 is the end, this means we need to scroll up */
+    /* Need to scroll up */
     if(cursor_y >= SCRN_HEIGHT) {
         /* Don't overwrite time in top right corner */
         memmove(SCRN_BASE, SCRN_XY(0, 1), 2 * (SCRN_WIDTH - 7));
@@ -105,10 +99,13 @@ void putch(char c) {
     }
 }
 
-/* Uses the above routine to output a string... */
+/*
+ * Write a string to the console
+ */
 void puts(const char *text, size_t count) {
-    while (*text && count--){
-        putch(*text++);
+    int i;
+    for(i = 0; text[i] && count--; i++){
+        putch(text[i]);
     }
     move_csr();
 }
