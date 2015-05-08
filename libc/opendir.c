@@ -39,10 +39,6 @@ struct dirent *readdir(void *dirp) {
     struct dirent *dp = NULL;
     struct dirstream *dir = dirp;
     int bytesread = 0;
-    printf("BEFORE readdir\n");
-    printf("dir->fd = %d\n",  dir->fd);
-    printf("dir->size = %d\n", (int)dir->size);
-    printf("dir->offset = %d\n", (int)dir->offset);
 
     if(dir->offset >= dir->size) {
         /* Must call getdents */
@@ -56,16 +52,6 @@ struct dirent *readdir(void *dirp) {
     }
     dp = (struct dirent*)(dir->buf + dir->offset);
     dir->offset += dp->d_reclen;
-    printf("AFTER readdir\n");
-    printf("dir->fd = %d\n",  dir->fd);
-    printf("dir->size = %d\n", (int)dir->size);
-    printf("dir->offset = %d\n", (int)dir->offset);
-//
-//    /* convert linux_dirent to dirent */
-//    d_type = *((unsigned char*)ldp + ldp->d_reclen - 1); /* save */
-//    memmove(dp->d_name, ldp->d_name, LDIR_NAMELEN(ldp) + 1); /* shift down 1 */
-//    dp->d_type = d_type; /* put infront of d_name*/
-    /*  *((unsigned char*)ldp + ldp->d_reclen) = '\0'; */
     return dp;
 }
 

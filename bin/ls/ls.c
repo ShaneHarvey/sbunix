@@ -12,6 +12,7 @@
 */
 int main(int argc, char *argv[]) {
     int retval = 0;
+    int prints = 0;
     struct dirent *dent = NULL;
     void *dir = opendir((argc == 1)?("."):(argv[1]));
     if(!dir) {
@@ -30,7 +31,11 @@ int main(int argc, char *argv[]) {
             }
             break;
         }
-        printf("%s\t", dent->d_name);
+        printf("%s\t\t", dent->d_name);
+        if(++prints == 4) {
+            prints = 4;
+            printf("\n");
+        }
     }
     printf("\n");
 
