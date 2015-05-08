@@ -21,6 +21,7 @@ typedef struct cmd {
     struct cmd *next;
 }cmd_t;
 
+
 int ignore_line(char *line);
 void print_prompt(char *ps1);
 void strip(char *str);
@@ -30,9 +31,12 @@ cmd_t *parse_line(char *line);
 void free_cmd(cmd_t *cmd);
 int build_path(char *prog, char *fullpath);
 void exec_cmd(cmd_t *cmd, int infile, int outfile, char **envp);
-int procces_cmd(cmd_t *cmd, char **envp);
+int procces_cmd(cmd_t *cmd, char **envp, int background);
 int eval_assignment(cmd_t *cmd);
 void save_cmd_info(cmd_t *cmd);
+void save_cmd_status(int status);
+void waitpid_bg_cmds(void);
+void waitpid_cmds(cmd_t *cmds, int background);
 
 /* TODO: change print prompt */
 char *ps1_default =  "[\\u@\\h \\w]$ ";
@@ -70,7 +74,8 @@ int main(int argc, char **argv, char **envp) {
     }
 
     while(!finished) {
-        int i;
+        int i, background = 0;
+        size_t slen;
         char last_char;
         cmd_t *cmd;
 
@@ -97,15 +102,27 @@ int main(int argc, char **argv, char **envp) {
             /* TODO: Handle special characters eg ctrl, arrow keys, tab */
         }
         line[i] = '\0';
+
+        /* Wait for background cmds */
+        waitpid_bg_cmds();
+
         if(ignore_line(line)) {
             continue;
         }
         line = swap_vars(line, line_size - 1);
+        /* Strip and check if ends in & */
+        strip(line);
+        slen = strlen(line);
+        if(line[slen-1] == '&') {
+            line[slen-1] = 0;
+            strip(line);
+            background = 1;
+        }
         cmd = parse_line(line);
         if(cmd == NULL) {
             continue;
         }
-        rv = procces_cmd(cmd, envp);
+        rv = procces_cmd(cmd, envp, background);
         free_cmd(cmd);
         if(rv < 0) {
             break;
@@ -140,9 +157,10 @@ int ignore_line(char *line) {
 
 /**
 * Process the cmd inputted by the user
+* @background: 1 to run all cmd's in background
 * return -1 on user exit or 0
 */
-int procces_cmd(cmd_t *cmd, char **envp) {
+int procces_cmd(cmd_t *cmd, char **envp, int background) {
     int rv, infile, outfile, pfd[2];
     cmd_t *curcmd;
 
@@ -221,31 +239,77 @@ int procces_cmd(cmd_t *cmd, char **envp) {
 
 
     }
+    /* wait for cmds */
+    waitpid_cmds(cmd, background);
+    return 1;
+}
+
+/**
+ * cmds to wait on, are they background cmds?
+ */
+void waitpid_cmds(cmd_t *cmds, int background) {
+    cmd_t *curcmd;
     pid_t wpid;
+    int options = 0;
+    if(background)
+        options = WNOHANG;
     /* wait for pid */
-    for(curcmd = cmd; curcmd != NULL; curcmd = curcmd->next) {
+    for (curcmd = cmds; curcmd != NULL; curcmd = curcmd->next) {
         int status;
 
-        if(curcmd->pid != 0) {
-            wpid = waitpid(curcmd->pid, &status, 0);
-            if (wpid == (pid_t)-1) {
+        if (curcmd->pid != 0) {
+            wpid = waitpid(curcmd->pid, &status, options);
+            if (wpid == (pid_t) -1) {
                 printf("waitpid failed: %s\n", strerror(errno));
-            } else if(WIFEXITED(status)) {
+                continue;
+            } else if (wpid == 0) {
+                printf("[1] %d\n", curcmd->pid);
+                continue;                /* WNOHANG, would block */
+            } else if (WIFEXITED(status)) {
                 curcmd->status = WEXITSTATUS(status);
-            } else if(WIFSIGNALED(status)) {
+                if(background)
+                    printf("[1] + %d done\n", curcmd->pid);
+            } else if (WIFSIGNALED(status)) {
                 curcmd->status = WTERMSIG(status);
-                if(curcmd->status != SIGINT) /* Don't print killed by ^C */
+                if (curcmd->status != SIGINT) /* Don't print killed by ^C */
                     printf("[1] %d killed by signal %d, %s\n",
                            curcmd->pid, curcmd->status, curcmd->argv[0]);
             } else {
                 curcmd->status = 1; /* ? Didn't exit or get killed by signal? */
             }
         }
-
         /* Save info about previous command to the environment */
         save_cmd_info(curcmd);
     }
-    return 1;
+}
+
+/**
+ * cmds to wait on, are they background cmds? Should we copy them?
+ */
+void waitpid_bg_cmds(void) {
+    pid_t wpid;
+    int status;
+
+    do {
+        wpid = waitpid(-1, &status, WNOHANG);
+        if (wpid == (pid_t) -1) {
+//            printf("waitpid failed: %s\n", strerror(errno));
+            break;
+        } else if (wpid == 0) {
+            /* WNOHANG, would block so break */
+            break;
+        } else if (WIFEXITED(status)) {
+            status = WEXITSTATUS(status);
+            printf("[1] + %d done\n", wpid);
+        } else if (WIFSIGNALED(status)) {
+            status = WTERMSIG(status);
+            if(status != SIGINT) /* Don't print killed by ^C */
+                printf("[1] %d killed by signal %d\n", wpid, status);
+        } else {
+            status = 1; /* ? Didn't exit or get killed by signal? */
+        }
+    } while (1);
+    save_cmd_status(status);
 }
 
 /**
@@ -353,9 +417,16 @@ int build_path(char *prog, char *fullpath) {
 */
 void save_cmd_info(cmd_t *cmd) {
     char str_status[4] = {0};
-    cmd->status &= 0xFF;
     save_var("?", uitoa((uint)cmd->status, 10, str_status, 4));
     save_var("_", cmd->argv[0]);
+}
+
+/**
+* Saves info about the previous command.
+*/
+void save_cmd_status(int status) {
+    char str_status[4] = {0};
+    save_var("?", uitoa((uint)status, 10, str_status, 4));
 }
 
 /**

@@ -176,7 +176,6 @@ pf_violation:
 pf_enomem:
     debug("Page-Fault (#PF) at RIP %p, on ADDR %p!\n", (void*)fault_rip, (void*)addr);
     /* Kill current task */
-    printk("NO MEM!\n");
     kill_curr_task(EXIT_FATALSIG + SIGKILL);
     kpanic("!! TODO: Page-Fault ENOMEM !!\n");
 }

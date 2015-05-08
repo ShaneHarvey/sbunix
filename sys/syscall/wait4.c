@@ -1,6 +1,7 @@
 #include <sbunix/syscall.h>
 #include <sbunix/sched.h>
 #include <sbunix/string.h>
+#include <sbunix/sbunix.h>
 #include <sys/wait.h> /* W* defines */
 
 /**
@@ -25,7 +26,6 @@ pid_t do_wait4(pid_t pid, int *status, int options, struct rusage *rusage) {
 
     /* Waiting for children */
     while(1) {
-
         /* For each child */
         for (task = curr_task->chld; task != NULL; task = task->sib) {
             /* Does a child we were looking for exist? */
@@ -33,7 +33,7 @@ pid_t do_wait4(pid_t pid, int *status, int options, struct rusage *rusage) {
                 pid_exists = 1;
             }
             /* If it's DEAD and we're looking for it */
-            if (task->state == TASK_DEAD && pid_exists) {
+            if (task->state == TASK_DEAD && (task->pid == pid || anychild)) {
                 childpid = task->pid;
                 exit_code = cleanup_child(task);
                 if(status)
