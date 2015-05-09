@@ -40,4 +40,8 @@ char *itoa(long long val, int base, char *str, size_t len);
 char *uitoa(unsigned long long val, int base, char *str, size_t len);
 char *strerror(int err);
 
+char *strsignal(int sig);
+
+extern const char * const sys_siglist[];
+
 #endif /* _SBUNIX_STRING_H */

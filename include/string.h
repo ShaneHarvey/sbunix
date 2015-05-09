@@ -34,4 +34,8 @@ char    *strrev(char *str);
 char    *itoa(long long val, int base, char *str, size_t len);
 char    *uitoa(unsigned long long val, int base, char *str, size_t len);
 
+char *strsignal(int sig);
+
+extern const char * const sys_siglist[];
+
 #endif /* _STRING_H */

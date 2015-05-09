@@ -862,3 +862,47 @@ char *strerror(int err) {
     }
     return err_str[err];
 }
+
+const char * const sys_siglist[] = {
+		"SIGHUP",
+		"SIGINT",
+		"SIGQUIT",
+		"SIGILL",
+		"SIGTRAP",
+		"SIGABRT",
+		"SIGIOT",
+		"SIGBUS",
+		"SIGFPE",
+		"SIGKILL",
+		"SIGUSR1",
+		"SIGSEGV",
+		"SIGUSR2",
+		"SIGPIPE",
+		"SIGALRM",
+		"SIGTERM",
+		"SIGSTKFLT",
+		"SIGCHLD",
+		"SIGCONT",
+		"SIGSTOP",
+		"SIGTSTP",
+		"SIGTTIN",
+		"SIGTTOU",
+		"SIGURG",
+		"SIGXCPU",
+		"SIGXFSZ",
+		"SIGVTALRM",
+		"SIGPROF",
+		"SIGWINCH",
+		"SIGIO",
+		"SIGPOLL",
+		"SIGPWR",
+		"SIGSYS",
+		"SIGUNUSED"
+};
+
+char *strsignal(int sig) {
+	if(sig < 0 || sig > sizeof(sys_siglist)/ sizeof(char *)) {
+		return NULL;
+	}
+	return (char*)sys_siglist[sig];
+}

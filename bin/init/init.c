@@ -40,7 +40,7 @@ int main(int argc, char **argv, char **envp) {
             status = WEXITSTATUS(status);
         } else if(WIFSIGNALED(status)) {
             status = WTERMSIG(status);
-            printf("/bin/init: reaped pid %d, killed by signal %d\n", (int)wpid, status);
+            printf("/bin/init: reaped pid %d, killed by %s\n", (int)wpid, strsignal(status));
             continue;
         } else {
             status = 1;  /* ? Didn't exit or get killed by signal? */

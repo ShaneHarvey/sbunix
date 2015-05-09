@@ -272,8 +272,8 @@ void waitpid_cmds(cmd_t *cmds, int background) {
             } else if (WIFSIGNALED(status)) {
                 curcmd->status = WTERMSIG(status);
                 if (curcmd->status != SIGINT) /* Don't print killed by ^C */
-                    printf("[1] %d killed by signal %d, %s\n",
-                           curcmd->pid, curcmd->status, curcmd->argv[0]);
+                    printf("[1] + %d killed by %s, %s\n",
+                           curcmd->pid, strsignal(curcmd->status), curcmd->argv[0]);
             } else {
                 curcmd->status = 1; /* ? Didn't exit or get killed by signal? */
             }
@@ -304,7 +304,7 @@ void waitpid_bg_cmds(void) {
         } else if (WIFSIGNALED(status)) {
             status = WTERMSIG(status);
             if(status != SIGINT) /* Don't print killed by ^C */
-                printf("[1] %d killed by signal %d\n", wpid, status);
+                printf("[1] + %d killed by %s\n", wpid, strsignal(status));
         } else {
             status = 1; /* ? Didn't exit or get killed by signal? */
         }
