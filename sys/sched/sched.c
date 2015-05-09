@@ -184,8 +184,10 @@ struct task_struct *fork_curr_task(void) {
 
     return task;
 out_task:
+    printk("fork_curr_task: kfree(task=%p)\n", task);
     kfree(task);
 out_stack:
+    printk("fork_curr_task: free_page(kstack=%p)\n", (void *)kstack);
     free_page((uint64_t)kstack);
     return NULL;
 }
@@ -201,7 +203,7 @@ void task_destroy(struct task_struct *task) {
     mm_destroy(task->mm);
 
     free_page(ALIGN_DOWN(task->kernel_rsp, PAGE_SIZE));
-
+    printk("task_destroy: pid=%d, files\n", (int)task->pid);
     /* Close any open files */
     for(i = 0; i < TASK_FILES_MAX; i++) {
         struct file *fp = task->files[i];
@@ -268,6 +270,7 @@ int cleanup_child(struct task_struct *task) {
     }
 
     rv = task->exit_code;
+    printk("cleanup_child: kfree(task=%p)\n", task);
     kfree(task);
     return rv;
 }

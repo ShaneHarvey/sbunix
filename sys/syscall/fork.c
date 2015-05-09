@@ -15,6 +15,7 @@ pid_t do_fork(void) {
 
     freemem_report();
     child = fork_curr_task();
+    printk("do_fork: forked! childtask=%p\n", child);
     if(!child)
         return (pid_t)-ENOMEM;
 

@@ -47,6 +47,7 @@ void start(uint32_t* modulep, uint64_t physbase, uint64_t physfree)
 	physfree += 3 * PAGE_SIZE;
 
 	pzone_remove(physbase, physfree);
+	pzone_remove(physfree, 0x7fdf000UL);
 	physmem_init();
 	physmem_report();
 

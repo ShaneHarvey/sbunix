@@ -37,9 +37,11 @@ int add_heap(struct mm_struct *user) {
     for(vma = user->vmas; vma->vm_next != NULL; vma = vma->vm_next) {
     }
     /* Heap starts after the other sections */
-    user->start_brk = user->brk = ALIGN_UP(vma->vm_end + 1, PAGE_SIZE);
+    user->start_brk = user->brk = PAGE_ALIGN(vma->vm_end + PAGE_SIZE);//ALIGN_UP(vma->vm_end + 1, PAGE_SIZE);
     /* Initially size is 0 */
     heap = vma_create(user->start_brk, user->brk, VM_HEAP, PFLAG_RW);
+    if(!heap)
+        return -ENOMEM;
     heap->onfault = onfault_mmap_anon;
     heap->vm_mm = user;
     user->vma_count++;
@@ -177,14 +179,14 @@ int add_stack(struct mm_struct *user, const char **argv, const char **envp) {
     /* Finally, add stack to the user */
     if(mm_add_vma(user, stack)) {
         err = -ENOEXEC;
-        goto out_vma;
+        goto out_virt_strs;
     }
 
     return 0;
 out_virt_strs:
-    free_page((uint64_t)virt_strs);
+    free_page(PAGE_ALIGN((uint64_t)virt_strs));
 out_virt_ptrs:
-    free_page((uint64_t)virt_ptrs);
+    free_page(PAGE_ALIGN((uint64_t)virt_ptrs));
 out_vma:
     vma_destroy(stack);
     return err;
@@ -248,10 +250,7 @@ int mmap_area(struct mm_struct *mm, struct file *filep,
     vma = vma_create(vm_start, vm_end, VM_MMAP, prot);
     if(!vma)
         return -ENOMEM;
-    if(mm_add_vma(mm, vma)) {
-        err = -EINVAL;
-        goto out_vma;
-    }
+
     if(filep) {
         filep->f_count++;
         vma->vm_file = filep;
@@ -266,7 +265,11 @@ int mmap_area(struct mm_struct *mm, struct file *filep,
     write_cr3(mm->pml4);
     err = vma->onfault(vma, vm_start);
     write_cr3(curr_pml4);
-    if(err){
+    if(err)
+        goto out_vma;
+    /* finally add to mm */
+    if(mm_add_vma(mm, vma)) {
+        err = -EINVAL;
         goto out_vma;
     }
     return 0;
@@ -306,6 +309,7 @@ void mm_destroy(struct mm_struct *mm) {
         return;
 
     if(--mm->mm_count <= 0) {
+        printk("mm_destroy: vma_destroy_all(mm=%p)\n", mm);
         vma_destroy_all(mm);
 
         if(mm->mm_next) {
@@ -318,9 +322,12 @@ void mm_destroy(struct mm_struct *mm) {
 
         /* Free the page_tables, if it exists (could come here during a
          * mm_deep_copy error) */
-        if(mm->pml4)
+        if(mm->pml4) {
+            printk("mm_destroy: free_pml4(pml4=%p)\n", (void *)mm->pml4);
             free_pml4(mm->pml4);
+        }
 
+        printk("mm_destroy: kfree(mm=%p)\n", (void *)mm);
         kfree(mm);
     }
 }
@@ -355,6 +362,7 @@ struct mm_struct *mm_deep_copy(void) {
         goto out_copy_mm;
 
     /* Create a copy of the page tables that are now Copy-On-Write */
+    printk("copying page table\n");
     curr_mm->pml4 = copy_current_pml4();
     if(!curr_mm->pml4)
         goto out_copy_mm;
@@ -516,6 +524,7 @@ void vma_destroy(struct vm_area *vma) {
     if(vma->vm_file)
         vma->vm_file->f_op->close(vma->vm_file);
 
+    printk("vma_destroy: kfree(vma=%p)\n", vma);
     kfree(vma);
 }
 
