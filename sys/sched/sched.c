@@ -74,9 +74,6 @@ struct queue wait_queue = {
         .tasks = NULL,
 };
 
-/* Global next PID to give out, monotonically increasing */
-static pid_t next_pid = 1;
-
 /* Private functions */
 static void task_list_add(struct task_struct *task);
 static void task_add_new(struct task_struct *task);
@@ -292,18 +289,11 @@ void task_list_add(struct task_struct *task) {
     if(!task)
         return;
 
-    if(!curr_task) {
-        /* Should never be executed */
-        task->next_task = task;
-        task->prev_task = task;
-        curr_task = task;
-    } else {
-        /* Insert task behind the current */
-        curr_task->prev_task->next_task = task;
-        task->prev_task = curr_task->prev_task;
-        curr_task->prev_task = task;
-        task->next_task = curr_task;
-    }
+    /* Insert task behind the kernel */
+    kernel_task.prev_task->next_task = task;
+    task->prev_task = kernel_task.prev_task;
+    kernel_task.prev_task = task;
+    task->next_task = &kernel_task;
 }
 
 /**
@@ -488,11 +478,14 @@ void add_child(struct task_struct *parent, struct task_struct *chld) {
 
 /**
  * Return the next PID to use.
+ * The list of all task is in sorted order, with the max being directly
+ * behind the kernel task.
  */
 pid_t get_next_pid(void) {
-    if(next_pid > 2147483647)
+    int max_pid = kernel_task.prev_task->pid;
+    if(max_pid >= 2147483645)
         kpanic("Ran out of PIDs, please reboot!");
-    return next_pid++;
+    return max_pid + 1;
 }
 
 /**
