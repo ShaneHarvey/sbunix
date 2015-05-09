@@ -1,13 +1,13 @@
-#include "_snprintf.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 
 /**
  * Snprintf
  *
  * returns number of bytes written
  */
-int _snprintf(char *str, size_t size, const char *format, va_list ap) {
+int vsnprintf(char *str, size_t size, const char *format, va_list ap) {
     int written = 0;
 
     if(format == NULL)

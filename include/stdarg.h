@@ -7,4 +7,8 @@
 #define va_copy(d,s)      __builtin_va_copy(d,s)
 typedef __builtin_va_list va_list;
 
+int vprintf(const char *format, va_list ap);
+int vsprintf(char *str, const char *format, va_list ap);
+int vsnprintf(char *str, size_t size, const char *format, va_list ap);
+
 #endif
