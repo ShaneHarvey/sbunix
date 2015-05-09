@@ -69,7 +69,7 @@ enum task_state {
 #define EXIT_FATALSIG   128  /* Added to fatal signal for exit codes */
 
 /* Base timeslice in number of interrupts */
-#define TIMESLICE_BASE  80
+#define TIMESLICE_BASE  30
 
 /* Run-Queue */
 struct queue {

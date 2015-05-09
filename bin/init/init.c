@@ -17,13 +17,13 @@ int main(int argc, char **argv, char **envp) {
 
     sbush_pid = fork();
     if(sbush_pid < 0) {
-        printf("\n/bin/init: fork failed: %s\n", strerror(errno));
+        printf("/bin/init: fork failed: %s\n", strerror(errno));
         exit(1);
     } else if(sbush_pid == 0) {
         /* change to root's home dir and exec shell */
         chdir("/root");
         execve(sbush_argv[0], sbush_argv, sbush_envp);
-        printf("\n/bin/init: execve '%s': %s\n", sbush_argv[0], strerror(errno));
+        printf("/bin/init: execve '%s': %s\n", sbush_argv[0], strerror(errno));
         exit(1);
     }
 //    printf("/bin/init: sbush pid=%d!\n", (int)sbush_pid);
@@ -34,18 +34,19 @@ int main(int argc, char **argv, char **envp) {
         pid_t wpid;
         wpid = waitpid((pid_t)-1, &status, 0);
         if (wpid == (pid_t)-1) {
-            printf("\n/bin/init: waitpid failed: %s\n", strerror(errno));
-            break;
+            printf("/bin/init: waitpid failed: %s\n", strerror(errno));
+            main(argc, argv, envp); /* "reboot" */
         } else if(WIFEXITED(status)) {
             status = WEXITSTATUS(status);
         } else if(WIFSIGNALED(status)) {
             status = WTERMSIG(status);
-            printf("\n/bin/init: reaped pid %d, killed by signal %d\n", (int)wpid, status);
+            printf("/bin/init: reaped pid %d, killed by signal %d\n", (int)wpid, status);
+            continue;
         } else {
             status = 1;  /* ? Didn't exit or get killed by signal? */
         }
         printf("\n/bin/init: reaped pid %d, exit status: %d\n", (int)wpid, status);
     }
-    printf("\n/bin/init: no more child processes: please reboot SBUnix\n");
+    printf("/bin/init: no more child processes: please reboot SBUnix\n");
     return EXIT_FAILURE;
 }

@@ -85,7 +85,7 @@ long do_execve(char *filename, const char **argv, const char **envp, int rec) {
     /* Resolve pathname to an absolute path */
     rpath = resolve_path(curr_task->cwd, filename, &err);
     if(!rpath)
-        return err;
+        goto cleanup_rec_argv;
 
     if(rec == 1) {
         len = strlen(filename);
@@ -95,9 +95,8 @@ long do_execve(char *filename, const char **argv, const char **envp, int rec) {
     fp = tarfs_open(rpath, O_RDONLY, 0, &ierr);
     kfree(rpath);
     if(ierr) {
-        if(rec == 1)
-            free_page((uint64_t)argv);
-        return ierr;
+        err = ierr;
+        goto cleanup_rec_argv;
     }
 
     if(rec == 0 && (inter = is_interpreter(fp))) {
@@ -169,5 +168,8 @@ cleanup_copyargs:
         free_page((uint64_t)copyargv);
 cleanup_file:
     fp->f_op->close(fp);
+cleanup_rec_argv:
+    if(rec == 1)
+        free_page((uint64_t)argv);
     return err;
 }
