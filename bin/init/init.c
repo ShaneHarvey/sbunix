@@ -11,10 +11,11 @@
 
 char *const sbush_argv[] = {"/bin/sbush", NULL};
 char *const sbush_envp[] = {"PATH=/bin:", "HOME=/root", "USER=root", NULL};
+volatile int forever = 1;
 
 int main(int argc, char **argv, char **envp) {
     pid_t sbush_pid;
-
+reboot:
     sbush_pid = fork();
     if(sbush_pid < 0) {
         printf("/bin/init: fork failed: %s\n", strerror(errno));
@@ -29,24 +30,21 @@ int main(int argc, char **argv, char **envp) {
 //    printf("/bin/init: sbush pid=%d!\n", (int)sbush_pid);
 
     /* Call wait to reap any zombie processes */
-    while(1) {
+    while(forever) {
         int status;
         pid_t wpid;
         wpid = waitpid((pid_t)-1, &status, 0);
         if (wpid == (pid_t)-1) {
-            printf("/bin/init: waitpid failed: %s\n", strerror(errno));
-            main(argc, argv, envp); /* "reboot" */
+            goto reboot;
         } else if(WIFEXITED(status)) {
             status = WEXITSTATUS(status);
+            printf("/bin/init: reaped pid %d, exit status: %d\n", (int)wpid, status);
         } else if(WIFSIGNALED(status)) {
             status = WTERMSIG(status);
             printf("/bin/init: reaped pid %d, killed by signal %d\n", (int)wpid, status);
-            continue;
         } else {
-            status = 1;  /* ? Didn't exit or get killed by signal? */
+            printf("/bin/init: reaped pid %d, unknown exit status: %d\n", (int)wpid, status);
         }
-        printf("\n/bin/init: reaped pid %d, exit status: %d\n", (int)wpid, status);
     }
-    printf("/bin/init: no more child processes: please reboot SBUnix\n");
     return EXIT_FAILURE;
 }

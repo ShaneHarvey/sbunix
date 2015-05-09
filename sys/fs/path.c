@@ -41,18 +41,21 @@ static int next_file(char *path) {
  * Helper function that walks the path and resolves "..", ".", and "//"
  *
  * @rpath: the absolute path to validate
+ * @vaild: valid points to the end of the valid path so far, or NULL
  *
  * @return 0 on success
  */
-static long _resolve_path(char *rpath) {
-    char *cur, *valid;
+static long _resolve_path(char *rpath, char *valid) {
+    char *cur;
     long err;
 
     if(!rpath || *rpath != '/')
         kpanic("BUG: rpath not initialized correctly!\n");
 
-    valid = rpath;   /* valid points to the end of the valid path so far */
-    cur = rpath + 1; /* cur points to start of the next file in path */
+    if(!valid)
+        valid = rpath;
+
+    cur = valid + 1; /* cur points to start of the next file in path */
     while(*cur) {
 
         /* valid |
@@ -139,7 +142,7 @@ static long _resolve_path(char *rpath) {
  * @return kmalloc'd pointer to the fully resolved path
  */
 char *resolve_path(const char *cwd, const char *path, long *err) {
-    char *rpath;
+    char *rpath, *valid;
     size_t len;
 
     if(!path || *path == '\0') {
@@ -153,6 +156,7 @@ char *resolve_path(const char *cwd, const char *path, long *err) {
     }
     if(*path == '/') {
         strncpy(rpath, path, PAGE_SIZE - 1);
+        valid = NULL;
     } else {
         /* TODO: path must be no longer than PAGE_SIZE - TASK_CWD_MAX - 2 */
         /* concat cwd with path */
@@ -161,12 +165,13 @@ char *resolve_path(const char *cwd, const char *path, long *err) {
         /* Add a '/' in between if we need to */
         if(rpath[len - 1] != '/')
             rpath[len++] = '/';
+        valid = rpath + len - 1; /* Points to the end of cwd */
         strncpy(rpath + len, path, PAGE_SIZE - len - 1);
     }
     rpath[PAGE_SIZE - 1] = '\0'; /* null term path */
 
     /* now we can resolve "..", ".", and "//" */
-    *err = _resolve_path(rpath);
+    *err = _resolve_path(rpath, valid);
     if(*err)
         goto out_rpath;
 
