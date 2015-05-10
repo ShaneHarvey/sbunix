@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
         }
         printf("%s\t\t", dent->d_name);
         if(++prints == 4) {
-            prints = 4;
+            prints = 0;
             printf("\n");
         }
     }
