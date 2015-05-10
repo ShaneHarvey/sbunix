@@ -361,16 +361,6 @@ struct mm_struct *mm_deep_copy(void) {
         goto out_copy_mm;
 
     /* Create a copy of the page tables that are now Copy-On-Write */
-    printk("copying page table\n");
-    freemem_report();
-    curr_mm->pml4 = copy_current_pml4();
-    if(!curr_mm->pml4) {
-        goto out_copy_mm;
-    }
-    free_pml4(curr_mm->pml4);
-    freemem_report();
-    printk("After free pml4\n");
-
     curr_mm->pml4 = copy_current_pml4();
     if(!curr_mm->pml4) {
         goto out_copy_mm;
