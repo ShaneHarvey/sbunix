@@ -191,7 +191,7 @@ void physmem_init(void) {
 
     for(;i < pzone_num; i++) {
         _pzone_ppages_init(pzones + i);
-        debug("pz%ld: [%lx-%lx] %ld pages\n", i, pzones[i].start, pzones[i].end, PZONE_NUM_PAGES(pzones + i));
+        debug("pz%ld: 0x%lx-0x%lx %ld pgs\n", i, pzones[i].start, pzones[i].end, PZONE_NUM_PAGES(pzones + i));
     }
 
     _create_free_page_list(pzones);
@@ -203,13 +203,20 @@ void physmem_init(void) {
 void physmem_report(void) {
     size_t i = 0;
     uint64_t totpages = 0, npages;
+    char *status;
 
     for(; i < pzone_num; i++) {
         npages = PZONE_NUM_PAGES(pzones + i);
-        totpages += npages;
-        /*debug("pz%ld:[%lx-%lx]\n", i, pzones[i].start, pzones[i].end);*/
+        if(pzones[i].zflags & PZONE_USABLE) {
+            totpages += npages;
+            status = "";
+        } else {
+            status = " UNUSED";
+        }
+        printk("pz%ld:%s 0x%lx-0x%lx %ld pgs\n", i, status,
+               pzones[i].start, pzones[i].end, npages);
     }
-    debug("%ld total ppages across %ld pzones.\n", totpages, pzone_num);
+    printk("%ld usable ppages across %ld pzones\n", totpages, pzone_num);
 }
 
 /**

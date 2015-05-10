@@ -318,7 +318,6 @@ void mm_destroy(struct mm_struct *mm) {
         if(mm->mm_prev) {
             mm->mm_prev->mm_next = mm->mm_next;
         }
-        /* fixme: add other kfree()'s */
 
         /* Free the page_tables, if it exists (could come here during a
          * mm_deep_copy error) */
@@ -363,9 +362,19 @@ struct mm_struct *mm_deep_copy(void) {
 
     /* Create a copy of the page tables that are now Copy-On-Write */
     printk("copying page table\n");
+    freemem_report();
     curr_mm->pml4 = copy_current_pml4();
-    if(!curr_mm->pml4)
+    if(!curr_mm->pml4) {
         goto out_copy_mm;
+    }
+    free_pml4(curr_mm->pml4);
+    freemem_report();
+    printk("After free pml4\n");
+
+    curr_mm->pml4 = copy_current_pml4();
+    if(!curr_mm->pml4) {
+        goto out_copy_mm;
+    }
 
     return copy_mm;
 out_copy_mm:

@@ -44,10 +44,11 @@ void start(uint32_t* modulep, uint64_t physbase, uint64_t physfree)
 
 	/* Init kernel page table */
 	init_kernel_pt(physfree);
-	physfree += 3 * PAGE_SIZE;
+	physfree += 3 * PAGE_SIZE; /* Kernel Page Tables took 3 pages */
 
-	pzone_remove(physbase, physfree);
-	pzone_remove(physfree, 0x7fdf000UL);
+	/* Init physical memory tracking */
+	pzone_remove(physbase, physfree);  /* Remove kernel's code and data */
+	pzone_remove(physfree, 0x7fdf000UL);  /* TODO: remove, for debugging */
 	physmem_init();
 	physmem_report();
 
