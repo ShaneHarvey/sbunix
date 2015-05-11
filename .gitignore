@@ -43,3 +43,6 @@ vgcore.*
 *.506
 *.img
 *.iso
+
+### Bochs ###
+log.file

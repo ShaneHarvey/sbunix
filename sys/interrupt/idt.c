@@ -369,6 +369,8 @@ DUMMY_INTERRUPT(31);
 
 /* PIC IRQ's */
 REAL_INTERRUPT(32);  /* Programmable Interrupt Timer Interrupt */
+
+
 REAL_INTERRUPT(33);    /* Keyboard Interrupt */
 void ISR_HANDLER(33) {
     uint8_t scan_code = inb(0x60);
@@ -382,7 +384,12 @@ DUMMY_INTERRUPT(35); /* COM2 (if enabled) */
 DUMMY_INTERRUPT(36); /* COM1 (if enabled) */
 DUMMY_INTERRUPT(37); /* LPT2 (if enabled) */
 DUMMY_INTERRUPT(38); /* Floppy Disk */
-DUMMY_INTERRUPT(39); /* LPT1 / Unreliable "spurious" interrupt (usually) */
+
+REAL_INTERRUPT(39);  /* LPT1 / Unreliable "spurious" interrupt (usually) */
+void ISR_HANDLER(39) {
+    /* Acknowledge interrupt */
+    PIC_sendEOI(33);
+}
 DUMMY_INTERRUPT(40); /* CMOS real-time clock (if enabled) */
 DUMMY_INTERRUPT(41); /* Free for peripherals / legacy SCSI / NIC */
 DUMMY_INTERRUPT(42); /* Free for peripherals / SCSI / NIC */
