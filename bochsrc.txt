@@ -21,13 +21,14 @@ pci: enabled=1, chipset=i440fx
 vga: extension=vbe, update_freq=5
 cpu: count=1, ips=4000000, model=corei5_lynnfield_750, reset_on_triple_fault=0, cpuid_limit_winnt=0, ignore_bad_msrs=1, mwait_is_nop=0
 print_timestamps: enabled=0
-port_e9_hack: enabled=0
+port_e9_hack: enabled=1
+magic_break: enabled=1
 private_colormap: enabled=0
 clock: sync=none, time0=local, rtc_sync=0
 # no cmosimage
 # no loader
-log: log.file
-logprefix: %t%e%d
+log: /dev/null
+# logprefix: %t%e%d
 debug: action=ignore, cpu0=report
 info: action=ignore, cpu0=report
 error: action=ignore, cpu0=report

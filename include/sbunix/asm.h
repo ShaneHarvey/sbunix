@@ -47,6 +47,13 @@
             } while(0)
 
 /**
+ * Magic breakpoint instruction for bochs
+ */
+static inline void bochs_breakpoint(void) {
+    __asm__ __volatile__ ("xchgw %bx, %bx");
+}
+
+/**
  * Read the current value of the stack pointer
  */
 static inline uint64_t read_rsp(void) {
