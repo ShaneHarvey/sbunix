@@ -69,7 +69,7 @@ char *is_interpreter(struct file *fp) {
  * "./script.sh" -->> "/bin/sbush script.sh"
  */
 static char inter_prev = 0;
-//static int execcount = 0;
+
 long do_execve(char *filename, const char **argv, const char **envp, int rec) {
     struct file *fp;
     struct mm_struct *mm;
@@ -79,8 +79,6 @@ long do_execve(char *filename, const char **argv, const char **envp, int rec) {
     const char **copyargv = NULL;
     char *inter;
     size_t len;
-
-//    printk("exec rec = %d, filename= %s\n", rec, filename);
 
     /* Resolve pathname to an absolute path */
     rpath = resolve_path(curr_task->cwd, filename, &err);
@@ -159,27 +157,19 @@ long do_execve(char *filename, const char **argv, const char **envp, int rec) {
     }
     curr_task->mm = mm;
     fp->f_op->close(fp);
-    debug("new mm->usr_rsp=%p, mm->user_rip=%p\n", mm->user_rsp, mm->user_rip);
-//    if(execcount++ > 3)
-//        return -ENOEXEC;
+
     enter_usermode(mm->user_rsp, mm->user_rip);
     /* cannot return here */
     return -ENOEXEC;
 cleanup_mm:
-    printk("do_exec: mm_destroy(mm=%p)\n", mm);
     mm_destroy(mm);
 cleanup_copyargs:
-    if(copyargv) {
-        printk("do_exec: free_page(copyargv=%p)\n", copyargv);
+    if(copyargv)
         free_page((uint64_t)copyargv);
-    }
 cleanup_file:
-    printk("do_exec: close(fp=%p)\n", fp);
     fp->f_op->close(fp);
 cleanup_rec_argv:
-    if(rec == 1) {
-        printk("do_exec: free_page(argv=%p)\n", argv);
+    if(rec == 1)
         free_page((uint64_t)argv);
-    }
     return err;
 }

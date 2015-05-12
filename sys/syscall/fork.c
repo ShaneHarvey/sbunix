@@ -13,9 +13,7 @@ extern void child_ret_from_fork(void);
 pid_t do_fork(void) {
     struct task_struct *child;
 
-    freemem_report();
     child = fork_curr_task();
-    printk("do_fork: forked! childtask=%p\n", child);
     if(!child)
         return (pid_t)-ENOMEM;
 

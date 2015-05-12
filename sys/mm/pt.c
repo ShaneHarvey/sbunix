@@ -435,7 +435,7 @@ static uint64_t rec_copy_pt(int level, uint64_t pte) {
     return kvirt_to_phys((uint64_t)new_pt) | PE_FLAGS(pte);
 error_copy:
     /* free all the pages we allocated for the current page */
-    printk("error_copy: level=%d, new_pt=0x%lx\n", level, new_pt);
+    debug("error_copy: level=%d, new_pt=0x%lx\n", level, new_pt);
     rec_free_pt(level, kvirt_to_phys((uint64_t)new_pt));
     return 0;
 }

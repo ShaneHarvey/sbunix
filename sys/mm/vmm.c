@@ -309,7 +309,6 @@ void mm_destroy(struct mm_struct *mm) {
         return;
 
     if(--mm->mm_count <= 0) {
-        printk("mm_destroy: vma_destroy_all(mm=%p)\n", mm);
         vma_destroy_all(mm);
 
         if(mm->mm_next) {
@@ -321,12 +320,9 @@ void mm_destroy(struct mm_struct *mm) {
 
         /* Free the page_tables, if it exists (could come here during a
          * mm_deep_copy error) */
-        if(mm->pml4) {
-            printk("mm_destroy: free_pml4(pml4=%p)\n", (void *)mm->pml4);
+        if(mm->pml4)
             free_pml4(mm->pml4);
-        }
 
-        printk("mm_destroy: kfree(mm=%p)\n", (void *)mm);
         kfree(mm);
     }
 }
@@ -523,7 +519,6 @@ void vma_destroy(struct vm_area *vma) {
     if(vma->vm_file)
         vma->vm_file->f_op->close(vma->vm_file);
 
-    printk("vma_destroy: kfree(vma=%p)\n", vma);
     kfree(vma);
 }
 
