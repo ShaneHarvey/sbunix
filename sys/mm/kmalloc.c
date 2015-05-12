@@ -24,5 +24,7 @@ void* kmalloc(size_t size) {
 void kfree(void* ptr) {
     if(!ptr)
         return;
+    if(((uint64_t)PAGE_SIZE-1) & (uint64_t)ptr)
+        kpanic("Address %p not page aligned!\n", ptr);
     free_page((uint64_t)ptr);
 }

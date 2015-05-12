@@ -15,7 +15,10 @@ volatile int forever = 1;
 
 int main(int argc, char **argv, char **envp) {
     pid_t sbush_pid;
+    int reboots = 0;
 reboot:
+    if(reboots++ >= 500)
+        exit(1);
     sbush_pid = fork();
     if(sbush_pid < 0) {
         printf("/bin/init: fork failed: %s\n", strerror(errno));

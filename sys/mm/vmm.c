@@ -37,9 +37,11 @@ int add_heap(struct mm_struct *user) {
     for(vma = user->vmas; vma->vm_next != NULL; vma = vma->vm_next) {
     }
     /* Heap starts after the other sections */
-    user->start_brk = user->brk = ALIGN_UP(vma->vm_end + 1, PAGE_SIZE);
+    user->start_brk = user->brk = PAGE_ALIGN(vma->vm_end + PAGE_SIZE);//ALIGN_UP(vma->vm_end + 1, PAGE_SIZE);
     /* Initially size is 0 */
     heap = vma_create(user->start_brk, user->brk, VM_HEAP, PFLAG_RW);
+    if(!heap)
+        return -ENOMEM;
     heap->onfault = onfault_mmap_anon;
     heap->vm_mm = user;
     user->vma_count++;
@@ -177,14 +179,14 @@ int add_stack(struct mm_struct *user, const char **argv, const char **envp) {
     /* Finally, add stack to the user */
     if(mm_add_vma(user, stack)) {
         err = -ENOEXEC;
-        goto out_vma;
+        goto out_virt_strs;
     }
 
     return 0;
 out_virt_strs:
-    free_page((uint64_t)virt_strs);
+    free_page(PAGE_ALIGN((uint64_t)virt_strs));
 out_virt_ptrs:
-    free_page((uint64_t)virt_ptrs);
+    free_page(PAGE_ALIGN((uint64_t)virt_ptrs));
 out_vma:
     vma_destroy(stack);
     return err;
@@ -248,10 +250,7 @@ int mmap_area(struct mm_struct *mm, struct file *filep,
     vma = vma_create(vm_start, vm_end, VM_MMAP, prot);
     if(!vma)
         return -ENOMEM;
-    if(mm_add_vma(mm, vma)) {
-        err = -EINVAL;
-        goto out_vma;
-    }
+
     if(filep) {
         filep->f_count++;
         vma->vm_file = filep;
@@ -266,7 +265,11 @@ int mmap_area(struct mm_struct *mm, struct file *filep,
     write_cr3(mm->pml4);
     err = vma->onfault(vma, vm_start);
     write_cr3(curr_pml4);
-    if(err){
+    if(err)
+        goto out_vma;
+    /* finally add to mm */
+    if(mm_add_vma(mm, vma)) {
+        err = -EINVAL;
         goto out_vma;
     }
     return 0;
@@ -314,7 +317,6 @@ void mm_destroy(struct mm_struct *mm) {
         if(mm->mm_prev) {
             mm->mm_prev->mm_next = mm->mm_next;
         }
-        /* fixme: add other kfree()'s */
 
         /* Free the page_tables, if it exists (could come here during a
          * mm_deep_copy error) */
@@ -356,8 +358,9 @@ struct mm_struct *mm_deep_copy(void) {
 
     /* Create a copy of the page tables that are now Copy-On-Write */
     curr_mm->pml4 = copy_current_pml4();
-    if(!curr_mm->pml4)
+    if(!curr_mm->pml4) {
         goto out_copy_mm;
+    }
 
     return copy_mm;
 out_copy_mm:

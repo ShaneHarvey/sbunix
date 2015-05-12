@@ -149,7 +149,7 @@ char *resolve_path(const char *cwd, const char *path, long *err) {
         *err = -EFAULT;
         return NULL;
     }
-    rpath = kmalloc(sizeof(PAGE_SIZE));
+    rpath = kmalloc(PAGE_SIZE);
     if(!rpath) {
         *err = -ENOMEM;
         return NULL;

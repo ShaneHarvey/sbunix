@@ -327,7 +327,7 @@ struct idtr_t idtr = {
     extern void _isr_wrapper_ ## vector(); \
     void _isr_handler_ ## vector() \
     { \
-            printk("DUMMY INTERRUPT VECTOR! " #vector "\n"); \
+            printk("INTERRUPT VECTOR " #vector "!\n"); \
     }
 
 #define REAL_INTERRUPT(vector) \

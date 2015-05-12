@@ -80,8 +80,6 @@ long do_execve(char *filename, const char **argv, const char **envp, int rec) {
     char *inter;
     size_t len;
 
-//    printk("exec rec = %d, filename= %s\n", rec, filename);
-
     /* Resolve pathname to an absolute path */
     rpath = resolve_path(curr_task->cwd, filename, &err);
     if(!rpath)
@@ -158,8 +156,10 @@ long do_execve(char *filename, const char **argv, const char **envp, int rec) {
         mm_destroy(curr_task->mm);
     }
     curr_task->mm = mm;
-    debug("new mm->usr_rsp=%p, mm->user_rip=%p\n", mm->user_rsp, mm->user_rip);
+    fp->f_op->close(fp);
+
     enter_usermode(mm->user_rsp, mm->user_rip);
+    /* cannot return here */
     return -ENOEXEC;
 cleanup_mm:
     mm_destroy(mm);

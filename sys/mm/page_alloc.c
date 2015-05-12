@@ -30,6 +30,8 @@ uint64_t get_free_page(uint32_t gpf_flags) {
 
     ppage->mapcount = 1;
 
+    if(((uint64_t)PAGE_SIZE-1) & (uint64_t)pgaddr)
+        kpanic("Address %p not page aligned!\n", (void *)pgaddr);
     /* TODO: remove memset to 0 from get_free_page to speed up kernel allocs */
     memset((void*) pgaddr, 0, PAGE_SIZE);
     return pgaddr;
