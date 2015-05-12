@@ -1,8 +1,8 @@
 #include <string.h>
 #include <sbunix/sbunix.h>
 #include <sbunix/console.h>
+#include <sbunix/serial.h>
 #include <sbunix/fs/terminal.h>
-#include <sbunix/mm/page_alloc.h>
 
 #define SCRN_BASE ((uint16_t *)kphys_to_virt(0xb8000))
 #define SCRN_WIDTH 80U
@@ -66,6 +66,9 @@ int curr_tab_to_spaces(void) {
  * does not update the VGA cursor
  */
 void putch(char c) {
+    /* uncomment this next line to write to the serial port as well */
+    /*serial_write(c);*/
+
     /* Move cursor back one space */
     if(c == '\b') {
         if(!cursor_x && !cursor_y)
