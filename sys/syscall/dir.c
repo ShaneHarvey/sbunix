@@ -53,7 +53,6 @@ long do_chdir(const char *path) {
         goto out_rpath;
 
     strcpy(curr_task->cwd, rpath);
-    return 0;
 
 out_rpath:
     kfree(rpath);
