@@ -178,7 +178,8 @@ struct task_struct *fork_curr_task(void) {
     add_child(curr_task, task);
 
     /* TODO: Here we steal our parent's foreground status */
-    curr_task->foreground = 0;/* change to 1; to let all tasks read */
+    if(curr_task->pid > 2)
+        curr_task->foreground = 0;/* change to 1; to let all tasks read */
 
     task_add_new(task); /* add to run queue and task list */
 

@@ -22,13 +22,13 @@ struct terminal_buf {
 };
 
 struct terminal_buf term = {
-        .start     = 0,
-        .end       = 0,
-        .full      = 0,
-        .echo      = 1,
-        .delims    = 0,
-        .backspace = 0,
-        .buf       = {0}
+    .start     = 0,
+    .end       = 0,
+    .full      = 0,
+    .echo      = 1,
+    .delims    = 0,
+    .backspace = 0,
+    .buf       = {0}
 };
 
 /* File hooks for standard terminal input */
@@ -37,18 +37,19 @@ struct file_ops term_ops = {
     .read = term_read,
     .write = term_write,
     .readdir = term_readdir,
-    .close = term_close
+    .close = term_close,
+    .can_mmap = term_can_mmap
 };
 
 /* There is only one terminal ever for the system */
 struct file term_file = {
-        .f_op = &term_ops,
-        .f_count = 1,
-        .f_flags = 0,
-        .f_pos = 0,
-        .f_size = 0,
-        .f_error = 0,
-        .private_data = &term
+    .f_op = &term_ops,
+    .f_count = 1,
+    .f_flags = 0,
+    .f_pos = 0,
+    .f_size = 0,
+    .f_error = 0,
+    .private_data = &term
 };
 
 /**
@@ -157,9 +158,9 @@ void term_putch(unsigned char c) {
     if(c == EOT || c == '\n') {
         term.delims++;
         term.backspace = 0;
-        task_unblock_foreground(&term);
         /* Add c to the buffer */
         term_push(c);
+        task_unblock_foreground(&term);
     } else if(c == '\t') {
         int spaces = curr_tab_to_spaces();
         term.backspace += spaces;
@@ -214,6 +215,7 @@ ssize_t term_read(struct file *fp, char *buf, size_t count, off_t *offset) {
     /* Error checking */
     if(!fp || !buf)
         return -EINVAL;
+
     tb = (struct terminal_buf *)fp->private_data;
     if(!tb)
         return -EINVAL;
@@ -224,13 +226,10 @@ ssize_t term_read(struct file *fp, char *buf, size_t count, off_t *offset) {
     if(!curr_task->foreground && curr_task->pid > 2)
         return -EIO; /* should send SIGTTIN as well, but don't have signals */
 
-    if(tb->delims == 0) {
-        /* Block as a line has not been buffered yet */
-        task_block(&term);
-    }
-//    if(tb->delims == 0) {
-//        kpanic("Unblocked but still no input!!!\n");
-//    }
+    /* Block as a line has not been buffered yet */
+    while(tb->delims == 0)
+        task_block(tb);
+
     /* Unblocked! We can read until delim or count bytes are consumed */
     num_read = 0;
     while(count--) {

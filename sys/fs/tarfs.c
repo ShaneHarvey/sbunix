@@ -19,23 +19,23 @@ struct file_ops tarfs_file_ops = {
 
 /* open "/" for use with readdir */
 struct posix_header_ustar fs_root_hdr = {
-        .name = "", /* or "/"? */
-        .mode = {0},
-        .uid = {0},
-        .gid = {0},
-        .size = "0",
-        .mtime = {0},
-        .checksum = {0},
-        .typeflag = TARFS_DIRECTORY,
-        .linkname = {0},
-        .magic = "ustar",
-        .version = {0},
-        .uname = {0},
-        .gname = {0},
-        .devmajor = {0},
-        .devminor = {0},
-        .prefix = {0},
-        .pad = {0}
+    .name = "", /* or "/"? */
+    .mode = {0},
+    .uid = {0},
+    .gid = {0},
+    .size = "0",
+    .mtime = {0},
+    .checksum = {0},
+    .typeflag = TARFS_DIRECTORY,
+    .linkname = {0},
+    .magic = "ustar",
+    .version = {0},
+    .uname = {0},
+    .gname = {0},
+    .devmajor = {0},
+    .devminor = {0},
+    .prefix = {0},
+    .pad = {0}
 };
 
 /**
