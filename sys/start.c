@@ -77,15 +77,12 @@ void boot(void)
 		"movq %%rsp, %0;"
 		"movq %1, %%rsp;"
 		:"=g"(loader_stack)
-		:"r"(&stack[INITIAL_STACK_SIZE])
+		:"r"(&stack[INITIAL_STACK_SIZE - 16])
 	);
 	reload_gdt();
 	setup_tss();
 	virt_base = (uint64_t)&kernmem - (uint64_t)&physbase;
-	start(
-		(uint32_t*)((char*)(uint64_t)loader_stack[3] + (uint64_t)&kernmem - (uint64_t)&physbase),
-		(uint64_t)&physbase,
-		(uint64_t)loader_stack[4]
-	);
+	start((uint32_t*)(loader_stack[3] + virt_base), (uint64_t)&physbase,
+		  (uint64_t)loader_stack[4]);
 	halt_loop("!!!!! start() returned !!!!!\n");
 }

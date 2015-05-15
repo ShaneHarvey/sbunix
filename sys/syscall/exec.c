@@ -10,7 +10,7 @@
 #include <ctype.h>
 #include "syscall_dispatch.h"
 
-void enter_usermode(uint64_t user_rsp, uint64_t user_rip) {
+void __attribute__((noreturn)) enter_usermode(uint64_t user_rsp, uint64_t user_rip) {
     cli();
     /* Same is in post_context_switch(), kernel stacks always aligned up minus 16 */
     tss.rsp0 = ALIGN_UP(read_rsp(), PAGE_SIZE) - 16;
@@ -64,12 +64,10 @@ char *is_interpreter(struct file *fp) {
     return NULL;
 }
 
-/**
- * TODO: MUST support #! scripts
- * "./script.sh" -->> "/bin/sbush script.sh"
- */
 static char inter_prev = 0;
-
+/**
+ * Lookup a filename and load the ELF/script
+ */
 long do_execve(char *filename, const char **argv, const char **envp, int rec) {
     struct file *fp;
     struct mm_struct *mm;
@@ -159,8 +157,7 @@ long do_execve(char *filename, const char **argv, const char **envp, int rec) {
     fp->f_op->close(fp);
 
     enter_usermode(mm->user_rsp, mm->user_rip);
-    /* cannot return here */
-    return -ENOEXEC;
+    /* does not return */
 cleanup_mm:
     mm_destroy(mm);
 cleanup_copyargs:
