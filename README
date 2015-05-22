@@ -1,14 +1,7 @@
-    Final Project
-Preemptive OS — 70 pts
-======================
-Shane Harvey 108272239
-Scott Harvey 108272691
-======================
-
-/bin/mallochuge and /bin/mmaphuge both allocate 1TB of memory and then
-proceed to write to every page.
-
-
+SBUnix a simple preemptive OS for x86-64
+by
+Shane Harvey and Scott Harvey
+=====================
 
       sbush shell
 ======================
